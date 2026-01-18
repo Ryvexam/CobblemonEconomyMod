@@ -1,0 +1,26 @@
+# Gradle files
+.gradle/
+build/
+bin/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Minecraft run directory (Loom)
+run/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Java/Memory files
+*.hprof
+*.log
+
+# Gradle wrapper (optional, but usually kept)
+#!gradle/wrapper/gradle-wrapper.jar

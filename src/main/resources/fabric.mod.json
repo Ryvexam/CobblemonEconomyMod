@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblemon-economy",
+  "version": "${version}",
+  "name": "Cobblemon Economy",
+  "description": "Economy mod for Cobblemon",
+  "authors": [
+    "Ryvexam"
+  ],
+  "contact": {
+    "homepage": "https://ryvexam.fr/",
+    "sources": "https://ryvexam.fr/"
+  },
+  "license": "MIT",
+  "icon": "assets/cobblemon-economy/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cobblemon.economy.fabric.CobblemonEconomy"
+    ],
+    "client": [
+      "com.cobblemon.economy.client.CobblemonEconomyClient"
+    ]
+  },
+  "mixins": [
+    "cobblemon-economy.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.5",
+    "minecraft": "~1.21.1",
+    "fabric": "*",
+    "cobblemon": ">=1.7.1"
+  }
+}
