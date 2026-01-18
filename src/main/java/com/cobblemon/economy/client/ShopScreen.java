@@ -3,124 +3,104 @@ package com.cobblemon.economy.client;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.networking.OpenShopPayload;
 import com.cobblemon.economy.networking.PurchasePayload;
+import com.cobblemon.economy.shop.ShopScreenHandler;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.inventory.Slot;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
-public class ShopScreen extends Screen {
+public class ShopScreen extends AbstractContainerScreen<ShopScreenHandler> {
     private final BigDecimal balance;
     private final BigDecimal pco;
-    private final String shopType;
-    private final List<ShopItem> items = new ArrayList<>();
-    
-    private final int imageWidth = 256;
-    private final int imageHeight = 256;
-    
-    // Chemin dynamique vers la texture
+    private final String shopTitle;
+    private final String currencyType;
+    private final List<OpenShopPayload.ShopItemData> itemData;
     private final ResourceLocation backgroundTexture;
 
-    public ShopScreen(BigDecimal balance, BigDecimal pco, String shopType) {
-        super(Component.literal("Shop"));
-        this.balance = balance;
-        this.pco = pco;
-        this.shopType = shopType;
+    public ShopScreen(ShopScreenHandler handler, Inventory inventory, OpenShopPayload payload) {
+        super(handler, inventory, Component.literal("Shop"));
+        this.balance = payload.balance();
+        this.pco = payload.pco();
+        this.shopTitle = payload.title();
+        this.currencyType = payload.currency();
+        this.itemData = payload.items();
         
-        // Sélection du dossier en fonction du type de shop
-        String folder = shopType.equals("POKE") ? "pokedollar" : "pco";
-        // On utilise 0.png par défaut (pas de navigation)
+        this.imageWidth = 256;
+        this.imageHeight = 256;
+        this.inventoryLabelY = 1000;
+        this.titleLabelY = 1000;
+
+        String folder = currencyType.equals("POKE") ? "pokedollar" : "pco";
         this.backgroundTexture = ResourceLocation.fromNamespaceAndPath(
             CobblemonEconomy.MOD_ID, 
             "textures/gui/shop/" + folder + "/0.png"
         );
-        
-        if (shopType.equals("POKE")) {
-            items.add(new ShopItem("cobblemon:poke_ball", "Poké Ball", 100, false));
-            items.add(new ShopItem("cobblemon:great_ball", "Great Ball", 300, false));
-            items.add(new ShopItem("cobblemon:ultra_ball", "Ultra Ball", 600, false));
-            items.add(new ShopItem("cobblemon:potion", "Potion", 200, false));
-            items.add(new ShopItem("cobblemon:super_potion", "Super Potion", 500, false));
-            items.add(new ShopItem("cobblemon:revive", "Rappel", 1500, false));
-        } else {
-            items.add(new ShopItem("cobblemon:rare_candy", "Super Bonbon", 50, true));
-            items.add(new ShopItem("cobblemon:master_ball", "Master Ball", 500, true));
-            items.add(new ShopItem("cobblemon:ability_capsule", "Capsule Talent", 150, true));
+
+        // Remplir les slots du shop avec les objets et leurs lores
+        for (int i = 0; i < itemData.size(); i++) {
+            OpenShopPayload.ShopItemData data = itemData.get(i);
+            ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(data.id())));
+            
+            String priceLabel = data.price() + (currencyType.equals("PCO") ? " PCo" : "₽");
+            ChatFormatting color = currencyType.equals("PCO") ? ChatFormatting.AQUA : ChatFormatting.GOLD;
+            
+            stack.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.literal("Prix : ").withStyle(ChatFormatting.GRAY).append(Component.literal(priceLabel).withStyle(color)),
+                Component.literal(""),
+                Component.literal("▶ Clic gauche pour acheter").withStyle(ChatFormatting.YELLOW)
+            )));
+            
+            this.getMenu().getSlot(i).set(stack);
         }
     }
 
     @Override
-    protected void init() {
-        int xStart = (this.width - imageWidth) / 2;
-        int yStart = (this.height - imageHeight) / 2;
-
-        for (int i = 0; i < items.size(); i++) {
-            ShopItem item = items.get(i);
-            this.addRenderableWidget(Button.builder(Component.literal("Buy"), button -> {
-                ClientPlayNetworking.send(new PurchasePayload(item.id, item.isPco));
-            }).bounds(xStart + 185, yStart + 55 + (i * 28), 45, 20).build());
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) { // Clic gauche
+            for (int i = 0; i < itemData.size(); i++) {
+                Slot slot = this.getMenu().getSlot(i);
+                // Vérifier si la souris est sur l'un des 6 slots du shop
+                if (isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) {
+                    ClientPlayNetworking.send(new PurchasePayload(itemData.get(i).id(), currencyType.equals("PCO")));
+                    return true;
+                }
+            }
         }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private String format(BigDecimal value) {
-        return value.stripTrailingZeros().toPlainString();
+    @Override
+    protected void renderBg(GuiGraphics graphics, float delta, int mouseX, int mouseY) {
+        graphics.blit(backgroundTexture, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         this.renderBackground(graphics, mouseX, mouseY, delta);
-        
-        int xStart = (this.width - imageWidth) / 2;
-        int yStart = (this.height - imageHeight) / 2;
-
-        // Utilise la texture spécifique au shop
-        graphics.blit(backgroundTexture, xStart, yStart, 0, 0, imageWidth, imageHeight);
-        
-        String balText = shopType.equals("POKE") ? format(balance) + "₽" : format(pco) + " PCo";
-        int color = shopType.equals("POKE") ? 0x55FF55 : 0x55FFFF;
-        graphics.drawString(this.font, balText, xStart + 155, yStart + 15, color, false);
-        
-        for (int i = 0; i < items.size(); i++) {
-            ShopItem item = items.get(i);
-            int yPos = yStart + 57 + (i * 28);
-            
-            ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(item.id)));
-            graphics.renderItem(stack, xStart + 28, yPos);
-            graphics.drawString(this.font, item.name, xStart + 55, yPos + 4, 0xFFFFFF, false);
-            
-            String price = item.price + (item.isPco ? " PCo" : "₽");
-            graphics.drawString(this.font, price, xStart + 130, yPos + 4, color, false);
-        }
-
-        graphics.drawString(this.font, "ryvexam.fr", xStart + 185, yStart + 240, 0x555555, false);
-
         super.render(graphics, mouseX, mouseY, delta);
+        this.renderTooltip(graphics, mouseX, mouseY);
+
+        // Titre
+        graphics.drawCenteredString(this.font, shopTitle.replace("⚔️", "").replace("⭐", "").trim(), this.leftPos + 128, this.topPos + 35, 0xFFFFFF);
+        
+        // Solde
+        String balText = currencyType.equals("POKE") ? format(balance) + "₽" : format(pco) + " PCo";
+        int color = currencyType.equals("POKE") ? 0x55FF55 : 0x55FFFF;
+        graphics.drawString(this.font, balText, this.leftPos + 155, this.topPos + 15, color, false);
     }
 
-    @Override
-    public boolean isPauseScreen() {
-        return false;
-    }
-
-    private static class ShopItem {
-        final String id;
-        final String name;
-        final int price;
-        final boolean isPco;
-
-        ShopItem(String id, String name, int price, boolean isPco) {
-            this.id = id;
-            this.name = name;
-            this.price = price;
-            this.isPco = isPco;
-        }
+    private String format(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
     }
 }
