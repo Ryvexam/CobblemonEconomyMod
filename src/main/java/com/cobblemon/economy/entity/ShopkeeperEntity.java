@@ -53,7 +53,8 @@ public class ShopkeeperEntity extends PathfinderMob {
         if (name == null || name.isEmpty()) return null;
 
         if (cachedProfile == null || !cachedProfile.getName().equals(name)) {
-            cachedProfile = new GameProfile(null, name);
+            // Utilisation de Util.NIL_UUID car 'null' est interdit dans les versions récentes
+            cachedProfile = new GameProfile(Util.NIL_UUID, name);
         }
         return cachedProfile;
     }
