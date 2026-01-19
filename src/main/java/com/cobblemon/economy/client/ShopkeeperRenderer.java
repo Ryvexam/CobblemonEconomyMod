@@ -28,10 +28,15 @@ public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, P
             return DEFAULT_TEXTURE;
         }
 
-        GameProfile profile = entity.getGameProfile();
-        if (profile != null) {
-            PlayerSkin skin = Minecraft.getInstance().getSkinManager().getInsecureSkin(profile);
-            return skin.texture();
+        try {
+            GameProfile profile = entity.getGameProfile();
+            if (profile != null) {
+                PlayerSkin skin = Minecraft.getInstance().getSkinManager().getInsecureSkin(profile);
+                return skin.texture();
+            }
+        } catch (Exception e) {
+            // En cas d'erreur de chargement du skin, on retourne la texture par défaut
+            return DEFAULT_TEXTURE;
         }
         
         return DEFAULT_TEXTURE;

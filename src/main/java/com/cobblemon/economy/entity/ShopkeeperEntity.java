@@ -58,8 +58,9 @@ public class ShopkeeperEntity extends PathfinderMob {
 
         if (cachedProfile == null || !cachedProfile.getName().equals(name)) {
             cachedProfile = new GameProfile(Util.NIL_UUID, name);
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.getServer().getProfileCache().get(name).ifPresent(profile -> {
+            // On ne fait le lookup que si on est sur le serveur pour éviter les crashs de classe
+            if (!this.level().isClientSide && this.level().getServer() != null) {
+                this.level().getServer().getProfileCache().get(name).ifPresent(profile -> {
                     this.cachedProfile = profile;
                 });
             }
