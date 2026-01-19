@@ -57,13 +57,9 @@ public class ShopkeeperEntity extends PathfinderMob {
         if (name == null || name.isEmpty()) return null;
 
         if (cachedProfile == null || !cachedProfile.getName().equals(name)) {
-            cachedProfile = new GameProfile(Util.NIL_UUID, name);
-            // On ne fait le lookup que si on est sur le serveur pour éviter les crashs de classe
-            if (!this.level().isClientSide && this.level().getServer() != null) {
-                this.level().getServer().getProfileCache().get(name).ifPresent(profile -> {
-                    this.cachedProfile = profile;
-                });
-            }
+            // On crée un profil basique avec le nom.
+            // Le SkinManager du client se chargera de résoudre l'UUID et les textures via l'API Mojang.
+            cachedProfile = new GameProfile(null, name);
         }
         return cachedProfile;
     }

@@ -187,8 +187,6 @@ public class EconomyConfig {
             emeraldShop.currency = "POKE";
             emeraldShop.isSellShop = true;
             emeraldShop.items.add(new ShopItemDefinition("minecraft:emerald", "Émeraude", 10));
-            emeraldShop.items.add(new ShopItemDefinition("minecraft:diamond", "Diamant", 50));
-            emeraldShop.items.add(new ShopItemDefinition("minecraft:gold_ingot", "Lingot d'Or", 20));
             config.shops.put("sell_gems", emeraldShop);
 
             // On sauvegarde pour que l'utilisateur voit les nouveaux choix
