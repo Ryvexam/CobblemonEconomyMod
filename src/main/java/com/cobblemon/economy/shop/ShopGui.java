@@ -31,6 +31,7 @@ public class ShopGui {
         if (shop == null) return;
 
         boolean isPco = "PCO".equals(shop.currency);
+        boolean isSell = shop.isSellShop;
         
         // Calcul des pages
         int totalItems = shop.items.size();
@@ -41,26 +42,30 @@ public class ShopGui {
         if (page < 0) page = 0;
         if (page >= maxPages) page = maxPages - 1;
         
-        final int currentPage = page; // Variable finale pour les lambdas
+        final int currentPage = page;
 
         boolean hasPrev = currentPage > 0;
         boolean hasNext = currentPage < maxPages - 1;
 
         // Choix de l'image (Background)
         String titleChar;
-        if (hasPrev && hasNext) {
-            titleChar = isPco ? "\uE005" : "\uE004"; // 2.png
-        } else if (hasNext) {
-            titleChar = isPco ? "\uE003" : "\uE002"; // 1.png
-        } else if (hasPrev) {
-            titleChar = isPco ? "\uE007" : "\uE006"; // 3.png
+        if (isSell) {
+            // Dossier _sell (Chars \uE008 to \uE00F)
+            if (hasPrev && hasNext) titleChar = isPco ? "\uE00E" : "\uE00A"; // 2.png
+            else if (hasNext) titleChar = isPco ? "\uE00D" : "\uE009"; // 1.png
+            else if (hasPrev) titleChar = isPco ? "\uE00F" : "\uE00B"; // 3.png
+            else titleChar = isPco ? "\uE00C" : "\uE008"; // 0.png
         } else {
-            titleChar = isPco ? "\uE001" : "\uE000"; // 0.png
+            // Dossier normal (Chars \uE000 to \uE007)
+            if (hasPrev && hasNext) titleChar = isPco ? "\uE005" : "\uE004"; // 2.png
+            else if (hasNext) titleChar = isPco ? "\uE003" : "\uE002"; // 1.png
+            else if (hasPrev) titleChar = isPco ? "\uE007" : "\uE006"; // 3.png
+            else titleChar = isPco ? "\uE001" : "\uE000"; // 0.png
         }
 
         SimpleGui gui = new SimpleGui(MenuType.GENERIC_9x6, player, false);
         
-        // Titre avec décalage
+        // Titre avec décalage et couleur
         String offset = "\uF804"; 
         gui.setTitle(Component.literal(offset + titleChar).withStyle(style -> 
             style.withFont(ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "default"))
@@ -68,7 +73,6 @@ public class ShopGui {
         ));
 
         // Remplissage de la PREMIÈRE rangée (Slots 0-8)
-        // Slot 0 : Retour début (Invisible mais cliquable si page > 0)
         if (hasPrev) {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR)
                 .setCallback((index, type, action) -> open(player, shopId, 0))
@@ -77,7 +81,6 @@ public class ShopGui {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR).setCallback((index, type, action) -> {}));
         }
         
-        // Les autres slots de la rangée 0 sont vides
         for (int i = 1; i < 9; i++) {
             gui.setSlot(i, new GuiElementBuilder(Items.AIR).setCallback((index, type, action) -> {}));
         }
@@ -94,30 +97,35 @@ public class ShopGui {
                 EconomyConfig.ShopItemDefinition itemDef = shop.items.get(itemIndex);
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
                 
+                String actionLabel = isSell ? "▶ Clic pour vendre" : "▶ Clic pour acheter";
+                String priceLabel = (isSell ? "Vente : " : "Prix : ");
+                ChatFormatting priceColor = isPco ? ChatFormatting.AQUA : ChatFormatting.GREEN;
+
                 gui.setSlot(slotIndex, new GuiElementBuilder(item)
                     .setName(Component.literal(itemDef.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
-                    .addLoreLine(Component.literal("Prix : ").withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(itemDef.price + (isPco ? " PCo" : "₽")).withStyle(isPco ? ChatFormatting.AQUA : ChatFormatting.GREEN)))
+                    .addLoreLine(Component.literal(priceLabel).withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(itemDef.price + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
                     .addLoreLine(Component.literal(""))
-                    .addLoreLine(Component.literal("▶ Clic pour acheter").withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.literal(actionLabel).withStyle(ChatFormatting.YELLOW))
                     .setCallback((index, type, action) -> {
-                        handlePurchase(player, itemDef, isPco);
-                        // On réouvre à la même page pour actualiser le solde
+                        if (isSell) {
+                            handleSell(player, itemDef, isPco);
+                        } else {
+                            handlePurchase(player, itemDef, isPco);
+                        }
                         open(player, shopId, currentPage); 
                     })
                 );
             } else {
-                // Vide si plus d'items
                 gui.setSlot(slotIndex, new GuiElementBuilder(Items.AIR).setCallback((index, type, action) -> {}));
             }
         }
 
         // DERNIÈRE RANGÉE (Slots 45-53)
-        // Gauche (45-48) : Page Précédente
         for (int i = 45; i <= 48; i++) {
             if (hasPrev) {
                 final int prevPage = currentPage - 1;
-                gui.setSlot(i, new GuiElementBuilder(Items.AIR) // Invisible mais cliquable
+                gui.setSlot(i, new GuiElementBuilder(Items.AIR)
                     .setCallback((index, type, action) -> open(player, shopId, prevPage))
                 );
             } else {
@@ -125,7 +133,6 @@ public class ShopGui {
             }
         }
 
-        // Milieu (49) : Solde (Tête du joueur)
         BigDecimal balance = isPco ? CobblemonEconomy.getEconomyManager().getPco(player.getUUID()) : CobblemonEconomy.getEconomyManager().getBalance(player.getUUID());
         gui.setSlot(49, new GuiElementBuilder(Items.PLAYER_HEAD)
             .setName(Component.literal("Votre Solde").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
@@ -137,11 +144,10 @@ public class ShopGui {
             .setCallback((index, type, action) -> {})
         );
 
-        // Droite (50-53) : Page Suivante
         for (int i = 50; i <= 53; i++) {
             if (hasNext) {
                 final int nextPage = currentPage + 1;
-                gui.setSlot(i, new GuiElementBuilder(Items.AIR) // Invisible mais cliquable
+                gui.setSlot(i, new GuiElementBuilder(Items.AIR)
                     .setCallback((index, type, action) -> open(player, shopId, nextPage))
                 );
             } else {
@@ -163,23 +169,65 @@ public class ShopGui {
                 player.drop(stack, false);
             }
             player.sendSystemMessage(Component.literal("✔ Achat réussi : " + itemDef.name).withStyle(ChatFormatting.GREEN));
-            
-            // Log de la transaction
-            logTransaction(player, itemDef, isPco);
+            logTransaction(player, itemDef, isPco, false);
         } else {
             player.sendSystemMessage(Component.literal("✖ Solde insuffisant !").withStyle(ChatFormatting.RED));
         }
     }
 
-    private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco) {
+    private static void handleSell(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco) {
+        Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
+        int count = 0;
+        
+        // On cherche l'item dans l'inventaire
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.getItem() == item) {
+                count += stack.getCount();
+            }
+        }
+
+        if (count > 0) {
+            // On retire 1 item
+            ItemStack toRemove = new ItemStack(item, 1);
+            if (removeItem(player, toRemove)) {
+                BigDecimal price = BigDecimal.valueOf(itemDef.price);
+                if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), price);
+                else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), price);
+                
+                player.sendSystemMessage(Component.literal("✔ Vente réussie : " + itemDef.name).withStyle(ChatFormatting.GREEN));
+                logTransaction(player, itemDef, isPco, true);
+            }
+        } else {
+            player.sendSystemMessage(Component.literal("✖ Vous n'avez pas cet objet !").withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static boolean removeItem(ServerPlayer player, ItemStack toRemove) {
+        int remaining = toRemove.getCount();
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (ItemStack.isSameItem(stack, toRemove)) {
+                int count = stack.getCount();
+                int taken = Math.min(count, remaining);
+                stack.shrink(taken);
+                remaining -= taken;
+                if (remaining <= 0) return true;
+            }
+        }
+        return false;
+    }
+
+    private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco, boolean isSell) {
         try {
             java.io.File worldDir = player.server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
             java.io.File logFile = new java.io.File(new java.io.File(worldDir, "cobblemon-economy"), "transactions.log");
             
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String currency = isPco ? "PCo" : "₽";
-            String logEntry = String.format("[%s] PLAYER: %s (%s) | PURCHASE: %s (%s) | PRICE: %d %s\n", 
-                timestamp, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, itemDef.price, currency);
+            String type = isSell ? "SELL" : "PURCHASE";
+            String logEntry = String.format("[%s] TYPE: %s | PLAYER: %s (%s) | ITEM: %s (%s) | PRICE: %d %s\n", 
+                timestamp, type, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, itemDef.price, currency);
             
             java.nio.file.Files.writeString(logFile.toPath(), logEntry, 
                 java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);

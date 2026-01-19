@@ -27,6 +27,7 @@ public class EconomyConfig {
     public static class ShopDefinition {
         public String title = "Boutique";
         public String currency = "POKE"; 
+        public boolean isSellShop = false; // Défini si le shop est un shop d'achat ou de vente
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
