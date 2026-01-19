@@ -59,7 +59,7 @@ public class CobblemonEconomy implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Initializing Cobblemon Economy (Ryvexam Edition)");
+        LOGGER.info("Initializing Cobblemon Economy");
         
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
 

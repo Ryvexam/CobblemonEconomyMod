@@ -1,6 +1,8 @@
-# Cobblemon Economy (Ryvexam Edition)
+# Cobblemon Economy
 
 A professional economy system for Cobblemon on Fabric, featuring a custom GUI-based shop system, dual-currency management, and interactive shopkeepers.
+
+Visit our website: [ryvexam.fr](https://ryvexam.fr)
 
 ## 🚀 Features
 
