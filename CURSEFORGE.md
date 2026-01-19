@@ -18,12 +18,17 @@
 *   **SQLite Storage:** All player balances are stored in a reliable, local SQLite database for maximum performance and stability.
 
 ### 🛠️ In-Game Configuration Tools
-*   **Shopkeepers:** Custom entities that don't despawn and serve as your shop NPCs.
+*   **Shopkeepers:** Custom entities that don't despawn and serve as your shop NPCs. You can rename them using Name Tags!
 *   **Shop Setter:** A specialized tool to link any NPC to a specific shop ID defined in your config.
+*   **Skin Setter:** A tool to apply any player skin to your NPCs for a custom look.
 *   **Tower Tagger:** Tag NPCs for specific roles (like Battle Tower rewards).
 
+### 🔄 Buy & Sell Support
+*   **Sell Shops:** Configure specific shops where NPCs buy items from players.
+*   **Dynamic Textures:** Shop backgrounds automatically switch to "Sell Mode" textures when appropriate.
+
 ### 📜 Transparency & Security
-*   **Transaction Logs:** Every single purchase is logged in `world/cobblemon-economy/transactions.log` with timestamps, player UUIDs, and price details.
+*   **Transaction Logs:** Every single transaction (Purchase OR Sale) is logged in `world/cobblemon-economy/transactions.log` with timestamps, type, player UUIDs, and price details.
 *   **Cooldown Protection:** Built-in preventions for "double-click" exploits on tools and UI elements.
 
 ---
@@ -39,6 +44,7 @@
 *   `/eco reload` - Hot-reload the shop configurations.
 *   `/eco shop list` - View all registered shop IDs.
 *   `/eco shop get <id>` - Obtain a Shop Setter for a specific shop.
+*   `/eco skin <username>` - Obtain a Skin Setter to customize NPC appearance.
 *   `/eco item` - Obtain the Tower Tagger tool.
 *   `/balance <player> <add|remove|set> <amount>` - Direct balance manipulation.
 *   `/pco <player> <add|remove|set> <amount>` - Direct PCO manipulation.

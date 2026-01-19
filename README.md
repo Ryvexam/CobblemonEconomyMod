@@ -16,6 +16,7 @@ Visit our website: [ryvexam.fr](https://ryvexam.fr)
 *   **In-Game Tools:**
     *   **Shop Setter:** Link a shopkeeper to a specific shop ID.
     *   **Tower Tagger:** Toggle specific tags on entities for specialized behavior.
+    *   **Skin Setter:** Apply any player skin to a shopkeeper NPC.
 
 ---
 
@@ -30,6 +31,7 @@ Visit our website: [ryvexam.fr](https://ryvexam.fr)
 *   `/eco reload` - Reload the JSON configuration.
 *   `/eco shop list` - List all configured shop IDs.
 *   `/eco shop get <id>` - Get a *Shop Setter* item for a specific shop.
+*   `/eco skin <username>` - Get a *Skin Setter* item to change a shopkeeper's skin.
 *   `/eco item` - Give yourself a *Tower Tagger*.
 *   `/balance <player> <add/remove/set> <amount>` - Manage player balances.
 *   `/pco <player> <add/remove/set> <amount>` - Manage player PCO.
