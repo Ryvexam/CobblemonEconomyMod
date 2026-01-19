@@ -72,18 +72,24 @@ public class CobblemonEconomy implements ModInitializer {
             if (!modDir.exists()) modDir.mkdirs();
             config = EconomyConfig.load(new File(modDir, "config.json"));
             economyManager = new EconomyManager(new File(modDir, "economy.db"));
+            
+            // On n'enregistre les listeners Cobblemon QUE sur le serveur
+            CobblemonListeners.register();
+            LOGGER.info("Cobblemon Economy (Server Init) - DONE");
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> EconomyCommands.register(dispatcher));
 
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClientSide || hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+            // SECURITE CRITIQUE : On ignore tout si on est sur le client
+            if (world.isClientSide) return InteractionResult.PASS;
+            if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (!(entity instanceof ShopkeeperEntity shopkeeper)) return InteractionResult.PASS;
 
             ItemStack stack = player.getItemInHand(hand);
             Component customName = stack.get(DataComponents.CUSTOM_NAME);
 
-            // Détection du Shop Setter
+            // ... (suite du code de détection)
             if (customName != null && customName.getString().startsWith("Shop Setter: ")) {
                 String shopId = customName.getString().replace("Shop Setter: ", "");
                 if (config.shops.containsKey(shopId)) {
@@ -94,47 +100,34 @@ public class CobblemonEconomy implements ModInitializer {
                         stack.shrink(1);
                     }
                     return InteractionResult.SUCCESS;
-                } else {
-                    player.sendSystemMessage(Component.literal("Boutique '" + shopId + "' introuvable dans la config !").withStyle(ChatFormatting.RED));
-                    return InteractionResult.FAIL;
                 }
             }
 
-            // Détection du Tower Tagger
             if (customName != null && customName.getString().equals("Tower Tagger")) {
                 if (player instanceof ServerPlayer serverPlayer) {
-                    if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) {
-                        return InteractionResult.FAIL;
-                    }
+                    if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
                     serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
                 }
-
                 if (shopkeeper.getTags().contains("tour_de_combat")) {
                     shopkeeper.removeTag("tour_de_combat");
-                    player.sendSystemMessage(Component.literal("Tag supprimé : tour_de_combat").withStyle(ChatFormatting.RED));
+                    player.sendSystemMessage(Component.literal("Tag supprimé").withStyle(ChatFormatting.RED));
                 } else {
                     shopkeeper.addTag("tour_de_combat");
-                    player.sendSystemMessage(Component.literal("Tag ajouté : tour_de_combat").withStyle(ChatFormatting.AQUA));
+                    player.sendSystemMessage(Component.literal("Tag ajouté").withStyle(ChatFormatting.AQUA));
                 }
                 return InteractionResult.SUCCESS;
             }
 
-            // Détection du Skin Setter
             if (customName != null && customName.getString().startsWith("Skin Setter: ")) {
-                String skinName = customName.getString().replace("Skin Setter: ", "");
-                shopkeeper.setSkinName(skinName);
-                player.sendSystemMessage(Component.literal("Skin du marchand réglé sur : " + skinName).withStyle(ChatFormatting.GREEN));
-                
-                if (!player.getAbilities().instabuild) {
-                    stack.shrink(1);
-                }
+                shopkeeper.setSkinName(customName.getString().replace("Skin Setter: ", ""));
+                player.sendSystemMessage(Component.literal("Skin mis à jour").withStyle(ChatFormatting.GREEN));
+                if (!player.getAbilities().instabuild) stack.shrink(1);
                 return InteractionResult.SUCCESS;
             }
 
             return InteractionResult.PASS;
         });
 
-        CobblemonListeners.register();
         LOGGER.info("Cobblemon Economy (Common Init) - DONE");
     }
 
