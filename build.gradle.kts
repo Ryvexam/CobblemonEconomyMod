@@ -29,10 +29,9 @@ dependencies {
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
-    // SQLite
+    // SQLite - We don't include it anymore to avoid native conflicts on Mac
     implementation("org.xerial:sqlite-jdbc:3.45.1.0")
-    include("org.xerial:sqlite-jdbc:3.45.1.0")
-
+    
     // Sgui for Server-side GUIs
     modImplementation("eu.pb4:sgui:1.6.1+1.21.1")
     include("eu.pb4:sgui:1.6.1+1.21.1")

@@ -32,8 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.math.BigDecimal;
-import java.util.Optional;
 
 public class CobblemonEconomy implements ModInitializer {
     public static final String MOD_ID = "cobblemon-economy";
@@ -59,7 +57,7 @@ public class CobblemonEconomy implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Initializing Cobblemon Economy");
+        LOGGER.info("Starting Cobblemon Economy (Common Init)...");
         
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
 
@@ -92,11 +90,9 @@ public class CobblemonEconomy implements ModInitializer {
                     shopkeeper.setShopId(shopId);
                     player.sendSystemMessage(Component.literal("Boutique du marchand réglée sur : " + shopId).withStyle(ChatFormatting.GREEN));
                     
-                    // SUPPRESSION DU SETTER APRES UTILISATION
                     if (!player.getAbilities().instabuild) {
                         stack.shrink(1);
                     }
-                    
                     return InteractionResult.SUCCESS;
                 } else {
                     player.sendSystemMessage(Component.literal("Boutique '" + shopId + "' introuvable dans la config !").withStyle(ChatFormatting.RED));
@@ -106,12 +102,11 @@ public class CobblemonEconomy implements ModInitializer {
 
             // Détection du Tower Tagger
             if (customName != null && customName.getString().equals("Tower Tagger")) {
-                // Ajout d'un cooldown pour éviter le double clic
                 if (player instanceof ServerPlayer serverPlayer) {
                     if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) {
                         return InteractionResult.FAIL;
                     }
-                    serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20); // 1 seconde (20 ticks)
+                    serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
                 }
 
                 if (shopkeeper.getTags().contains("tour_de_combat")) {
@@ -140,6 +135,7 @@ public class CobblemonEconomy implements ModInitializer {
         });
 
         CobblemonListeners.register();
+        LOGGER.info("Cobblemon Economy (Common Init) - DONE");
     }
 
     public static void reloadConfig() {

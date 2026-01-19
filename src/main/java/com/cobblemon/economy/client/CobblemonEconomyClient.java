@@ -7,6 +7,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 public class CobblemonEconomyClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        CobblemonEconomy.LOGGER.info("Starting Cobblemon Economy (Client Init)...");
         EntityRendererRegistry.register(CobblemonEconomy.SHOPKEEPER, ShopkeeperRenderer::new);
+        CobblemonEconomy.LOGGER.info("Cobblemon Economy (Client Init) - DONE");
     }
 }
