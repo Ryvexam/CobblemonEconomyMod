@@ -182,6 +182,15 @@ public class EconomyConfig {
             battleShop.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500));
             config.shops.put("default_pco", battleShop);
 
+            ShopDefinition emeraldShop = new ShopDefinition();
+            emeraldShop.title = "💎 RACHAT DE GEMMES 💎";
+            emeraldShop.currency = "POKE";
+            emeraldShop.isSellShop = true;
+            emeraldShop.items.add(new ShopItemDefinition("minecraft:emerald", "Émeraude", 10));
+            emeraldShop.items.add(new ShopItemDefinition("minecraft:diamond", "Diamant", 50));
+            emeraldShop.items.add(new ShopItemDefinition("minecraft:gold_ingot", "Lingot d'Or", 20));
+            config.shops.put("sell_gems", emeraldShop);
+
             // On sauvegarde pour que l'utilisateur voit les nouveaux choix
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(config, writer);

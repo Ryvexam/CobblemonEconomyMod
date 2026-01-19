@@ -12,7 +12,8 @@ import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
-import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.client.resources.SkinManager;
+import java.util.concurrent.CompletableFuture;
 
 public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, PlayerModel<ShopkeeperEntity>> {
     private static final ResourceLocation DEFAULT_TEXTURE = ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "textures/entity/shopkeeper.png");
@@ -28,15 +29,17 @@ public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, P
             return DEFAULT_TEXTURE;
         }
 
-        try {
-            GameProfile profile = entity.getGameProfile();
-            if (profile != null) {
-                PlayerSkin skin = Minecraft.getInstance().getSkinManager().getInsecureSkin(profile);
-                return skin.texture();
+        GameProfile profile = entity.getGameProfile();
+        if (profile != null) {
+            // Si le profil a déjà des propriétés (textures), on l'utilise direct
+            if (!profile.getProperties().isEmpty()) {
+                return Minecraft.getInstance().getSkinManager().getInsecureSkin(profile).texture();
             }
-        } catch (Exception e) {
-            // En cas d'erreur de chargement du skin, on retourne la texture par défaut
-            return DEFAULT_TEXTURE;
+            
+            // Sinon, on tente de le mettre à jour (chargement asynchrone simulé par le SkinManager)
+            // L'astuce est d'utiliser le TileEntitySkull logic si possible, ou de laisser le jeu charger.
+            // Ici, on retourne le skin insecure qui tente de résoudre le nom.
+            return Minecraft.getInstance().getSkinManager().getInsecureSkin(profile).texture();
         }
         
         return DEFAULT_TEXTURE;
