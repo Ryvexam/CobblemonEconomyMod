@@ -1,0 +1,73 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        "\uF801": -1,
+        "\uF802": -2,
+        "\uF803": -4,
+        "\uF804": -8,
+        "\uF805": -16,
+        "\uF806": -32,
+        "\uF807": -64,
+        "\uF808": -128
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pokedollar/0.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE000"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pco/0.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE001"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pokedollar/1.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE002"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pco/1.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE003"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pokedollar/2.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE004"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pco/2.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE005"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pokedollar/3.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE006"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cobblemon-economy:gui/shop/pco/3.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE007"]
+    }
+  ]
+}

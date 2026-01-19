@@ -3,8 +3,6 @@ package com.cobblemon.economy.fabric;
 import com.cobblemon.economy.commands.EconomyCommands;
 import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.events.CobblemonListeners;
-import com.cobblemon.economy.networking.OpenShopPayload;
-import com.cobblemon.economy.networking.PurchasePayload;
 import com.cobblemon.economy.storage.EconomyConfig;
 import com.cobblemon.economy.storage.EconomyManager;
 import net.fabricmc.api.ModInitializer;
@@ -12,14 +10,11 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
@@ -66,9 +61,6 @@ public class CobblemonEconomy implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Initializing Cobblemon Economy (Ryvexam Edition)");
         
-        PayloadTypeRegistry.playC2S().register(PurchasePayload.TYPE, PurchasePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(OpenShopPayload.TYPE, OpenShopPayload.CODEC);
-
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(content -> {
@@ -82,11 +74,6 @@ public class CobblemonEconomy implements ModInitializer {
             if (!modDir.exists()) modDir.mkdirs();
             config = EconomyConfig.load(new File(modDir, "config.json"));
             economyManager = new EconomyManager(new File(modDir, "economy.db"));
-        });
-
-        ServerPlayNetworking.registerGlobalReceiver(PurchasePayload.TYPE, (payload, context) -> {
-            ServerPlayer player = context.player();
-            context.server().execute(() -> handlePurchase(player, payload.itemId(), payload.isPco()));
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> EconomyCommands.register(dispatcher));
@@ -119,6 +106,14 @@ public class CobblemonEconomy implements ModInitializer {
 
             // Détection du Tower Tagger
             if (customName != null && customName.getString().equals("Tower Tagger")) {
+                // Ajout d'un cooldown pour éviter le double clic
+                if (player instanceof ServerPlayer serverPlayer) {
+                    if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) {
+                        return InteractionResult.FAIL;
+                    }
+                    serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20); // 1 seconde (20 ticks)
+                }
+
                 if (shopkeeper.getTags().contains("tour_de_combat")) {
                     shopkeeper.removeTag("tour_de_combat");
                     player.sendSystemMessage(Component.literal("Tag supprimé : tour_de_combat").withStyle(ChatFormatting.RED));
@@ -133,26 +128,6 @@ public class CobblemonEconomy implements ModInitializer {
         });
 
         CobblemonListeners.register();
-    }
-
-    private void handlePurchase(ServerPlayer player, String itemId, boolean isPco) {
-        Optional<EconomyConfig.ShopItemDefinition> itemDef = config.shops.values().stream()
-            .flatMap(shop -> shop.items.stream())
-            .filter(item -> item.id.equals(itemId))
-            .findFirst();
-
-        if (itemDef.isEmpty()) return;
-
-        BigDecimal bPrice = BigDecimal.valueOf(itemDef.get().price);
-        boolean success = isPco ? economyManager.subtractPco(player.getUUID(), bPrice) : economyManager.subtractBalance(player.getUUID(), bPrice);
-
-        if (success) {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
-            player.getInventory().add(new ItemStack(item));
-            player.sendSystemMessage(Component.literal("✔ Achat réussi !").withStyle(ChatFormatting.GREEN));
-        } else {
-            player.sendSystemMessage(Component.literal("✖ Pas assez d'argent !").withStyle(ChatFormatting.RED));
-        }
     }
 
     public static void reloadConfig() {
