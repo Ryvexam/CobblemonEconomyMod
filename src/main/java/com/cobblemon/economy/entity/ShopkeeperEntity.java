@@ -94,12 +94,5 @@ public class ShopkeeperEntity extends PathfinderMob {
         }
     }
 
-    @Override
-    public InteractionResult mobInteract(Player player, InteractionHand hand) {
-        if (!this.level().isClientSide && hand == InteractionHand.MAIN_HAND) {
-            ShopGui.open((ServerPlayer) player, this.shopId);
-            return InteractionResult.SUCCESS;
-        }
-        return InteractionResult.sidedSuccess(this.level().isClientSide);
-    }
+    // ON SUPPRIME mobInteract D'ICI CAR CA FAIT CRASH LE CLIENT (REFERENCE A SGUI)
 }

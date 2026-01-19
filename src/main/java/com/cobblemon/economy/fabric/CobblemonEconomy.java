@@ -125,6 +125,12 @@ public class CobblemonEconomy implements ModInitializer {
                 return InteractionResult.SUCCESS;
             }
 
+            // OUVERTURE PAR DEFAUT DU SHOP (Déplacé ici pour la sécurité client)
+            if (player instanceof ServerPlayer serverPlayer) {
+                com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
+                return InteractionResult.SUCCESS;
+            }
+
             return InteractionResult.PASS;
         });
 
