@@ -9,7 +9,10 @@ All notable changes to this project will be documented in this file.
 - **Dynamic Shop Textures**:
   - Backgrounds now support "Sell Mode" with specific textures (`pokedollar_sell`, `pco_sell`).
   - Added Unicode characters `\uE008` through `\uE00F` for sell UI states.
-- **Skin Customization**: New `/eco skin <username>` command to get a *Skin Setter* item.
+- **Skin Customization**: 
+  - New `/eco skin <name>` command to get a *Skin Setter* item.
+  - **Local Skin Support**: The mod now looks for skins in `assets/cobblemon-economy/textures/entity/shopkeeper/<name>.png`.
+  - **Default Skin**: New entities spawn with the "shopkeeper" skin by default.
 - **NPC Customization**: Shopkeepers can now be renamed using standard Minecraft Name Tags.
 - **Transaction Logging**: Persistent logging of all purchases and sales in `world/cobblemon-economy/transactions.log`.
 - **Advanced Navigation**:
