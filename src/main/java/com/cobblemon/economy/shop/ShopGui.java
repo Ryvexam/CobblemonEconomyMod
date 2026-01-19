@@ -163,8 +163,28 @@ public class ShopGui {
                 player.drop(stack, false);
             }
             player.sendSystemMessage(Component.literal("✔ Achat réussi : " + itemDef.name).withStyle(ChatFormatting.GREEN));
+            
+            // Log de la transaction
+            logTransaction(player, itemDef, isPco);
         } else {
             player.sendSystemMessage(Component.literal("✖ Solde insuffisant !").withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco) {
+        try {
+            java.io.File worldDir = player.server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
+            java.io.File logFile = new java.io.File(new java.io.File(worldDir, "cobblemon-economy"), "transactions.log");
+            
+            String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String currency = isPco ? "PCo" : "₽";
+            String logEntry = String.format("[%s] PLAYER: %s (%s) | PURCHASE: %s (%s) | PRICE: %d %s\n", 
+                timestamp, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, itemDef.price, currency);
+            
+            java.nio.file.Files.writeString(logFile.toPath(), logEntry, 
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (java.io.IOException e) {
+            CobblemonEconomy.LOGGER.error("Failed to log transaction", e);
         }
     }
 }
