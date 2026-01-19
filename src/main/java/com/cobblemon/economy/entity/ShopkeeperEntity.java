@@ -12,18 +12,59 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import net.minecraft.Util;
+import net.minecraft.server.level.ServerLevel;
+
 public class ShopkeeperEntity extends PathfinderMob {
     private String shopId = "default_poke";
+    private static final EntityDataAccessor<String> SKIN_NAME = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
+    private GameProfile cachedProfile = null;
 
     public ShopkeeperEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
         this.setNoAi(true);
     }
 
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(SKIN_NAME, "");
+    }
+
+    public String getSkinName() {
+        return this.entityData.get(SKIN_NAME);
+    }
+
+    public void setSkinName(String name) {
+        this.entityData.set(SKIN_NAME, name);
+        this.cachedProfile = null;
+    }
+
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.0);
+    }
+
+    public GameProfile getGameProfile() {
+        String name = getSkinName();
+        if (name == null || name.isEmpty()) return null;
+
+        if (cachedProfile == null || !cachedProfile.getName().equals(name)) {
+            cachedProfile = new GameProfile(Util.NIL_UUID, name);
+            if (this.level() instanceof ServerLevel serverLevel) {
+                serverLevel.getServer().getProfileCache().get(name).ifPresent(profile -> {
+                    this.cachedProfile = profile;
+                });
+            }
+        }
+        return cachedProfile;
     }
 
     public String getShopId() {
@@ -38,6 +79,7 @@ public class ShopkeeperEntity extends PathfinderMob {
     public void addAdditionalSaveData(CompoundTag nbt) {
         super.addAdditionalSaveData(nbt);
         nbt.putString("ShopId", shopId);
+        nbt.putString("SkinName", getSkinName());
     }
 
     @Override
@@ -45,6 +87,9 @@ public class ShopkeeperEntity extends PathfinderMob {
         super.readAdditionalSaveData(nbt);
         if (nbt.contains("ShopId")) {
             this.shopId = nbt.getString("ShopId");
+        }
+        if (nbt.contains("SkinName")) {
+            setSkinName(nbt.getString("SkinName"));
         }
     }
 

@@ -8,15 +8,32 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
-public class ShopkeeperRenderer extends LivingEntityRenderer<LivingEntity, PlayerModel<LivingEntity>> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "textures/entity/shopkeeper.png");
+import com.cobblemon.economy.entity.ShopkeeperEntity;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.client.resources.PlayerSkin;
+
+public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, PlayerModel<ShopkeeperEntity>> {
+    private static final ResourceLocation DEFAULT_TEXTURE = ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "textures/entity/shopkeeper.png");
 
     public ShopkeeperRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER), false), 0.5f);
     }
 
     @Override
-    public ResourceLocation getTextureLocation(LivingEntity entity) {
-        return TEXTURE;
+    public ResourceLocation getTextureLocation(ShopkeeperEntity entity) {
+        String skinName = entity.getSkinName();
+        if (skinName == null || skinName.isEmpty()) {
+            return DEFAULT_TEXTURE;
+        }
+
+        GameProfile profile = entity.getGameProfile();
+        if (profile != null) {
+            PlayerSkin skin = Minecraft.getInstance().getSkinManager().getInsecureSkin(profile);
+            return skin.texture();
+        }
+        
+        return DEFAULT_TEXTURE;
     }
 }

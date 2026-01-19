@@ -124,6 +124,18 @@ public class CobblemonEconomy implements ModInitializer {
                 return InteractionResult.SUCCESS;
             }
 
+            // Détection du Skin Setter
+            if (customName != null && customName.getString().startsWith("Skin Setter: ")) {
+                String skinName = customName.getString().replace("Skin Setter: ", "");
+                shopkeeper.setSkinName(skinName);
+                player.sendSystemMessage(Component.literal("Skin du marchand réglé sur : " + skinName).withStyle(ChatFormatting.GREEN));
+                
+                if (!player.getAbilities().instabuild) {
+                    stack.shrink(1);
+                }
+                return InteractionResult.SUCCESS;
+            }
+
             return InteractionResult.PASS;
         });
 

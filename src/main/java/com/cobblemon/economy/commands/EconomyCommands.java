@@ -39,11 +39,30 @@ public class EconomyCommands {
             .requires(source -> source.hasPermission(2))
             .then(Commands.literal("item").executes(EconomyCommands::giveTagger))
             .then(Commands.literal("reload").executes(EconomyCommands::reload))
+            .then(Commands.literal("skin")
+                .then(Commands.argument("name", StringArgumentType.string())
+                    .executes(EconomyCommands::giveSkinSetter)))
             .then(Commands.literal("shop")
                 .then(Commands.literal("list").executes(EconomyCommands::listShops))
                 .then(Commands.literal("get")
                     .then(Commands.argument("id", StringArgumentType.string())
                         .executes(EconomyCommands::giveShopSetter)))));
+    }
+
+    private static int giveSkinSetter(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        String skinName = StringArgumentType.getString(ctx, "name");
+
+        ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
+        stack.set(DataComponents.CUSTOM_NAME, Component.literal("Skin Setter: " + skinName).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        stack.set(DataComponents.LORE, new ItemLore(List.of(
+            Component.literal("Clic droit sur un marchand").withStyle(ChatFormatting.GRAY),
+            Component.literal("pour lui donner le skin de : " + skinName).withStyle(ChatFormatting.GRAY)
+        )));
+        
+        player.getInventory().add(stack);
+        ctx.getSource().sendSuccess(() -> Component.literal("Vous avez reçu le Skin Setter pour : " + skinName).withStyle(ChatFormatting.GREEN), false);
+        return 1;
     }
 
     private static int giveShopSetter(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
