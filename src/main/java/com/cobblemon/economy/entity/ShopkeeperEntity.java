@@ -21,6 +21,8 @@ import com.mojang.authlib.properties.Property;
 import net.minecraft.Util;
 import net.minecraft.server.level.ServerLevel;
 
+import net.minecraft.world.level.block.entity.SkullBlockEntity;
+
 public class ShopkeeperEntity extends PathfinderMob {
     private String shopId = "default_poke";
     private static final EntityDataAccessor<String> SKIN_NAME = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
@@ -43,13 +45,7 @@ public class ShopkeeperEntity extends PathfinderMob {
 
     public void setSkinName(String name) {
         this.entityData.set(SKIN_NAME, name);
-        this.cachedProfile = null;
-    }
-
-    public static AttributeSupplier.Builder createAttributes() {
-        return PathfinderMob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 20.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.0);
+        this.cachedProfile = null; // Invalider le cache pour forcer le rechargement
     }
 
     public GameProfile getGameProfile() {
@@ -57,11 +53,15 @@ public class ShopkeeperEntity extends PathfinderMob {
         if (name == null || name.isEmpty()) return null;
 
         if (cachedProfile == null || !cachedProfile.getName().equals(name)) {
-            // On crée un profil basique avec le nom.
-            // Le SkinManager du client se chargera de résoudre l'UUID et les textures via l'API Mojang.
             cachedProfile = new GameProfile(null, name);
         }
         return cachedProfile;
+    }
+
+    public static AttributeSupplier.Builder createAttributes() {
+        return PathfinderMob.createMobAttributes()
+                .add(Attributes.MAX_HEALTH, 20.0)
+                .add(Attributes.MOVEMENT_SPEED, 0.0);
     }
 
     public String getShopId() {
@@ -89,6 +89,4 @@ public class ShopkeeperEntity extends PathfinderMob {
             setSkinName(nbt.getString("SkinName"));
         }
     }
-
-    // ON SUPPRIME mobInteract D'ICI CAR CA FAIT CRASH LE CLIENT (REFERENCE A SGUI)
 }

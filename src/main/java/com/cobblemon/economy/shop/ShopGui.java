@@ -97,7 +97,7 @@ public class ShopGui {
                 EconomyConfig.ShopItemDefinition itemDef = shop.items.get(itemIndex);
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
                 
-                String actionLabel = isSell ? "▶ Clic pour vendre" : "▶ Clic pour acheter";
+                String actionLabel = isSell ? "▶ Clic G: Vendre 1 | Clic D: Tout vendre" : "▶ Clic pour acheter";
                 String priceLabel = (isSell ? "Vente : " : "Prix : ");
                 ChatFormatting priceColor = isPco ? ChatFormatting.AQUA : ChatFormatting.GREEN;
 
@@ -109,7 +109,10 @@ public class ShopGui {
                     .addLoreLine(Component.literal(actionLabel).withStyle(ChatFormatting.YELLOW))
                     .setCallback((index, type, action) -> {
                         if (isSell) {
-                            handleSell(player, itemDef, isPco);
+                            // Clic Droit (Button 1) = Vendre Tout
+                            // Clic Gauche (Button 0) = Vendre 1
+                            boolean sellAll = (type.isRight); 
+                            handleSell(player, itemDef, isPco, sellAll);
                         } else {
                             handlePurchase(player, itemDef, isPco);
                         }
@@ -169,34 +172,45 @@ public class ShopGui {
                 player.drop(stack, false);
             }
             player.sendSystemMessage(Component.literal("✔ Achat réussi : " + itemDef.name).withStyle(ChatFormatting.GREEN));
-            logTransaction(player, itemDef, isPco, false);
+            logTransaction(player, itemDef, isPco, false, 1, price);
         } else {
             player.sendSystemMessage(Component.literal("✖ Solde insuffisant !").withStyle(ChatFormatting.RED));
         }
     }
 
-    private static void handleSell(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco) {
+    private static void handleSell(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco, boolean sellAll) {
         Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
-        int count = 0;
+        int totalCount = 0;
         
-        // On cherche l'item dans l'inventaire
+        // On compte combien le joueur a de cet item
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
             if (stack.getItem() == item) {
-                count += stack.getCount();
+                totalCount += stack.getCount();
             }
         }
 
-        if (count > 0) {
-            // On retire 1 item
-            ItemStack toRemove = new ItemStack(item, 1);
+        if (totalCount > 0) {
+            // Si sellAll, on vend tout (jusqu'à 64 par défaut pour un "stack", mais ici "Tout" signifie vraiment TOUT l'inventaire)
+            // Si tu veux juste UN stack (64), on peut faire Math.min(totalCount, 64)
+            // Ici, je fais "Tout vendre" comme demandé, ou 1 si clic gauche.
+            
+            // Correction : "Vendre un stack" c'est souvent 64. 
+            // Si tu veux "Tout l'inventaire", c'est totalCount.
+            // Si tu veux "Un stack", c'est Math.min(totalCount, item.getMaxStackSize()).
+            
+            int amountToSell = sellAll ? Math.min(totalCount, item.getDefaultMaxStackSize()) : 1;
+            
+            ItemStack toRemove = new ItemStack(item, amountToSell);
             if (removeItem(player, toRemove)) {
-                BigDecimal price = BigDecimal.valueOf(itemDef.price);
-                if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), price);
-                else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), price);
+                BigDecimal unitPrice = BigDecimal.valueOf(itemDef.price);
+                BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(amountToSell));
                 
-                player.sendSystemMessage(Component.literal("✔ Vente réussie : " + itemDef.name).withStyle(ChatFormatting.GREEN));
-                logTransaction(player, itemDef, isPco, true);
+                if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), totalPrice);
+                else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
+                
+                player.sendSystemMessage(Component.literal("✔ Vendu " + amountToSell + "x " + itemDef.name + " pour " + totalPrice + (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
+                logTransaction(player, itemDef, isPco, true, amountToSell, totalPrice);
             }
         } else {
             player.sendSystemMessage(Component.literal("✖ Vous n'avez pas cet objet !").withStyle(ChatFormatting.RED));
@@ -218,7 +232,7 @@ public class ShopGui {
         return false;
     }
 
-    private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco, boolean isSell) {
+    private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco, boolean isSell, int quantity, BigDecimal totalPrice) {
         try {
             java.io.File worldDir = player.server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
             java.io.File logFile = new java.io.File(new java.io.File(worldDir, "cobblemon-economy"), "transactions.log");
@@ -226,8 +240,8 @@ public class ShopGui {
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String currency = isPco ? "PCo" : "₽";
             String type = isSell ? "SELL" : "PURCHASE";
-            String logEntry = String.format("[%s] TYPE: %s | PLAYER: %s (%s) | ITEM: %s (%s) | PRICE: %d %s\n", 
-                timestamp, type, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, itemDef.price, currency);
+            String logEntry = String.format("[%s] TYPE: %s | PLAYER: %s (%s) | ITEM: %s (%s) | QTY: %d | TOTAL: %s %s\n", 
+                timestamp, type, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, quantity, totalPrice, currency);
             
             java.nio.file.Files.writeString(logFile.toPath(), logEntry, 
                 java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);

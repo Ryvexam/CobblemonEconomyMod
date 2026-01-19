@@ -31,14 +31,6 @@ public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, P
 
         GameProfile profile = entity.getGameProfile();
         if (profile != null) {
-            // Si le profil a déjà des propriétés (textures), on l'utilise direct
-            if (!profile.getProperties().isEmpty()) {
-                return Minecraft.getInstance().getSkinManager().getInsecureSkin(profile).texture();
-            }
-            
-            // Sinon, on tente de le mettre à jour (chargement asynchrone simulé par le SkinManager)
-            // L'astuce est d'utiliser le TileEntitySkull logic si possible, ou de laisser le jeu charger.
-            // Ici, on retourne le skin insecure qui tente de résoudre le nom.
             return Minecraft.getInstance().getSkinManager().getInsecureSkin(profile).texture();
         }
         
