@@ -122,7 +122,7 @@ public class EconomyCommands {
             source.sendSuccess(() -> Component.literal("/eco reload - Recharger config").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.literal("/eco shop list - Lister les IDs").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.literal("/eco shop get <id> - Objet de config (Shop Setter)").withStyle(ChatFormatting.GRAY), false);
-            source.sendSuccess(() -> Component.literal("/eco skin <nom> - Objet de skin (Skin Setter)").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.literal("/eco skin <nom> - Assigner un skin (Local/Joueur)").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.literal("/eco item - Tower Tagger").withStyle(ChatFormatting.GRAY), false);
         }
         return 1;
