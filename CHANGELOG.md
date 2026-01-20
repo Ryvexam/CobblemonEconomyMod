@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2026-01-20
+
+### Fixed
+- **Sneak Interaction**: Explicitly prevented shop opening when the player is sneaking (Shift+Click) to allow for other entity interactions.
+- **Texture Standardization**: Moved default shopkeeper texture to the custom skin folder to unify the skinning system.
+- **Startup Stability**: Final cleanup of classloading logic to ensure zero crashes on both client and server environments.
+
 ## [0.0.2] - 2026-01-19
 
 ### Added
