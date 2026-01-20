@@ -126,7 +126,8 @@ public class CobblemonEconomy implements ModInitializer {
             }
 
             // OUVERTURE PAR DEFAUT DU SHOP (Déplacé ici pour la sécurité client)
-            if (player instanceof ServerPlayer serverPlayer) {
+            // On empêche l'ouverture si le joueur est accroupi (Sneak)
+            if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;
             }
