@@ -2,18 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.7] - 2026-01-21
-
-### Added
-- **Wildcard Item Support**: You can now use wildcards in the config (e.g., `minecraft:*` or `cobblemon:*`) to offer a random item from that namespace.
-- **Dynamic Pricing**: Prices now fluctuate by +/- 25% randomly each time a shop session starts.
-
 ## [0.0.6] - 2026-01-21
 
 ### Added
 - **External Skins Support**: You can now add custom skins by dropping `.png` files into the `config/cobblemon-economy/skins/` folder.
 - **Improved Configuration Path**: Moved mod data (config, database, logs) from the world folder to the global `config/cobblemon-economy/` directory.
 - **Automatic Migration**: Existing data in the world folder is automatically migrated to the new config directory.
+- **Wildcard Item Support**: You can now use wildcards in the config (e.g., `minecraft:*` or `cobblemon:*`) to offer a random item from that namespace.
+- **Dynamic Pricing**: Prices now fluctuate by +/- 25% randomly each time a shop session starts.
 
 ## [0.0.5] - 2026-01-21
 
