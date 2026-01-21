@@ -24,17 +24,22 @@ public class ShopGui {
     private static final Map<UUID, ResolvedShopSession> ACTIVE_SESSIONS = new HashMap<>();
 
     private static class ResolvedItem {
-        final Item item;
-        final int price;
-        final String name;
+        Item item;
+        int price;
+        String name;
         final String originalId;
+        final EconomyConfig.ShopItemDefinition definition;
 
         ResolvedItem(EconomyConfig.ShopItemDefinition def) {
+            this.definition = def;
             this.originalId = def.id;
+            resolve();
+        }
+
+        void resolve() {
             Random rand = new Random();
-            
-            if (def.id.contains(":*")) {
-                String namespace = def.id.split(":")[0];
+            if (originalId.contains(":*")) {
+                String namespace = originalId.split(":")[0];
                 List<Item> candidates = BuiltInRegistries.ITEM.stream()
                     .filter(i -> BuiltInRegistries.ITEM.getKey(i).getNamespace().equals(namespace))
                     .toList();
@@ -47,13 +52,13 @@ public class ShopGui {
                     this.name = this.item.getName(new ItemStack(this.item)).getString();
                 }
             } else {
-                this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(def.id));
-                this.name = def.name;
+                this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId));
+                this.name = definition.name;
             }
 
             // Random price +/- 25%
             double multiplier = 0.75 + (rand.nextDouble() * 0.5);
-            this.price = (int) Math.round(def.price * multiplier);
+            this.price = (int) Math.round(definition.price * multiplier);
         }
     }
 
@@ -87,7 +92,6 @@ public class ShopGui {
     public static void open(ServerPlayer player, String shopId, int page) {
         ResolvedShopSession session = ACTIVE_SESSIONS.get(player.getUUID());
         if (session == null || !session.shopId.equals(shopId)) {
-            // Fallback to fresh open if session is lost
             open(player, shopId);
             return;
         }
@@ -128,7 +132,6 @@ public class ShopGui {
                  .withColor(0xFFFFFF)
         ));
 
-        // Navigation slots
         if (hasPrev) {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR)
                 .setName(Component.translatable("cobblemon-economy.shop.return_to_start"))
@@ -136,7 +139,6 @@ public class ShopGui {
             );
         }
 
-        // Fill Items
         int startIndex = currentPage * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
 
@@ -163,13 +165,13 @@ public class ShopGui {
                         } else {
                             handlePurchase(player, resolved, isPco);
                         }
+                        // Refresh GUI
                         open(player, shopId, currentPage); 
                     })
                 );
             }
         }
 
-        // Previous page slots
         for (int i = 45; i <= 48; i++) {
             if (hasPrev) {
                 final int prevPage = currentPage - 1;
@@ -177,7 +179,6 @@ public class ShopGui {
             }
         }
 
-        // Balance slot
         BigDecimal balance = isPco ? CobblemonEconomy.getEconomyManager().getPco(player.getUUID()) : CobblemonEconomy.getEconomyManager().getBalance(player.getUUID());
         gui.setSlot(49, new GuiElementBuilder(Items.PLAYER_HEAD)
             .setName(Component.translatable("cobblemon-economy.shop.balance_title").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
@@ -188,7 +189,6 @@ public class ShopGui {
             ))
         );
 
-        // Next page slots
         for (int i = 50; i <= 53; i++) {
             if (hasNext) {
                 final int nextPage = currentPage + 1;
@@ -210,6 +210,9 @@ public class ShopGui {
             }
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.name).withStyle(ChatFormatting.GREEN));
             logTransaction(player, resolved, isPco, false, 1, price);
+            
+            // Re-resolve the item for the next purchase
+            resolved.resolve();
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
@@ -235,6 +238,9 @@ public class ShopGui {
                 
                 player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
                 logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
+                
+                // Re-resolve the item for the next sale
+                resolved.resolve();
             }
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
