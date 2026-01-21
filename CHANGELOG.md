@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - **Automatic Migration**: Existing data in the world folder is automatically migrated to the new config directory.
 - **Wildcard Item Support**: You can now use wildcards in the config (e.g., `minecraft:*` or `cobblemon:*`) to offer a random item from that namespace.
 - **Dynamic Pricing**: Prices now fluctuate by +/- 25% randomly each time a shop session starts.
+- **Improved Default Shops**: Added more comprehensive default shops (`apothecary`, `ball_emporium`, `jeweler`, `battle_rewards`, `berry_gardener`) with specialized items and logical buy/sell configurations.
 
 ## [0.0.5] - 2026-01-21
 
