@@ -65,11 +65,6 @@ public class CobblemonEconomy implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Starting Cobblemon Economy (Common Init)...");
         
-        // skins Dir stays global for convenience
-        File globalDir = FabricLoader.getInstance().getConfigDir().resolve("cobblemon-economy").toFile();
-        File skinsDir = new File(globalDir, "skins");
-        if (!skinsDir.exists()) skinsDir.mkdirs();
-
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(content -> {
@@ -82,6 +77,10 @@ public class CobblemonEconomy implements ModInitializer {
             // Back to world directory for mod data
             modDirectory = server.getWorldPath(LevelResource.ROOT).resolve("cobblemon-economy").toFile();
             if (!modDirectory.exists()) modDirectory.mkdirs();
+
+            // Create skins directory inside the world mod directory
+            File skinsDir = new File(modDirectory, "skins");
+            if (!skinsDir.exists()) skinsDir.mkdirs();
 
             config = EconomyConfig.load(new File(modDirectory, "config.json"));
             economyManager = new EconomyManager(new File(modDirectory, "economy.db"));

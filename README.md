@@ -17,7 +17,7 @@ Visit our website: [ryvexam.fr](https://ryvexam.fr)
     *   **Shop Setter:** Link a shopkeeper to a specific shop ID.
     *   **Tower Tagger:** Toggle specific tags on entities for specialized behavior.
     *   **Skin Setter:** Apply a custom skin to a shopkeeper NPC.
-    *   Skins are loaded from `assets/cobblemon-economy/textures/entity/shopkeeper/<name>.png`.
+    *   **External Skins:** Drop `.png` files into the world's `cobblemon-economy/skins/` folder to use them.
     *   Default skin is `shopkeeper.png`.
     *   If a local file is not found, the mod attempts to load the player skin by name (client-side cache).
 

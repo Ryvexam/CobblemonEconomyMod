@@ -70,8 +70,16 @@ public class ShopGui {
         ResolvedShopSession(String shopId, EconomyConfig.ShopDefinition shop) {
             this.shopId = shopId;
             this.resolvedItems = new ArrayList<>();
-            for (EconomyConfig.ShopItemDefinition itemDef : shop.items) {
-                this.resolvedItems.add(new ResolvedItem(itemDef));
+            if (shop.items != null) {
+                for (EconomyConfig.ShopItemDefinition itemDef : shop.items) {
+                    if (itemDef != null && itemDef.id != null) {
+                        this.resolvedItems.add(new ResolvedItem(itemDef));
+                    } else {
+                        CobblemonEconomy.LOGGER.warn("Shop '{}' contains a null item or an item with missing ID!", shopId);
+                    }
+                }
+            } else {
+                CobblemonEconomy.LOGGER.warn("Shop '{}' has no items list defined!", shopId);
             }
         }
     }

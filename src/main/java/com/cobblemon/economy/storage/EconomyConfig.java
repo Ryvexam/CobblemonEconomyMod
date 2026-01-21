@@ -64,8 +64,32 @@ public class EconomyConfig {
             config.shops = new HashMap<>();
         }
 
+        // --- Validate and Clean Config ---
+        for (Map.Entry<String, ShopDefinition> entry : config.shops.entrySet()) {
+            ShopDefinition shop = entry.getValue();
+            if (shop.items == null) {
+                shop.items = new ArrayList<>();
+            }
+            shop.items.removeIf(item -> item == null || item.id == null);
+        }
+
         // --- Add defaults if missing ---
         boolean modified = false;
+
+        if (!config.shops.containsKey("default_poke")) {
+            ShopDefinition defaultPoke = new ShopDefinition();
+            defaultPoke.title = "🛒 GENERAL SHOP 🛒";
+            defaultPoke.currency = "POKE";
+            defaultPoke.skin = "shopkeeper";
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 600));
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 1200));
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
+            defaultPoke.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 2000));
+            config.shops.put("default_poke", defaultPoke);
+            modified = true;
+        }
 
         if (!config.shops.containsKey("apothecary")) {
             ShopDefinition apothecary = new ShopDefinition();

@@ -2,12 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7] - 2026-01-21
+
+### Added
+- **Unified Per-World Storage**: All mod data, including the `skins/` folder, is now stored exclusively within the world directory (`world/cobblemon-economy/`). This ensures complete portability of saves.
+- **Improved Shop Stability**: Added validation logic to skip malformed or null items in the `config.json` instead of crashing.
+- **Default General Shop**: Added a `default_poke` shop to the default configuration to match the default shopkeeper state.
+
+### Changed
+- **Config Path**: Reverted the global config path change. The mod now correctly uses the world-specific directory for all files.
+
 ## [0.0.6] - 2026-01-21
 
 ### Added
-- **External Skins Support**: You can now add custom skins by dropping `.png` files into the `config/cobblemon-economy/skins/` folder.
-- **Improved Configuration Path**: Moved mod data (config, database, logs) from the world folder to the global `config/cobblemon-economy/` directory.
-- **Automatic Migration**: Existing data in the world folder is automatically migrated to the new config directory.
+- **External Skins Support**: You can now add custom skins by dropping `.png` files into the `skins/` folder.
 - **Wildcard Item Support**: You can now use wildcards in the config (e.g., `minecraft:*` or `cobblemon:*`) to offer a random item from that namespace.
 - **Dynamic Pricing**: Prices now fluctuate by +/- 25% randomly each time a shop session starts.
 - **Improved Default Shops**: Added more comprehensive default shops (`apothecary`, `ball_emporium`, `jeweler`, `battle_rewards`, `berry_gardener`) with specialized items and logical buy/sell configurations.
