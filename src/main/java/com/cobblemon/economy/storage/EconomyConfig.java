@@ -173,7 +173,15 @@ public class EconomyConfig {
             berryShop.items.add(new ShopItemDefinition("cobblemon:cheri_berry", "Cheri Berry", 100));
             berryShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Pecha Berry", 100));
             berryShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Rawst Berry", 100));
-            config.shops.put("berry_gardener", berryShop);
+            ShopDefinition surpriseShop = new ShopDefinition();
+            surpriseShop.title = "🎁 SURPRISE SHOP 🎁";
+            surpriseShop.currency = "POKE";
+            surpriseShop.skin = "shopkeeper";
+            surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
+            surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
+            surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
+            surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
+            config.shops.put("surprise_shop", surpriseShop);
 
             // Save to file
             try (FileWriter writer = new FileWriter(configFile)) {
