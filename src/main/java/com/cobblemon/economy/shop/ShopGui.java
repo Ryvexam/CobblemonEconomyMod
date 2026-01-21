@@ -51,14 +51,15 @@ public class ShopGui {
                     this.item = candidates.get(rand.nextInt(candidates.size()));
                     this.name = this.item.getName(new ItemStack(this.item)).getString();
                 }
+
+                // Random price +/- 25% ONLY for wildcards
+                double multiplier = 0.75 + (rand.nextDouble() * 0.5);
+                this.price = (int) Math.round(definition.price * multiplier);
             } else {
                 this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId));
                 this.name = definition.name;
+                this.price = definition.price; // Fixed price for standard items
             }
-
-            // Random price +/- 25%
-            double multiplier = 0.75 + (rand.nextDouble() * 0.5);
-            this.price = (int) Math.round(definition.price * multiplier);
         }
     }
 
