@@ -25,9 +25,8 @@ public class CobblemonListeners {
                 BigDecimal reward = CobblemonEconomy.getConfig().newDiscoveryReward;
                 CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
 
-                player.sendSystemMessage(Component.literal("§bNouvelle Découverte ! §rVous avez reçu ")
-                    .append(Component.literal(reward + "₽").withStyle(ChatFormatting.GOLD))
-                    .append(Component.literal(" pour votre capture !")));
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
+                    .append(Component.translatable("cobblemon-economy.event.discovery.reward", reward + "₽").withStyle(ChatFormatting.GOLD)));
             }
             return kotlin.Unit.INSTANCE;
         });
@@ -52,15 +51,15 @@ public class CobblemonListeners {
                         BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
                         CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
                         
-                        String message = "Victoire ! Vous avez reçu " + reward + "₽";
+                        Component message = Component.translatable("cobblemon-economy.event.victory", reward + "₽");
 
                         if (isCombatTower) {
                             BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward;
                             CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), pcoReward);
-                            message += " et " + pcoReward + " PCo";
+                            message = message.copy().append(Component.translatable("cobblemon-economy.event.victory_pco", pcoReward));
                         }
                         
-                        player.sendSystemMessage(Component.literal(message).withStyle(ChatFormatting.GOLD));
+                        player.sendSystemMessage(message.copy().withStyle(ChatFormatting.GOLD));
                     }
                 }
             }

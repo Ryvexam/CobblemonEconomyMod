@@ -75,6 +75,7 @@ public class ShopGui {
         // Remplissage de la PREMIÈRE rangée (Slots 0-8)
         if (hasPrev) {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR)
+                .setName(Component.translatable("cobblemon-economy.shop.return_to_start"))
                 .setCallback((index, type, action) -> open(player, shopId, 0))
             );
         } else {
@@ -97,20 +98,18 @@ public class ShopGui {
                 EconomyConfig.ShopItemDefinition itemDef = shop.items.get(itemIndex);
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
                 
-                String actionLabel = isSell ? "▶ Clic G: Vendre 1 | Clic D: Tout vendre" : "▶ Clic pour acheter";
-                String priceLabel = (isSell ? "Vente : " : "Prix : ");
+                Component actionLabel = Component.translatable(isSell ? "cobblemon-economy.shop.sell_action" : "cobblemon-economy.shop.buy_action");
+                Component priceLabel = Component.translatable(isSell ? "cobblemon-economy.shop.sell_label" : "cobblemon-economy.shop.price_label");
                 ChatFormatting priceColor = isPco ? ChatFormatting.AQUA : ChatFormatting.GREEN;
 
                 gui.setSlot(slotIndex, new GuiElementBuilder(item)
                     .setName(Component.literal(itemDef.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
-                    .addLoreLine(Component.literal(priceLabel).withStyle(ChatFormatting.GRAY)
+                    .addLoreLine(priceLabel.copy().withStyle(ChatFormatting.GRAY)
                         .append(Component.literal(itemDef.price + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
-                    .addLoreLine(Component.literal(""))
-                    .addLoreLine(Component.literal(actionLabel).withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.empty())
+                    .addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
                     .setCallback((index, type, action) -> {
                         if (isSell) {
-                            // Clic Droit (Button 1) = Vendre Tout
-                            // Clic Gauche (Button 0) = Vendre 1
                             boolean sellAll = (type.isRight); 
                             handleSell(player, itemDef, isPco, sellAll);
                         } else {
@@ -138,11 +137,11 @@ public class ShopGui {
 
         BigDecimal balance = isPco ? CobblemonEconomy.getEconomyManager().getPco(player.getUUID()) : CobblemonEconomy.getEconomyManager().getBalance(player.getUUID());
         gui.setSlot(49, new GuiElementBuilder(Items.PLAYER_HEAD)
-            .setName(Component.literal("Votre Solde").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+            .setName(Component.translatable("cobblemon-economy.shop.balance_title").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
             .setSkullOwner(player.getGameProfile(), player.server)
             .setLore(java.util.List.of(
                 Component.literal(balance.stripTrailingZeros().toPlainString() + (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.WHITE),
-                Component.literal("Page " + (currentPage + 1) + "/" + maxPages).withStyle(ChatFormatting.GRAY)
+                Component.translatable("cobblemon-economy.shop.page_info", currentPage + 1, maxPages).withStyle(ChatFormatting.GRAY)
             ))
             .setCallback((index, type, action) -> {})
         );
@@ -171,10 +170,10 @@ public class ShopGui {
             if (!player.getInventory().add(stack)) {
                 player.drop(stack, false);
             }
-            player.sendSystemMessage(Component.literal("✔ Achat réussi : " + itemDef.name).withStyle(ChatFormatting.GREEN));
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", itemDef.name).withStyle(ChatFormatting.GREEN));
             logTransaction(player, itemDef, isPco, false, 1, price);
         } else {
-            player.sendSystemMessage(Component.literal("✖ Solde insuffisant !").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
     }
 
@@ -182,7 +181,6 @@ public class ShopGui {
         Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemDef.id));
         int totalCount = 0;
         
-        // On compte combien le joueur a de cet item
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
             if (stack.getItem() == item) {
@@ -191,14 +189,6 @@ public class ShopGui {
         }
 
         if (totalCount > 0) {
-            // Si sellAll, on vend tout (jusqu'à 64 par défaut pour un "stack", mais ici "Tout" signifie vraiment TOUT l'inventaire)
-            // Si tu veux juste UN stack (64), on peut faire Math.min(totalCount, 64)
-            // Ici, je fais "Tout vendre" comme demandé, ou 1 si clic gauche.
-            
-            // Correction : "Vendre un stack" c'est souvent 64. 
-            // Si tu veux "Tout l'inventaire", c'est totalCount.
-            // Si tu veux "Un stack", c'est Math.min(totalCount, item.getMaxStackSize()).
-            
             int amountToSell = sellAll ? Math.min(totalCount, item.getDefaultMaxStackSize()) : 1;
             
             ItemStack toRemove = new ItemStack(item, amountToSell);
@@ -209,11 +199,11 @@ public class ShopGui {
                 if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), totalPrice);
                 else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
                 
-                player.sendSystemMessage(Component.literal("✔ Vendu " + amountToSell + "x " + itemDef.name + " pour " + totalPrice + (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, itemDef.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
                 logTransaction(player, itemDef, isPco, true, amountToSell, totalPrice);
             }
         } else {
-            player.sendSystemMessage(Component.literal("✖ Vous n'avez pas cet objet !").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
         }
     }
 

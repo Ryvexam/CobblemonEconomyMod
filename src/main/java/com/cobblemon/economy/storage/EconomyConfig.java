@@ -25,9 +25,9 @@ public class EconomyConfig {
     public Map<String, ShopDefinition> shops = new HashMap<>();
 
     public static class ShopDefinition {
-        public String title = "Boutique";
+        public String title = "Shop";
         public String currency = "POKE"; 
-        public boolean isSellShop = false; // Défini si le shop est un shop d'achat ou de vente
+        public boolean isSellShop = false; // Defines if the shop is for buying or selling
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
@@ -59,137 +59,136 @@ public class EconomyConfig {
             config = new EconomyConfig();
         }
 
-        // Si la liste des shops est vide (nouvelle installation ou mise à jour), on met les défauts
+        // If the shops list is empty, populate with defaults
         if (config.shops == null || config.shops.isEmpty()) {
             config.shops = new HashMap<>();
             
             ShopDefinition mainShop = new ShopDefinition();
-            mainShop.title = "⭐ BOUTIQUE GÉNÉRALE ⭐";
+            mainShop.title = "⭐ GENERAL STORE ⭐";
             mainShop.currency = "POKE";
-            mainShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 100));
+            mainShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poke Ball", 100));
             mainShop.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 300));
             mainShop.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 600));
             mainShop.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
-            mainShop.items.add(new ShopItemDefinition("cobblemon:revive", "Rappel", 1500));
+            mainShop.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 1500));
             config.shops.put("default_poke", mainShop);
 
             ShopDefinition ballShop = new ShopDefinition();
-            ballShop.title = "⚪ SPÉCIALISTE BALLS ⚪";
+            ballShop.title = "⚪ BALL SPECIALIST ⚪";
             ballShop.currency = "POKE";
             
             // Page 1
             ballShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:great_ball", "Super Ball", 600));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Hyper Ball", 1200));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 600));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 1200));
             ballShop.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 100000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:premier_ball", "Honor Ball", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:heal_ball", "Soin Ball", 300));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:net_ball", "Filet Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:nest_ball", "Faiblo Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dive_ball", "Scuba Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dusk_ball", "Sombre Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:timer_ball", "Chrono Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:quick_ball", "Rapide Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:repeat_ball", "Bis Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:luxury_ball", "Luxe Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:friend_ball", "Copain Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:level_ball", "Niveau Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:lure_ball", "Appât Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:moon_ball", "Lune Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:heavy_ball", "Masse Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:premier_ball", "Premier Ball", 200));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:heal_ball", "Heal Ball", 300));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:net_ball", "Net Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:nest_ball", "Nest Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:dive_ball", "Dive Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:dusk_ball", "Dusk Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:timer_ball", "Timer Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:quick_ball", "Quick Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:repeat_ball", "Repeat Ball", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:luxury_ball", "Luxury Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:friend_ball", "Friend Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:level_ball", "Level Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:lure_ball", "Lure Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:moon_ball", "Moon Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:heavy_ball", "Heavy Ball", 3000));
             ballShop.items.add(new ShopItemDefinition("cobblemon:love_ball", "Love Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:fast_ball", "Speed Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:fast_ball", "Fast Ball", 3000));
             ballShop.items.add(new ShopItemDefinition("cobblemon:sport_ball", "Sport Ball", 3000));
             ballShop.items.add(new ShopItemDefinition("cobblemon:safari_ball", "Safari Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dream_ball", "Rêve Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:beast_ball", "Ultra Ball (Beast)", 5000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:park_ball", "Parc Ball", 500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:cherish_ball", "Mémoire Ball", 5000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:dream_ball", "Dream Ball", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:beast_ball", "Beast Ball", 5000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:park_ball", "Park Ball", 500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:cherish_ball", "Cherish Ball", 5000));
             ballShop.items.add(new ShopItemDefinition("cobblemon:gs_ball", "GS Ball", 10000));
             
-            // Remplissage pour forcer une 2ème page (plus de 36 items)
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_poke_ball", "Poké Ball Ancienne", 500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_great_ball", "Super Ball Ancienne", 800));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_ultra_ball", "Hyper Ball Ancienne", 1500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_heavy_ball", "Masse Ball Ancienne", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_leaden_ball", "Plomb Ball Ancienne", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_gigaton_ball", "Gigaton Ball Ancienne", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_feather_ball", "Plume Ball Ancienne", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_wing_ball", "Aile Ball Ancienne", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_jet_ball", "Jet Ball Ancienne", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_origin_ball", "Origine Ball Ancienne", 10000));
+            // Forcing 2nd page
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_poke_ball", "Ancient Poké Ball", 500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_great_ball", "Ancient Great Ball", 800));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_ultra_ball", "Ancient Ultra Ball", 1500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_heavy_ball", "Ancient Heavy Ball", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_leaden_ball", "Ancient Leaden Ball", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_gigaton_ball", "Ancient Gigaton Ball", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_feather_ball", "Ancient Feather Ball", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_wing_ball", "Ancient Wing Ball", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_jet_ball", "Ancient Jet Ball", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_origin_ball", "Ancient Origin Ball", 10000));
             
-            // Remplissage massif pour forcer 3 ou 4 pages
-            // Page 2 : Pierres d'évolution
-            ballShop.items.add(new ShopItemDefinition("cobblemon:fire_stone", "Pierre Feu", 2500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:water_stone", "Pierre Eau", 2500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:thunder_stone", "Pierre Foudre", 2500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:leaf_stone", "Pierre Plante", 2500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:moon_stone", "Pierre Lune", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:sun_stone", "Pierre Soleil", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:shiny_stone", "Pierre Éclat", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dusk_stone", "Pierre Nuit", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dawn_stone", "Pierre Aube", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ice_stone", "Pierre Glace", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Pierre Ovale", 1500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:everstone", "Pierre Stase", 1000));
+            // Page 2 stones
+            ballShop.items.add(new ShopItemDefinition("cobblemon:fire_stone", "Fire Stone", 2500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:water_stone", "Water Stone", 2500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:thunder_stone", "Thunder Stone", 2500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:leaf_stone", "Leaf Stone", 2500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:moon_stone", "Moon Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:sun_stone", "Sun Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:shiny_stone", "Shiny Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:dusk_stone", "Dusk Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:dawn_stone", "Dawn Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:ice_stone", "Ice Stone", 3000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 1500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 1000));
 
-            // Page 2 suite / Page 3 : Objets de combat
-            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_band", "Bandeau Choix", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_specs", "Lunettes Choix", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_scarf", "Mouchoir Choix", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:life_orb", "Orbe Vie", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:leftovers", "Restes", 5000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Veste de Combat", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:rocky_helmet", "Casque Brut", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Ceinture Force", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:expert_belt", "Ceinture Pro", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:black_sludge", "Boue Noire", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:flame_orb", "Orbe Flamme", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:toxic_orb", "Orbe Toxique", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:light_clay", "Lumargile", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:mental_herb", "Herbe Mental", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:power_herb", "Herbe Pouvoir", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:white_herb", "Herbe Blanche", 1000));
+            // Battle items
+            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_band", "Choice Band", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_specs", "Choice Specs", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:choice_scarf", "Choice Scarf", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:life_orb", "Life Orb", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:leftovers", "Leftovers", 5000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Assault Vest", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:rocky_helmet", "Rocky Helmet", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Focus Sash", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:expert_belt", "Expert Belt", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:black_sludge", "Black Sludge", 4000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:flame_orb", "Flame Orb", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:toxic_orb", "Toxic Orb", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:light_clay", "Light Clay", 3500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:mental_herb", "Mental Herb", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:power_herb", "Power Herb", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:white_herb", "White Herb", 1000));
 
-            // Page 3 suite / Page 4 : Baies
-            ballShop.items.add(new ShopItemDefinition("cobblemon:oran_berry", "Baie Oran", 100));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:sitrus_berry", "Baie Sitrus", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:lum_berry", "Baie Prine", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:leppa_berry", "Baie Mepo", 500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:cheri_berry", "Baie Ceriz", 150));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:chesto_berry", "Baie Maron", 150));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Baie Pêcha", 150));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Baie Fraive", 150));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:aspear_berry", "Baie Willia", 150));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:salac_berry", "Baie Sailak", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:petaya_berry", "Baie Pitaye", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:apicot_berry", "Baie Abricot", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:lansat_berry", "Baie Lansat", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:starf_berry", "Baie Frista", 2000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:enigma_berry", "Baie Enigma", 2000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:micle_berry", "Baie Micle", 2000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:custap_berry", "Baie Chérim", 2000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:jaboca_berry", "Baie Jaboca", 2000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:rowap_berry", "Baie Pomroz", 2000));
+            // Berries
+            ballShop.items.add(new ShopItemDefinition("cobblemon:oran_berry", "Oran Berry", 100));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:sitrus_berry", "Sitrus Berry", 200));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:lum_berry", "Lum Berry", 200));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:leppa_berry", "Leppa Berry", 500));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:cheri_berry", "Cheri Berry", 150));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:chesto_berry", "Chesto Berry", 150));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Pecha Berry", 150));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Rawst Berry", 150));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:aspear_berry", "Aspear Berry", 150));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:salac_berry", "Salac Berry", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:petaya_berry", "Petaya Berry", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:apicot_berry", "Apicot Berry", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:lansat_berry", "Lansat Berry", 1000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:starf_berry", "Starf Berry", 2000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:enigma_berry", "Enigma Berry", 2000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:micle_berry", "Micle Berry", 2000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:custap_berry", "Custap Berry", 2000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:jaboca_berry", "Jaboca Berry", 2000));
+            ballShop.items.add(new ShopItemDefinition("cobblemon:rowap_berry", "Rowap Berry", 2000));
             
             config.shops.put("ball_shop", ballShop);
 
             ShopDefinition battleShop = new ShopDefinition();
-            battleShop.title = "⚔️ RÉCOMPENSES DE COMBAT ⚔️";
+            battleShop.title = "⚔️ BATTLE REWARDS ⚔️";
             battleShop.currency = "PCO";
-            battleShop.items.add(new ShopItemDefinition("cobblemon:rare_candy", "Super Bonbon", 50));
+            battleShop.items.add(new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50));
             battleShop.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500));
             config.shops.put("default_pco", battleShop);
 
             ShopDefinition emeraldShop = new ShopDefinition();
-            emeraldShop.title = "💎 RACHAT DE GEMMES 💎";
+            emeraldShop.title = "💎 GEM BUYBACK 💎";
             emeraldShop.currency = "POKE";
             emeraldShop.isSellShop = true;
-            emeraldShop.items.add(new ShopItemDefinition("minecraft:emerald", "Émeraude", 10));
+            emeraldShop.items.add(new ShopItemDefinition("minecraft:emerald", "Emerald", 10));
             config.shops.put("sell_gems", emeraldShop);
 
-            // On sauvegarde pour que l'utilisateur voit les nouveaux choix
+            // Save to file
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(config, writer);
             } catch (IOException e) {

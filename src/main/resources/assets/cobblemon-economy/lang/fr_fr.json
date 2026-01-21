@@ -1,4 +1,54 @@
 {
   "entity.cobblemon-economy.shopkeeper": "Marchand",
-  "item.cobblemon-economy.shopkeeper_spawn_egg": "Œuf de Marchand"
+  "item.cobblemon-economy.shopkeeper_spawn_egg": "Œuf de Marchand",
+
+  "cobblemon-economy.shop.buy_action": "▶ Clic Gauche : Acheter 1",
+  "cobblemon-economy.shop.sell_action": "▶ Clic G : Vendre 1 | Clic D : Tout vendre",
+  "cobblemon-economy.shop.price_label": "Prix : ",
+  "cobblemon-economy.shop.sell_label": "Vente : ",
+  "cobblemon-economy.shop.balance_title": "Votre Solde",
+  "cobblemon-economy.shop.page_info": "Page %s/%s",
+  "cobblemon-economy.shop.purchase_success": "✔ Achat réussi : %s",
+  "cobblemon-economy.shop.insufficient_balance": "✖ Solde insuffisant !",
+  "cobblemon-economy.shop.sell_success": "✔ Vendu %sx %s pour %s%s",
+  "cobblemon-economy.shop.no_item_to_sell": "✖ Vous n'avez pas cet objet !",
+  "cobblemon-economy.shop.return_to_start": "Retour au début",
+
+  "cobblemon-economy.command.help.title": "--- Cobblemon Economy ---",
+  "cobblemon-economy.command.help.bal": "/bal - Voir son argent",
+  "cobblemon-economy.command.help.pco": "/pco - Voir ses points",
+  "cobblemon-economy.command.help.pay": "/pay <joueur> <montant> - Payer",
+  "cobblemon-economy.command.help.admin_title": "\n[Admin Commands]",
+  "cobblemon-economy.command.help.reload": "/eco reload - Recharger config",
+  "cobblemon-economy.command.help.shop_list": "/eco shop list - Lister les IDs",
+  "cobblemon-economy.command.help.shop_get": "/eco shop get <id> - Objet de config (Shop Setter)",
+  "cobblemon-economy.command.help.skin": "/eco skin <nom> - Assigner un skin (Local/Joueur)",
+  "cobblemon-economy.command.help.item": "/eco item - Tower Tagger",
+
+  "cobblemon-economy.command.reload.success": "Configuration rechargée !",
+  "cobblemon-economy.command.shop.unknown": "Boutique '%s' inconnue !",
+  "cobblemon-economy.command.shop.list_title": "--- Liste des Boutiques ---",
+  "cobblemon-economy.command.balance.label": "Pokedollars : ",
+  "cobblemon-economy.command.pco.label": "PCOs : ",
+  "cobblemon-economy.command.balance.update": "Solde de %s mis à jour.",
+  "cobblemon-economy.command.pay.success": "Payé %s₽ à %s",
+  "cobblemon-economy.command.pay.received": "Reçu %s₽ de %s",
+
+  "cobblemon-economy.item.shop_setter.name": "Shop Setter : %s",
+  "cobblemon-economy.item.shop_setter.lore1": "Clic droit sur un marchand",
+  "cobblemon-economy.item.shop_setter.lore2": "pour lui assigner ce shop.",
+  "cobblemon-economy.item.skin_setter.name": "Skin Setter : %s",
+  "cobblemon-economy.item.skin_setter.lore1": "Clic droit sur un marchand",
+  "cobblemon-economy.item.skin_setter.lore2": "pour lui donner le skin de : %s",
+  "cobblemon-economy.item.tower_tagger.name": "Tower Tagger",
+
+  "cobblemon-economy.notification.shopkeeper_set": "Boutique du marchand réglée sur : %s",
+  "cobblemon-economy.notification.tag_added": "Tag ajouté",
+  "cobblemon-economy.notification.tag_removed": "Tag supprimé",
+  "cobblemon-economy.notification.skin_updated": "Skin mis à jour",
+
+  "cobblemon-economy.event.discovery.title": "§bNouvelle Découverte ! §r",
+  "cobblemon-economy.event.discovery.reward": "Vous avez reçu %s₽ pour votre capture !",
+  "cobblemon-economy.event.victory": "Victoire ! Vous avez reçu %s₽",
+  "cobblemon-economy.event.victory_pco": " et %s PCo"
 }

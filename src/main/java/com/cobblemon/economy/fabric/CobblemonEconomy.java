@@ -73,7 +73,6 @@ public class CobblemonEconomy implements ModInitializer {
             config = EconomyConfig.load(new File(modDir, "config.json"));
             economyManager = new EconomyManager(new File(modDir, "economy.db"));
             
-            // On n'enregistre les listeners Cobblemon QUE sur le serveur
             CobblemonListeners.register();
             LOGGER.info("Cobblemon Economy (Server Init) - DONE");
         });
@@ -81,7 +80,6 @@ public class CobblemonEconomy implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> EconomyCommands.register(dispatcher));
 
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            // SECURITE CRITIQUE : On ignore tout si on est sur le client
             if (world.isClientSide) return InteractionResult.PASS;
             if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (!(entity instanceof ShopkeeperEntity shopkeeper)) return InteractionResult.PASS;
@@ -89,12 +87,11 @@ public class CobblemonEconomy implements ModInitializer {
             ItemStack stack = player.getItemInHand(hand);
             Component customName = stack.get(DataComponents.CUSTOM_NAME);
 
-            // ... (suite du code de détection)
             if (customName != null && customName.getString().startsWith("Shop Setter: ")) {
                 String shopId = customName.getString().replace("Shop Setter: ", "");
                 if (config.shops.containsKey(shopId)) {
                     shopkeeper.setShopId(shopId);
-                    player.sendSystemMessage(Component.literal("Boutique du marchand réglée sur : " + shopId).withStyle(ChatFormatting.GREEN));
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
                     
                     if (!player.getAbilities().instabuild) {
                         stack.shrink(1);
@@ -110,23 +107,22 @@ public class CobblemonEconomy implements ModInitializer {
                 }
                 if (shopkeeper.getTags().contains("tour_de_combat")) {
                     shopkeeper.removeTag("tour_de_combat");
-                    player.sendSystemMessage(Component.literal("Tag supprimé").withStyle(ChatFormatting.RED));
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_removed").withStyle(ChatFormatting.RED));
                 } else {
                     shopkeeper.addTag("tour_de_combat");
-                    player.sendSystemMessage(Component.literal("Tag ajouté").withStyle(ChatFormatting.AQUA));
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_added").withStyle(ChatFormatting.AQUA));
                 }
                 return InteractionResult.SUCCESS;
             }
 
             if (customName != null && customName.getString().startsWith("Skin Setter: ")) {
-                shopkeeper.setSkinName(customName.getString().replace("Skin Setter: ", ""));
-                player.sendSystemMessage(Component.literal("Skin mis à jour").withStyle(ChatFormatting.GREEN));
+                String skinName = customName.getString().replace("Skin Setter: ", "");
+                shopkeeper.setSkinName(skinName);
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.skin_updated").withStyle(ChatFormatting.GREEN));
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 return InteractionResult.SUCCESS;
             }
 
-            // OUVERTURE PAR DEFAUT DU SHOP (Déplacé ici pour la sécurité client)
-            // On empêche l'ouverture si le joueur est accroupi (Sneak)
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;

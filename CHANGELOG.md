@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.5] - 2026-01-21
+
+### Added
+- **Internationalization (i18n)**: All mod text is now translatable using language files.
+- **Default English Support**: Added `en_us.json` as the default language.
+- **French Translation**: Added `fr_fr.json` for French users.
+- **Default Content Update**: Default shops and items are now in English for fresh installations.
+
 ## [0.0.4] - 2026-01-21
 
 ### Fixed

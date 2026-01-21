@@ -54,14 +54,14 @@ public class EconomyCommands {
         String skinName = StringArgumentType.getString(ctx, "name");
 
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal("Skin Setter: " + skinName).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.skin_setter.name", skinName).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
         stack.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal("Clic droit sur un marchand").withStyle(ChatFormatting.GRAY),
-            Component.literal("pour lui donner le skin de : " + skinName).withStyle(ChatFormatting.GRAY)
+            Component.translatable("cobblemon-economy.item.skin_setter.lore1").withStyle(ChatFormatting.GRAY),
+            Component.translatable("cobblemon-economy.item.skin_setter.lore2", skinName).withStyle(ChatFormatting.GRAY)
         )));
         
         player.getInventory().add(stack);
-        ctx.getSource().sendSuccess(() -> Component.literal("Vous avez reçu le Skin Setter pour : " + skinName).withStyle(ChatFormatting.GREEN), false);
+        ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.notification.skin_updated").withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
@@ -70,33 +70,33 @@ public class EconomyCommands {
         String shopId = StringArgumentType.getString(ctx, "id");
         
         if (!CobblemonEconomy.getConfig().shops.containsKey(shopId)) {
-            ctx.getSource().sendFailure(Component.literal("Boutique '" + shopId + "' inconnue !"));
+            ctx.getSource().sendFailure(Component.translatable("cobblemon-economy.command.shop.unknown", shopId));
             return 0;
         }
 
         ItemStack stack = new ItemStack(Items.NETHER_STAR);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal("Shop Setter: " + shopId).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.shop_setter.name", shopId).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         stack.set(DataComponents.LORE, new ItemLore(List.of(
-            Component.literal("Clic droit sur un marchand").withStyle(ChatFormatting.GRAY),
-            Component.literal("pour lui assigner ce shop.").withStyle(ChatFormatting.GRAY)
+            Component.translatable("cobblemon-economy.item.shop_setter.lore1").withStyle(ChatFormatting.GRAY),
+            Component.translatable("cobblemon-economy.item.shop_setter.lore2").withStyle(ChatFormatting.GRAY)
         )));
         
         player.getInventory().add(stack);
-        ctx.getSource().sendSuccess(() -> Component.literal("Vous avez reçu le Setter pour : " + shopId).withStyle(ChatFormatting.GREEN), false);
+        ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
     private static int giveTagger(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ItemStack stack = new ItemStack(Items.BLAZE_ROD);
-        stack.set(DataComponents.CUSTOM_NAME, Component.literal("Tower Tagger").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.tower_tagger.name").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
         player.getInventory().add(stack);
         return 1;
     }
 
     private static int reload(CommandContext<CommandSourceStack> ctx) {
         CobblemonEconomy.reloadConfig();
-        ctx.getSource().sendSuccess(() -> Component.literal("Configuration rechargée !").withStyle(ChatFormatting.GREEN), true);
+        ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.reload.success").withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
@@ -113,24 +113,24 @@ public class EconomyCommands {
 
     private static int sendHelp(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        source.sendSuccess(() -> Component.literal("--- Cobblemon Economy ---").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-        source.sendSuccess(() -> Component.literal("/bal - Voir son argent").withStyle(ChatFormatting.GRAY), false);
-        source.sendSuccess(() -> Component.literal("/pco - Voir ses points").withStyle(ChatFormatting.GRAY), false);
-        source.sendSuccess(() -> Component.literal("/pay <joueur> <montant> - Payer").withStyle(ChatFormatting.GRAY), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.bal").withStyle(ChatFormatting.GRAY), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.pco").withStyle(ChatFormatting.GRAY), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.pay").withStyle(ChatFormatting.GRAY), false);
         if (source.hasPermission(2)) {
-            source.sendSuccess(() -> Component.literal("\n[Admin Commands]").withStyle(ChatFormatting.RED), false);
-            source.sendSuccess(() -> Component.literal("/eco reload - Recharger config").withStyle(ChatFormatting.GRAY), false);
-            source.sendSuccess(() -> Component.literal("/eco shop list - Lister les IDs").withStyle(ChatFormatting.GRAY), false);
-            source.sendSuccess(() -> Component.literal("/eco shop get <id> - Objet de config (Shop Setter)").withStyle(ChatFormatting.GRAY), false);
-            source.sendSuccess(() -> Component.literal("/eco skin <nom> - Assigner un skin (Local/Joueur)").withStyle(ChatFormatting.GRAY), false);
-            source.sendSuccess(() -> Component.literal("/eco item - Tower Tagger").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.admin_title").withStyle(ChatFormatting.RED), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.reload").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.shop_list").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.shop_get").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.skin").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.item").withStyle(ChatFormatting.GRAY), false);
         }
         return 1;
     }
 
     private static int listShops(CommandContext<CommandSourceStack> context) {
         Map<String, EconomyConfig.ShopDefinition> shops = CobblemonEconomy.getConfig().shops;
-        context.getSource().sendSuccess(() -> Component.literal("--- Liste des Boutiques ---").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.shop.list_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
         for (String id : shops.keySet()) {
             context.getSource().sendSuccess(() -> Component.literal("- " + id).withStyle(ChatFormatting.YELLOW), false);
         }
@@ -139,9 +139,9 @@ public class EconomyCommands {
 
     private static int getCurrencyBal(CommandContext<CommandSourceStack> context, ServerPlayer player, String symbol, ChatFormatting color, boolean isMain) {
         BigDecimal balance = isMain ? CobblemonEconomy.getEconomyManager().getBalance(player.getUUID()) : CobblemonEconomy.getEconomyManager().getPco(player.getUUID());
-        String label = isMain ? "Pokedollars : " : "PCOs : ";
+        Component label = Component.translatable(isMain ? "cobblemon-economy.command.balance.label" : "cobblemon-economy.command.pco.label");
         String display = balance.stripTrailingZeros().toPlainString() + symbol;
-        context.getSource().sendSuccess(() -> Component.literal(label).append(Component.literal(display).withStyle(color)), false);
+        context.getSource().sendSuccess(() -> label.copy().append(Component.literal(display).withStyle(color)), false);
         return 1;
     }
 
@@ -152,8 +152,8 @@ public class EconomyCommands {
         if (source.getUUID().equals(target.getUUID())) return 0;
         if (CobblemonEconomy.getEconomyManager().subtractBalance(source.getUUID(), amount)) {
             CobblemonEconomy.getEconomyManager().addBalance(target.getUUID(), amount);
-            source.sendSystemMessage(Component.literal("Payé " + amount.stripTrailingZeros().toPlainString() + "₽ à " + target.getName().getString()).withStyle(ChatFormatting.GOLD));
-            target.sendSystemMessage(Component.literal("Reçu " + amount.stripTrailingZeros().toPlainString() + "₽ de " + source.getName().getString()).withStyle(ChatFormatting.GOLD));
+            source.sendSystemMessage(Component.translatable("cobblemon-economy.command.pay.success", amount.stripTrailingZeros().toPlainString(), target.getName().getString()).withStyle(ChatFormatting.GOLD));
+            target.sendSystemMessage(Component.translatable("cobblemon-economy.command.pay.received", amount.stripTrailingZeros().toPlainString(), source.getName().getString()).withStyle(ChatFormatting.GOLD));
             return 1;
         }
         return 0;
@@ -175,7 +175,7 @@ public class EconomyCommands {
                 case "set" -> CobblemonEconomy.getEconomyManager().setPco(target.getUUID(), amount);
             }
         }
-        context.getSource().sendSuccess(() -> Component.literal("Solde de " + target.getName().getString() + " mis à jour."), true);
+        context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.balance.update", target.getName().getString()), true);
         return 1;
     }
 }
