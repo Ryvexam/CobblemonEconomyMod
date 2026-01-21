@@ -65,12 +65,9 @@ public class CobblemonEconomy implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Starting Cobblemon Economy (Common Init)...");
         
-        // Initialize Directory
-        modDirectory = FabricLoader.getInstance().getConfigDir().resolve("cobblemon-economy").toFile();
-        if (!modDirectory.exists()) modDirectory.mkdirs();
-        
-        // Create Skins folder
-        File skinsDir = new File(modDirectory, "skins");
+        // skins Dir stays global for convenience
+        File globalDir = FabricLoader.getInstance().getConfigDir().resolve("cobblemon-economy").toFile();
+        File skinsDir = new File(globalDir, "skins");
         if (!skinsDir.exists()) skinsDir.mkdirs();
 
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
@@ -82,12 +79,9 @@ public class CobblemonEconomy implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             gameServer = server;
             
-            // Migration check
-            File oldDir = server.getWorldPath(LevelResource.ROOT).resolve("cobblemon-economy").toFile();
-            if (oldDir.exists()) {
-                LOGGER.info("Legacy world data found, migrating to config folder...");
-                migrateData(oldDir, modDirectory);
-            }
+            // Back to world directory for mod data
+            modDirectory = server.getWorldPath(LevelResource.ROOT).resolve("cobblemon-economy").toFile();
+            if (!modDirectory.exists()) modDirectory.mkdirs();
 
             config = EconomyConfig.load(new File(modDirectory, "config.json"));
             economyManager = new EconomyManager(new File(modDirectory, "economy.db"));
@@ -175,23 +169,6 @@ public class CobblemonEconomy implements ModInitializer {
         });
 
         LOGGER.info("Cobblemon Economy (Common Init) - DONE");
-    }
-
-    private void migrateData(File source, File target) {
-        try {
-            File[] files = source.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    Path dest = target.toPath().resolve(f.getName());
-                    if (!dest.toFile().exists()) {
-                        Files.move(f.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-            }
-            source.delete();
-        } catch (Exception e) {
-            LOGGER.error("Failed to migrate mod data", e);
-        }
     }
 
     public static void reloadConfig() {
