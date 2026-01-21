@@ -88,28 +88,44 @@ public class CobblemonEconomy implements ModInitializer {
             ItemStack stack = player.getItemInHand(hand);
             
             // Check tools first
-            if (!stack.isEmpty()) {
+            if (!stack.isEmpty() && stack.getCount() > 0) {
                 Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
                 if (customNameComp != null) {
                     String customName = customNameComp.getString();
 
                     // Shop Setter (Must be Nether Star)
                     if (stack.is(Items.NETHER_STAR) && customName.startsWith("Shop Setter: ")) {
+                        if (player instanceof ServerPlayer serverPlayer) {
+                            if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
+                            serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
+                        }
+
                         String shopId = customName.replace("Shop Setter: ", "");
                         if (config.shops.containsKey(shopId)) {
                             shopkeeper.setShopId(shopId);
                             player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
-                            if (!player.getAbilities().instabuild) stack.shrink(1);
+                            if (!player.getAbilities().instabuild) {
+                                stack.shrink(1);
+                                if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
+                            }
                             return InteractionResult.SUCCESS;
                         }
                     }
 
                     // Skin Setter (Must be Player Head)
                     if (stack.is(Items.PLAYER_HEAD) && customName.startsWith("Skin Setter: ")) {
+                        if (player instanceof ServerPlayer serverPlayer) {
+                            if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
+                            serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
+                        }
+
                         String skinName = customName.replace("Skin Setter: ", "");
                         shopkeeper.setSkinName(skinName);
                         player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.skin_updated").withStyle(ChatFormatting.GREEN));
-                        if (!player.getAbilities().instabuild) stack.shrink(1);
+                        if (!player.getAbilities().instabuild) {
+                            stack.shrink(1);
+                            if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
+                        }
                         return InteractionResult.SUCCESS;
                     }
 
@@ -133,7 +149,6 @@ public class CobblemonEconomy implements ModInitializer {
 
             // Default Shop Opening
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
-                // Ensure we are not using a tool item incorrectly
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;
             }
