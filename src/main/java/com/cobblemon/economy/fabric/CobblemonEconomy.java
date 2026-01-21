@@ -26,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.SpawnEggItem;
 import org.slf4j.Logger;
@@ -85,45 +86,54 @@ public class CobblemonEconomy implements ModInitializer {
             if (!(entity instanceof ShopkeeperEntity shopkeeper)) return InteractionResult.PASS;
 
             ItemStack stack = player.getItemInHand(hand);
-            Component customName = stack.get(DataComponents.CUSTOM_NAME);
+            
+            // Check tools first
+            if (!stack.isEmpty()) {
+                Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
+                if (customNameComp != null) {
+                    String customName = customNameComp.getString();
 
-            if (customName != null && customName.getString().startsWith("Shop Setter: ")) {
-                String shopId = customName.getString().replace("Shop Setter: ", "");
-                if (config.shops.containsKey(shopId)) {
-                    shopkeeper.setShopId(shopId);
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
-                    
-                    if (!player.getAbilities().instabuild) {
-                        stack.shrink(1);
+                    // Shop Setter (Must be Nether Star)
+                    if (stack.is(Items.NETHER_STAR) && customName.startsWith("Shop Setter: ")) {
+                        String shopId = customName.replace("Shop Setter: ", "");
+                        if (config.shops.containsKey(shopId)) {
+                            shopkeeper.setShopId(shopId);
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
+                            if (!player.getAbilities().instabuild) stack.shrink(1);
+                            return InteractionResult.SUCCESS;
+                        }
                     }
-                    return InteractionResult.SUCCESS;
+
+                    // Skin Setter (Must be Player Head)
+                    if (stack.is(Items.PLAYER_HEAD) && customName.startsWith("Skin Setter: ")) {
+                        String skinName = customName.replace("Skin Setter: ", "");
+                        shopkeeper.setSkinName(skinName);
+                        player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.skin_updated").withStyle(ChatFormatting.GREEN));
+                        if (!player.getAbilities().instabuild) stack.shrink(1);
+                        return InteractionResult.SUCCESS;
+                    }
+
+                    // Tower Tagger (Must be Blaze Rod)
+                    if (stack.is(Items.BLAZE_ROD) && customName.equals("Tower Tagger")) {
+                        if (player instanceof ServerPlayer serverPlayer) {
+                            if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
+                            serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
+                        }
+                        if (shopkeeper.getTags().contains("tour_de_combat")) {
+                            shopkeeper.removeTag("tour_de_combat");
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_removed").withStyle(ChatFormatting.RED));
+                        } else {
+                            shopkeeper.addTag("tour_de_combat");
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_added").withStyle(ChatFormatting.AQUA));
+                        }
+                        return InteractionResult.SUCCESS;
+                    }
                 }
             }
 
-            if (customName != null && customName.getString().equals("Tower Tagger")) {
-                if (player instanceof ServerPlayer serverPlayer) {
-                    if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
-                    serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
-                }
-                if (shopkeeper.getTags().contains("tour_de_combat")) {
-                    shopkeeper.removeTag("tour_de_combat");
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_removed").withStyle(ChatFormatting.RED));
-                } else {
-                    shopkeeper.addTag("tour_de_combat");
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_added").withStyle(ChatFormatting.AQUA));
-                }
-                return InteractionResult.SUCCESS;
-            }
-
-            if (customName != null && customName.getString().startsWith("Skin Setter: ")) {
-                String skinName = customName.getString().replace("Skin Setter: ", "");
-                shopkeeper.setSkinName(skinName);
-                player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.skin_updated").withStyle(ChatFormatting.GREEN));
-                if (!player.getAbilities().instabuild) stack.shrink(1);
-                return InteractionResult.SUCCESS;
-            }
-
+            // Default Shop Opening
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
+                // Ensure we are not using a tool item incorrectly
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;
             }
