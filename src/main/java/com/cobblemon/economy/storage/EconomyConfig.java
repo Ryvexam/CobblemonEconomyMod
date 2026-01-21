@@ -27,8 +27,8 @@ public class EconomyConfig {
     public static class ShopDefinition {
         public String title = "Shop";
         public String currency = "POKE"; 
-        public String skin = "shopkeeper"; // Nouveau : Skin par défaut du marchand pour ce shop
-        public boolean isSellShop = false; // Defines if the shop is for buying or selling
+        public String skin = "shopkeeper";
+        public boolean isSellShop = false;
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
@@ -60,11 +60,14 @@ public class EconomyConfig {
             config = new EconomyConfig();
         }
 
-        // If the shops list is empty, populate with defaults
-        if (config.shops == null || config.shops.isEmpty()) {
+        if (config.shops == null) {
             config.shops = new HashMap<>();
-            
-            // --- 1. APOTHECARY (Medicine & Utility) ---
+        }
+
+        // --- Add defaults if missing ---
+        boolean modified = false;
+
+        if (!config.shops.containsKey("apothecary")) {
             ShopDefinition apothecary = new ShopDefinition();
             apothecary.title = "💊 APOTHECARY 💊";
             apothecary.currency = "POKE";
@@ -84,8 +87,10 @@ public class EconomyConfig {
             apothecary.items.add(new ShopItemDefinition("cobblemon:full_heal", "Full Heal", 400));
             apothecary.items.add(new ShopItemDefinition("cobblemon:escape_rope", "Escape Rope", 300));
             config.shops.put("apothecary", apothecary);
+            modified = true;
+        }
 
-            // --- 2. BALL EMPORIUM (Only PokeBalls) ---
+        if (!config.shops.containsKey("ball_emporium")) {
             ShopDefinition ballShop = new ShopDefinition();
             ballShop.title = "⚪ BALL EMPORIUM ⚪";
             ballShop.currency = "POKE";
@@ -113,8 +118,10 @@ public class EconomyConfig {
             ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_wing_ball", "Ancient Wing Ball", 3500));
             ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_jet_ball", "Ancient Jet Ball", 4000));
             config.shops.put("ball_emporium", ballShop);
+            modified = true;
+        }
 
-            // --- 3. JEWELER (Sell Valuable Items) ---
+        if (!config.shops.containsKey("jeweler")) {
             ShopDefinition jeweler = new ShopDefinition();
             jeweler.title = "💎 JEWELER 💎";
             jeweler.currency = "POKE";
@@ -143,8 +150,10 @@ public class EconomyConfig {
             jeweler.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 300));
             jeweler.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 200));
             config.shops.put("jeweler", jeweler);
+            modified = true;
+        }
 
-            // --- 4. BATTLE REWARDS (PCO Rewards) ---
+        if (!config.shops.containsKey("battle_rewards")) {
             ShopDefinition battleRewards = new ShopDefinition();
             battleRewards.title = "⚔️ BATTLE REWARDS ⚔️";
             battleRewards.currency = "PCO";
@@ -160,8 +169,10 @@ public class EconomyConfig {
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000));
             config.shops.put("battle_rewards", battleRewards);
+            modified = true;
+        }
 
-            // --- 5. BERRY GARDENER (Buying Berries) ---
+        if (!config.shops.containsKey("berry_gardener")) {
             ShopDefinition berryShop = new ShopDefinition();
             berryShop.title = "🍎 BERRY GARDENER 🍎";
             berryShop.currency = "POKE";
@@ -173,6 +184,11 @@ public class EconomyConfig {
             berryShop.items.add(new ShopItemDefinition("cobblemon:cheri_berry", "Cheri Berry", 100));
             berryShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Pecha Berry", 100));
             berryShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Rawst Berry", 100));
+            config.shops.put("berry_gardener", berryShop);
+            modified = true;
+        }
+
+        if (!config.shops.containsKey("surprise_shop")) {
             ShopDefinition surpriseShop = new ShopDefinition();
             surpriseShop.title = "🎁 SURPRISE SHOP 🎁";
             surpriseShop.currency = "POKE";
@@ -182,12 +198,15 @@ public class EconomyConfig {
             surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
             surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
             config.shops.put("surprise_shop", surpriseShop);
+            modified = true;
+        }
 
-            // Save to file
+        // Save if modified
+        if (modified) {
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(config, writer);
             } catch (IOException e) {
-                CobblemonEconomy.LOGGER.error("Failed to save config", e);
+                CobblemonEconomy.LOGGER.error("Failed to save updated config", e);
             }
         }
 
