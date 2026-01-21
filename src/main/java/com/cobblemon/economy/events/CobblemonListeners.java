@@ -51,17 +51,26 @@ public class CobblemonListeners {
                     var pokemon = pokemonStack.getOriginalPokemon();
                     if (pokemon == null) continue;
 
+                    BigDecimal currentPokemonMult = BigDecimal.ZERO;
+                    boolean isSpecial = false;
+
                     if (pokemon.getShiny()) {
-                        multiplier = multiplier.max(CobblemonEconomy.getConfig().shinyMultiplier);
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
+                        isSpecial = true;
                     }
                     
-                    // Check for Legendary/Mythical/Paradox using labels
                     var labels = pokemon.getSpecies().getLabels();
                     if (labels.contains("legendary") || labels.contains("mythical")) {
-                        multiplier = multiplier.max(CobblemonEconomy.getConfig().legendaryMultiplier);
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
+                        isSpecial = true;
                     }
                     if (labels.contains("paradox")) {
-                        multiplier = multiplier.max(CobblemonEconomy.getConfig().paradoxMultiplier);
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
+                        isSpecial = true;
+                    }
+
+                    if (isSpecial) {
+                        multiplier = multiplier.max(currentPokemonMult);
                     }
                 }
             }

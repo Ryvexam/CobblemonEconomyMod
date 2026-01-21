@@ -62,4 +62,8 @@ For any bugs please report here: [https://discord.gg/zxZXcaTHwe](https://discord
 
 ---
 
+*Developed for Cobblemon 1.5.2+ on Fabric 1.21.1. Current version: 0.0.7*
+
+---
+
 **Visit our website:** [ryvexam.fr](https://ryvexam.fr)
