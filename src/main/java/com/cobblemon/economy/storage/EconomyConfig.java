@@ -22,6 +22,10 @@ public class EconomyConfig {
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
 
+    public BigDecimal shinyMultiplier = new BigDecimal(5);
+    public BigDecimal legendaryMultiplier = new BigDecimal(10);
+    public BigDecimal paradoxMultiplier = new BigDecimal(3);
+
     public Map<String, ShopDefinition> shops = new HashMap<>();
 
     public static class ShopDefinition {

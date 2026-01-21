@@ -74,11 +74,11 @@ public class CobblemonEconomy implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             gameServer = server;
             
-            // Back to world directory for mod data
-            modDirectory = server.getWorldPath(LevelResource.ROOT).resolve("cobblemon-economy").toFile();
+            // Per-world configuration path: world/config/cobblemon-economy/
+            modDirectory = server.getWorldPath(LevelResource.ROOT).resolve("config").resolve("cobblemon-economy").toFile();
             if (!modDirectory.exists()) modDirectory.mkdirs();
 
-            // Create skins directory inside the world mod directory
+            // Create skins directory inside the world config directory
             File skinsDir = new File(modDirectory, "skins");
             if (!skinsDir.exists()) skinsDir.mkdirs();
 

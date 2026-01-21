@@ -65,7 +65,7 @@ The resulting JAR file will be located in: `build/libs/cobblemon-economy-0.0.1.j
 
 ## ⚙️ Configuration
 
-The configuration is located in your world folder: `world/cobblemon-economy/config.json`.
+The configuration is located in your world folder: `world/config/cobblemon-economy/config.json`.
 
 Example shop structure:
 ```json
