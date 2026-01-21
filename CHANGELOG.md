@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.7] - 2026-01-21
+
+### Added
+- **Wildcard Item Support**: You can now use wildcards in the config (e.g., `minecraft:*` or `cobblemon:*`) to offer a random item from that namespace.
+- **Dynamic Pricing**: Prices now fluctuate by +/- 25% randomly each time a shop session starts.
+
 ## [0.0.6] - 2026-01-21
 
 ### Added
