@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4] - 2026-01-21
+
+### Fixed
+- **SQLite Driver**: Fixed `java.sql.SQLException: No suitable driver found` by explicitly loading the SQLite JDBC driver and re-including the library in the mod JAR.
+
 ## [0.0.3] - 2026-01-20
 
 ### Fixed

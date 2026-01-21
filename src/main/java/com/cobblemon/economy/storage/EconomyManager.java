@@ -12,6 +12,12 @@ public class EconomyManager {
     private final String url;
 
     public EconomyManager(File dbFile) {
+        try {
+            // Forcer le chargement du driver SQLite pour éviter "No suitable driver found"
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            CobblemonEconomy.LOGGER.error("SQLite JDBC driver not found!", e);
+        }
         this.url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         initDatabase();
     }
