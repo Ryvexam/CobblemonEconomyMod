@@ -4,8 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.0.5] - 2026-01-21
 
-### Changed
-- Prepared version for upcoming features.
+### Fixed
+- **Ghost Item Bug**: Resolved issue where tools (Shop/Skin Setters) could be used after being consumed in Survival mode by adding a 1-second cooldown and forcing server-side inventory synchronization.
+- **Interaction Logic**: Refactored entity interaction to prevent the shop interface from opening simultaneously when using a configuration tool.
+- **Tool Validation**: Improved security by strictly checking both item type and custom name before applying modifications to shopkeepers.
 
 ## [0.0.4] - 2026-01-21
 
