@@ -27,6 +27,7 @@ public class EconomyConfig {
     public static class ShopDefinition {
         public String title = "Shop";
         public String currency = "POKE"; 
+        public String skin = "shopkeeper"; // Nouveau : Skin par défaut du marchand pour ce shop
         public boolean isSellShop = false; // Defines if the shop is for buying or selling
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
@@ -66,6 +67,7 @@ public class EconomyConfig {
             ShopDefinition mainShop = new ShopDefinition();
             mainShop.title = "⭐ GENERAL STORE ⭐";
             mainShop.currency = "POKE";
+            mainShop.skin = "shopkeeper";
             mainShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poke Ball", 100));
             mainShop.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 300));
             mainShop.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 600));
@@ -76,6 +78,7 @@ public class EconomyConfig {
             ShopDefinition ballShop = new ShopDefinition();
             ballShop.title = "⚪ BALL SPECIALIST ⚪";
             ballShop.currency = "POKE";
+            ballShop.skin = "shopkeeper";
             
             // Page 1
             ballShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
@@ -177,6 +180,7 @@ public class EconomyConfig {
             ShopDefinition battleShop = new ShopDefinition();
             battleShop.title = "⚔️ BATTLE REWARDS ⚔️";
             battleShop.currency = "PCO";
+            battleShop.skin = "shopkeeper";
             battleShop.items.add(new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50));
             battleShop.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500));
             config.shops.put("default_pco", battleShop);

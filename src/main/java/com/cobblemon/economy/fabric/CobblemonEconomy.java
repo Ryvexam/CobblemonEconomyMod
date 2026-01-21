@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -33,6 +34,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 public class CobblemonEconomy implements ModInitializer {
     public static final String MOD_ID = "cobblemon-economy";
@@ -41,6 +45,7 @@ public class CobblemonEconomy implements ModInitializer {
     private static EconomyManager economyManager;
     private static EconomyConfig config;
     private static MinecraftServer gameServer;
+    private static File modDirectory;
 
     public static final EntityType<ShopkeeperEntity> SHOPKEEPER = Registry.register(
             BuiltInRegistries.ENTITY_TYPE,
@@ -60,6 +65,14 @@ public class CobblemonEconomy implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Starting Cobblemon Economy (Common Init)...");
         
+        // Initialize Directory
+        modDirectory = FabricLoader.getInstance().getConfigDir().resolve("cobblemon-economy").toFile();
+        if (!modDirectory.exists()) modDirectory.mkdirs();
+        
+        // Create Skins folder
+        File skinsDir = new File(modDirectory, "skins");
+        if (!skinsDir.exists()) skinsDir.mkdirs();
+
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(content -> {
@@ -68,11 +81,16 @@ public class CobblemonEconomy implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             gameServer = server;
-            File worldDir = server.getWorldPath(LevelResource.ROOT).toFile();
-            File modDir = new File(worldDir, "cobblemon-economy");
-            if (!modDir.exists()) modDir.mkdirs();
-            config = EconomyConfig.load(new File(modDir, "config.json"));
-            economyManager = new EconomyManager(new File(modDir, "economy.db"));
+            
+            // Migration check
+            File oldDir = server.getWorldPath(LevelResource.ROOT).resolve("cobblemon-economy").toFile();
+            if (oldDir.exists()) {
+                LOGGER.info("Legacy world data found, migrating to config folder...");
+                migrateData(oldDir, modDirectory);
+            }
+
+            config = EconomyConfig.load(new File(modDirectory, "config.json"));
+            economyManager = new EconomyManager(new File(modDirectory, "economy.db"));
             
             CobblemonListeners.register();
             LOGGER.info("Cobblemon Economy (Server Init) - DONE");
@@ -87,13 +105,11 @@ public class CobblemonEconomy implements ModInitializer {
 
             ItemStack stack = player.getItemInHand(hand);
             
-            // Check tools first
             if (!stack.isEmpty() && stack.getCount() > 0) {
                 Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
                 if (customNameComp != null) {
                     String customName = customNameComp.getString();
 
-                    // Shop Setter (Must be Nether Star)
                     if (stack.is(Items.NETHER_STAR) && customName.startsWith("Shop Setter: ")) {
                         if (player instanceof ServerPlayer serverPlayer) {
                             if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
@@ -101,8 +117,13 @@ public class CobblemonEconomy implements ModInitializer {
                         }
 
                         String shopId = customName.replace("Shop Setter: ", "");
-                        if (config.shops.containsKey(shopId)) {
+                        EconomyConfig.ShopDefinition shopDef = config.shops.get(shopId);
+                        if (shopDef != null) {
                             shopkeeper.setShopId(shopId);
+                            if (shopDef.skin != null && !shopDef.skin.isEmpty()) {
+                                shopkeeper.setSkinName(shopDef.skin);
+                            }
+                            
                             player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
                             if (!player.getAbilities().instabuild) {
                                 stack.shrink(1);
@@ -112,7 +133,6 @@ public class CobblemonEconomy implements ModInitializer {
                         }
                     }
 
-                    // Skin Setter (Must be Player Head)
                     if (stack.is(Items.PLAYER_HEAD) && customName.startsWith("Skin Setter: ")) {
                         if (player instanceof ServerPlayer serverPlayer) {
                             if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
@@ -129,7 +149,6 @@ public class CobblemonEconomy implements ModInitializer {
                         return InteractionResult.SUCCESS;
                     }
 
-                    // Tower Tagger (Must be Blaze Rod)
                     if (stack.is(Items.BLAZE_ROD) && customName.equals("Tower Tagger")) {
                         if (player instanceof ServerPlayer serverPlayer) {
                             if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
@@ -147,7 +166,6 @@ public class CobblemonEconomy implements ModInitializer {
                 }
             }
 
-            // Default Shop Opening
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;
@@ -159,14 +177,31 @@ public class CobblemonEconomy implements ModInitializer {
         LOGGER.info("Cobblemon Economy (Common Init) - DONE");
     }
 
+    private void migrateData(File source, File target) {
+        try {
+            File[] files = source.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    Path dest = target.toPath().resolve(f.getName());
+                    if (!dest.toFile().exists()) {
+                        Files.move(f.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+            }
+            source.delete();
+        } catch (Exception e) {
+            LOGGER.error("Failed to migrate mod data", e);
+        }
+    }
+
     public static void reloadConfig() {
-        if (gameServer != null) {
-            File worldDir = gameServer.getWorldPath(LevelResource.ROOT).toFile();
-            config = EconomyConfig.load(new File(new File(worldDir, "cobblemon-economy"), "config.json"));
+        if (modDirectory != null) {
+            config = EconomyConfig.load(new File(modDirectory, "config.json"));
         }
     }
 
     public static EconomyManager getEconomyManager() { return economyManager; }
     public static EconomyConfig getConfig() { return config; }
     public static MinecraftServer getGameServer() { return gameServer; }
+    public static File getModDirectory() { return modDirectory; }
 }

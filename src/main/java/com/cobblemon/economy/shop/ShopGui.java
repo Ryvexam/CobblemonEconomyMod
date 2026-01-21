@@ -15,6 +15,10 @@ import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 
 import java.math.BigDecimal;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 public class ShopGui {
     private static final int ITEMS_PER_PAGE = 36; // Slots 9 to 44
@@ -224,8 +228,8 @@ public class ShopGui {
 
     private static void logTransaction(ServerPlayer player, EconomyConfig.ShopItemDefinition itemDef, boolean isPco, boolean isSell, int quantity, BigDecimal totalPrice) {
         try {
-            java.io.File worldDir = player.server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
-            java.io.File logFile = new java.io.File(new java.io.File(worldDir, "cobblemon-economy"), "transactions.log");
+            File modDir = CobblemonEconomy.getModDirectory();
+            File logFile = new File(modDir, "transactions.log");
             
             String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String currency = isPco ? "PCo" : "₽";
@@ -233,8 +237,8 @@ public class ShopGui {
             String logEntry = String.format("[%s] TYPE: %s | PLAYER: %s (%s) | ITEM: %s (%s) | QTY: %d | TOTAL: %s %s\n", 
                 timestamp, type, player.getName().getString(), player.getUUID(), itemDef.name, itemDef.id, quantity, totalPrice, currency);
             
-            java.nio.file.Files.writeString(logFile.toPath(), logEntry, 
-                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            Files.writeString(logFile.toPath(), logEntry, 
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (java.io.IOException e) {
             CobblemonEconomy.LOGGER.error("Failed to log transaction", e);
         }

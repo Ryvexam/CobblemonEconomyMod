@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6] - 2026-01-21
+
+### Added
+- **External Skins Support**: You can now add custom skins by dropping `.png` files into the `config/cobblemon-economy/skins/` folder.
+- **Improved Configuration Path**: Moved mod data (config, database, logs) from the world folder to the global `config/cobblemon-economy/` directory.
+- **Automatic Migration**: Existing data in the world folder is automatically migrated to the new config directory.
+
 ## [0.0.5] - 2026-01-21
 
 ### Fixed
