@@ -37,6 +37,9 @@ public class CobblemonListeners {
         CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL, event -> {
             boolean isCombatTower = false;
             BigDecimal multiplier = BigDecimal.ONE;
+            boolean hadShiny = false;
+            boolean hadLegendary = false;
+            boolean hadParadox = false;
 
             for (var loser : event.getLosers()) {
                 if (loser instanceof NPCBattleActor npcActor) {
@@ -57,16 +60,19 @@ public class CobblemonListeners {
                     if (pokemon.getShiny()) {
                         currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
                         isSpecial = true;
+                        hadShiny = true;
                     }
                     
                     var labels = pokemon.getSpecies().getLabels();
                     if (labels.contains("legendary") || labels.contains("mythical")) {
                         currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
                         isSpecial = true;
+                        hadLegendary = true;
                     }
                     if (labels.contains("paradox")) {
                         currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
                         isSpecial = true;
+                        hadParadox = true;
                     }
 
                     if (isSpecial) {
@@ -82,7 +88,23 @@ public class CobblemonListeners {
                         BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward.multiply(multiplier);
                         CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
                         
-                        Component message = Component.translatable("cobblemon-economy.event.victory", reward.stripTrailingZeros().toPlainString() + "₽");
+                        String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                        
+                        String translationKey = "cobblemon-economy.event.victory";
+                        ChatFormatting color = ChatFormatting.GOLD;
+                        
+                        if (hadLegendary) {
+                            translationKey = "cobblemon-economy.event.victory.legendary";
+                            color = ChatFormatting.LIGHT_PURPLE;
+                        } else if (hadShiny) {
+                            translationKey = "cobblemon-economy.event.victory.shiny";
+                            color = ChatFormatting.AQUA;
+                        } else if (hadParadox) {
+                            translationKey = "cobblemon-economy.event.victory.special";
+                            color = ChatFormatting.DARK_PURPLE;
+                        }
+
+                        Component message = Component.translatable(translationKey, formattedReward);
 
                         if (isCombatTower) {
                             BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward;
@@ -90,11 +112,7 @@ public class CobblemonListeners {
                             message = message.copy().append(Component.translatable("cobblemon-economy.event.victory_pco", pcoReward));
                         }
                         
-                        if (multiplier.compareTo(BigDecimal.ONE) > 0) {
-                            player.sendSystemMessage(Component.literal("★ BONUS X" + multiplier.stripTrailingZeros().toPlainString() + " ★").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
-                        }
-
-                        player.sendSystemMessage(message.copy().withStyle(ChatFormatting.GOLD));
+                        player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
                     }
                 }
             }

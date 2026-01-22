@@ -48,7 +48,10 @@
   "cobblemon-economy.notification.skin_updated": "Skin mis à jour",
 
   "cobblemon-economy.event.discovery.title": "§bNouvelle Découverte ! §r",
-  "cobblemon-economy.event.discovery.reward": "Vous avez reçu %s₽ pour votre capture !",
-  "cobblemon-economy.event.victory": "Victoire ! Vous avez reçu %s₽",
+  "cobblemon-economy.event.discovery.reward": "Vous avez reçu %s pour votre capture !",
+  "cobblemon-economy.event.victory": "Victoire ! Vous avez reçu %s",
+  "cobblemon-economy.event.victory.shiny": "✨ VICTOIRE SHINY ! ✨ Vous avez reçu %s",
+  "cobblemon-economy.event.victory.legendary": "👑 VICTOIRE LÉGENDAIRE ! 👑 Vous avez reçu %s",
+  "cobblemon-economy.event.victory.special": "🌟 VICTOIRE SPÉCIALE ! 🌟 Vous avez reçu %s",
   "cobblemon-economy.event.victory_pco": " et %s PCo"
 }
