@@ -24,59 +24,93 @@ public class CobblemonListeners {
                 ServerPlayer player = CobblemonEconomy.getGameServer().getPlayerList().getPlayer(event.getPlayerUUID());
                 if (player == null) return kotlin.Unit.INSTANCE;
 
+                // For Pokedex discovery, we only give the base reward as it's for the species
                 BigDecimal reward = CobblemonEconomy.getConfig().newDiscoveryReward;
                 CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
 
+                String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
                 player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
-                    .append(Component.translatable("cobblemon-economy.event.discovery.reward", reward + "₽").withStyle(ChatFormatting.GOLD)));
+                    .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
             }
+            return kotlin.Unit.INSTANCE;
+        });
+
+        // Reward for capturing a pokemon
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, event -> {
+            ServerPlayer player = event.getPlayer();
+            Pokemon pokemon = event.getPokemon();
+            if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
+
+            BigDecimal multiplier = BigDecimal.ONE;
+            BigDecimal currentPokemonMult = BigDecimal.ZERO;
+            boolean isSpecial = false;
+            boolean hadShiny = false;
+            boolean hadLegendary = false;
+            boolean hadParadox = false;
+
+            if (pokemon.getShiny()) {
+                currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
+                isSpecial = true;
+                hadShiny = true;
+            }
+            
+            var labels = pokemon.getSpecies().getLabels();
+            if (labels.contains("legendary") || labels.contains("mythical")) {
+                currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
+                isSpecial = true;
+                hadLegendary = true;
+            }
+            if (labels.contains("paradox")) {
+                currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
+                isSpecial = true;
+                hadParadox = true;
+            }
+
+            if (isSpecial) {
+                multiplier = currentPokemonMult;
+            }
+
+            BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward.multiply(multiplier);
+            CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+            
+            String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+            
+            String translationKey = "cobblemon-economy.event.capture";
+            ChatFormatting color = ChatFormatting.GOLD;
+            
+            if (hadShiny && hadLegendary) {
+                translationKey = "cobblemon-economy.event.capture.shiny_legendary";
+                color = ChatFormatting.LIGHT_PURPLE;
+            } else if (hadShiny && hadParadox) {
+                translationKey = "cobblemon-economy.event.capture.shiny_paradox";
+                color = ChatFormatting.AQUA;
+            } else if (hadLegendary) {
+                translationKey = "cobblemon-economy.event.capture.legendary";
+                color = ChatFormatting.LIGHT_PURPLE;
+            } else if (hadShiny) {
+                translationKey = "cobblemon-economy.event.capture.shiny";
+                color = ChatFormatting.AQUA;
+            } else if (hadParadox) {
+                translationKey = "cobblemon-economy.event.capture.special";
+                color = ChatFormatting.DARK_PURPLE;
+            }
+
+            Component message = Component.translatable(translationKey, formattedReward);
+            player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
+
             return kotlin.Unit.INSTANCE;
         });
 
         // Reward for winning a battle
         CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL, event -> {
             boolean isCombatTower = false;
-            BigDecimal multiplier = BigDecimal.ONE;
-            boolean hadShiny = false;
-            boolean hadLegendary = false;
-            boolean hadParadox = false;
 
             for (var loser : event.getLosers()) {
                 if (loser instanceof NPCBattleActor npcActor) {
                     LivingEntity entity = npcActor.getEntity();
                     if (entity != null && entity.getTags().contains("tour_de_combat")) {
                         isCombatTower = true;
-                    }
-                }
-
-                // Check for special pokemon in the losing side
-                for (var pokemonStack : loser.getPokemonList()) {
-                    var pokemon = pokemonStack.getOriginalPokemon();
-                    if (pokemon == null) continue;
-
-                    BigDecimal currentPokemonMult = BigDecimal.ZERO;
-                    boolean isSpecial = false;
-
-                    if (pokemon.getShiny()) {
-                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
-                        isSpecial = true;
-                        hadShiny = true;
-                    }
-                    
-                    var labels = pokemon.getSpecies().getLabels();
-                    if (labels.contains("legendary") || labels.contains("mythical")) {
-                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
-                        isSpecial = true;
-                        hadLegendary = true;
-                    }
-                    if (labels.contains("paradox")) {
-                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
-                        isSpecial = true;
-                        hadParadox = true;
-                    }
-
-                    if (isSpecial) {
-                        multiplier = multiplier.max(currentPokemonMult);
+                        break;
                     }
                 }
             }
@@ -85,26 +119,11 @@ public class CobblemonListeners {
                 if (winner instanceof PlayerBattleActor playerActor) {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
-                        BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward.multiply(multiplier);
+                        BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
                         CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
                         
                         String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
-                        
-                        String translationKey = "cobblemon-economy.event.victory";
-                        ChatFormatting color = ChatFormatting.GOLD;
-                        
-                        if (hadLegendary) {
-                            translationKey = "cobblemon-economy.event.victory.legendary";
-                            color = ChatFormatting.LIGHT_PURPLE;
-                        } else if (hadShiny) {
-                            translationKey = "cobblemon-economy.event.victory.shiny";
-                            color = ChatFormatting.AQUA;
-                        } else if (hadParadox) {
-                            translationKey = "cobblemon-economy.event.victory.special";
-                            color = ChatFormatting.DARK_PURPLE;
-                        }
-
-                        Component message = Component.translatable(translationKey, formattedReward);
+                        Component message = Component.translatable("cobblemon-economy.event.victory", formattedReward);
 
                         if (isCombatTower) {
                             BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward;
@@ -112,7 +131,7 @@ public class CobblemonListeners {
                             message = message.copy().append(Component.translatable("cobblemon-economy.event.victory_pco", pcoReward));
                         }
                         
-                        player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
+                        player.sendSystemMessage(message.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
                     }
                 }
             }
