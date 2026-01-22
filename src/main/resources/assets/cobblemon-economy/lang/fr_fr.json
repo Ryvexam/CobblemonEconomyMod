@@ -50,11 +50,11 @@
   "cobblemon-economy.event.discovery.title": "§bNouvelle Découverte ! §r",
   "cobblemon-economy.event.discovery.reward": "Vous avez reçu %s pour votre capture !",
   "cobblemon-economy.event.victory": "Victoire ! Vous avez reçu %s",
-  "cobblemon-economy.event.victory_pco": " et %s PCo",
   "cobblemon-economy.event.capture": "Capture ! Vous avez reçu %s",
-  "cobblemon-economy.event.capture.shiny": "✨ CAPTURE SHINY ! ✨ Vous avez reçu %s",
-  "cobblemon-economy.event.capture.legendary": "👑 CAPTURE LÉGENDAIRE ! 👑 Vous avez reçu %s",
-  "cobblemon-economy.event.capture.special": "🌟 CAPTURE SPÉCIALE ! 🌟 Vous avez reçu %s",
-  "cobblemon-economy.event.capture.shiny_legendary": "✨👑 CAPTURE LÉGENDAIRE SHINY ! 👑✨ Vous avez reçu %s",
-  "cobblemon-economy.event.capture.shiny_paradox": "✨🌟 CAPTURE PARADOXE SHINY ! 🌟✨ Vous avez reçu %s"
+  "cobblemon-economy.event.capture.shiny": "CAPTURE SHINY ! Vous avez reçu %s",
+  "cobblemon-economy.event.capture.legendary": "CAPTURE LÉGENDAIRE ! Vous avez reçu %s",
+  "cobblemon-economy.event.capture.special": "CAPTURE SPÉCIALE ! Vous avez reçu %s",
+  "cobblemon-economy.event.capture.shiny_legendary": "CAPTURE LÉGENDAIRE SHINY ! Vous avez reçu %s",
+  "cobblemon-economy.event.capture.shiny_paradox": "CAPTURE PARADOXE SHINY ! Vous avez reçu %s",
+  "cobblemon-economy.event.victory_pco": " et %s PCo"
 }
