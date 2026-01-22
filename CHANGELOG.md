@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.7] - 2026-01-21
+## [0.0.7] - 2026-01-22
 
 ### Added
+- **NBT Support for Shop Items**: You can now define custom NBT data for shop items using the `"nbt"` field in `config.json` (String format).
 - **Unified Per-World Storage**: All mod data, including the `skins/` folder, is now stored within the world directory at `world/config/cobblemon-economy/`.
 - **Cumulative Battle Rewards**: Winning battles against special Pokémon now grants additive rewards (e.g., Shiny + Legendary = 15x reward).
 - **Improved Shop Stability**: Added validation logic to skip malformed or null items in the `config.json` instead of crashing.

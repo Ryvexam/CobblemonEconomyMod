@@ -75,6 +75,7 @@ Example shop structure:
     "currency": "POKE",
     "items": [
       { "id": "minecraft:diamond", "name": "Diamond", "price": 1000 },
+      { "id": "minecraft:netherite_sword", "name": "Excalibur", "price": 5000, "nbt": "{Unbreakable:1b,Enchantments:[{id:'minecraft:sharpness',lvl:10s}]}" },
       { "id": "cobblemon:poke_ball", "name": "Poke Ball", "price": 200 }
     ]
   }

@@ -13,6 +13,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
 
 import java.math.BigDecimal;
 import java.io.File;
@@ -214,6 +218,17 @@ public class ShopGui {
 
         if (success) {
             ItemStack stack = new ItemStack(resolved.item);
+            
+            // Apply NBT (CustomData) if present in definition (1.20.5+ way)
+            if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
+                try {
+                    CompoundTag nbt = TagParser.parseTag(resolved.definition.nbt);
+                    stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                } catch (Exception e) {
+                    CobblemonEconomy.LOGGER.error("Failed to parse NBT for item " + resolved.originalId, e);
+                }
+            }
+
             if (!player.getInventory().add(stack)) {
                 player.drop(stack, false);
             }
