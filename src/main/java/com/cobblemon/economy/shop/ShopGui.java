@@ -17,6 +17,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 
 import java.math.BigDecimal;
 import java.io.File;
@@ -317,52 +324,99 @@ public class ShopGui {
 
         if (success) {
             ItemStack stackToGive;
-            
-            // Check for Lootbox/DropTable
-            if (resolved.definition.dropTable != null && !resolved.definition.dropTable.isEmpty()) {
+
+            // Check for Minecraft Loot Table (native loot table system)
+            // This uses Minecraft's built-in loot table JSON files (e.g., "minecraft:chests/simple_dungeon")
+            if (resolved.definition.lootTable != null && !resolved.definition.lootTable.isEmpty()) {
+                // Use Minecraft's native loot table system
+                // For each quantity, we roll the loot table once
+                for (int i = 0; i < resolved.quantity; i++) {
+                    try {
+                        ServerLevel level = player.serverLevel();
+                        ResourceLocation lootTableId = ResourceLocation.parse(resolved.definition.lootTable);
+                        ResourceKey<LootTable> lootTableKey = ResourceKey.create(Registries.LOOT_TABLE, lootTableId);
+
+                        LootTable lootTable = level.getServer().reloadableRegistries()
+                            .getLootTable(lootTableKey);
+
+                        if (lootTable == LootTable.EMPTY) {
+                            CobblemonEconomy.LOGGER.warn("Loot table not found: " + resolved.definition.lootTable);
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_error").withStyle(ChatFormatting.RED));
+                            continue;
+                        }
+
+                        // Build loot parameters with player context
+                        // Using GIFT context which requires THIS_ENTITY and ORIGIN
+                        LootParams lootParams = new LootParams.Builder(level)
+                            .withParameter(LootContextParams.THIS_ENTITY, player)
+                            .withParameter(LootContextParams.ORIGIN, player.position())
+                            .withLuck(player.getLuck())
+                            .create(LootContextParamSets.GIFT);
+
+                        // Generate random loot from the table
+                        List<ItemStack> loot = lootTable.getRandomItems(lootParams);
+
+                        if (loot.isEmpty()) {
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_empty").withStyle(ChatFormatting.YELLOW));
+                        } else {
+                            for (ItemStack lootStack : loot) {
+                                if (!player.getInventory().add(lootStack.copy())) {
+                                    player.drop(lootStack.copy(), false);
+                                }
+                                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", lootStack.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+                            }
+                        }
+                    } catch (Exception e) {
+                        CobblemonEconomy.LOGGER.error("Failed to generate loot from table: " + resolved.definition.lootTable, e);
+                        player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_error").withStyle(ChatFormatting.RED));
+                    }
+                }
+            }
+            // Check for Lootbox/DropTable (simple list of item IDs - legacy/simple approach)
+            else if (resolved.definition.dropTable != null && !resolved.definition.dropTable.isEmpty()) {
                 // For lootboxes, we give ONE random item per purchase count? Or one bulk?
                 // Typically lootboxes are opened one by one.
                 // If quantity > 1, we should probably give 'quantity' items.
                 // But resolved.definition.dropTable means the item IS a lootbox in concept (or rather, buying it gives the drop).
-                
+
                 // Let's iterate for quantity
                 for (int i = 0; i < resolved.quantity; i++) {
                     String randomId = resolved.definition.dropTable.get(new Random().nextInt(resolved.definition.dropTable.size()));
                     Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(randomId));
                     stackToGive = new ItemStack(item);
-                    // Lootbox drops don't usually inherit the NBT of the "crate" item in config, 
+                    // Lootbox drops don't usually inherit the NBT of the "crate" item in config,
                     // but the crate itself isn't given.
-                    
+
                     if (!player.getInventory().add(stackToGive)) {
                         player.drop(stackToGive, false);
                     }
                     player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", stackToGive.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
                 }
-                
+
                 // We've handled giving items in the loop.
                 // Skip the "else" block logic for standard items.
-                // Skip the NBT logic below? The NBT logic applies to the "sold item". 
+                // Skip the NBT logic below? The NBT logic applies to the "sold item".
                 // If dropTable is present, the "sold item" is the drop.
                 // But here we might have multiple drops.
-                
+
                 // NOTE: The original code logic was:
                 // stackToGive = new ItemStack(item); (random drop)
                 // THEN apply NBT from definition to it.
                 // THEN give it.
-                
+
                 // If I have a loop, I should probably apply NBT to each drop?
                 // But usually dropTable items are raw. NBT in config is usually for the display item or the fixed item.
-                
+
                 // Let's stick to simple logic: If dropTable, repeat logic quantity times.
                 // BUT the code structure needs to support "stackToGive" variable which implies single stack.
-                
+
                 // Refactoring handlePurchase to support quantity properly for lootboxes is tricky without changing structure.
                 // Let's assume for LOOTBOXES, quantity applies to the number of pulls.
-                
+
             } else {
                 stackToGive = resolved.templateStack.copy();
                 stackToGive.setCount(resolved.quantity);
-                
+
                 // Apply NBT (CustomData) if present in definition (1.20.5+ way)
                 if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
                     try {
@@ -380,7 +434,7 @@ public class ShopGui {
 
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
             logTransaction(player, resolved, isPco, false, resolved.quantity, price);
-            
+
             // Re-resolve the item for the next purchase
             resolved.resolve();
         } else {
