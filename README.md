@@ -84,6 +84,202 @@ Example shop structure:
 
 ---
 
+## Loot Crates and Random Items
+
+The shop system supports two methods for creating loot crates that give random items when purchased:
+
+### Method 1: Simple Drop Table (dropTable)
+
+A simple list of item IDs where one random item is selected per purchase:
+
+```json
+{
+  "id": "minecraft:chest",
+  "name": "Mystery Box",
+  "price": 500,
+  "dropTable": [
+    "minecraft:diamond",
+    "minecraft:emerald",
+    "minecraft:gold_ingot",
+    "cobblemon:rare_candy",
+    "cobblemon:master_ball"
+  ]
+}
+```
+
+### Method 2: Minecraft Loot Tables (lootTable)
+
+Use Minecraft's native loot table system for advanced randomization with weights, conditions, and multiple items per roll.
+
+#### Using Built-in Loot Tables
+
+Reference any vanilla Minecraft loot table:
+
+```json
+{
+  "id": "minecraft:chest",
+  "name": "Dungeon Loot",
+  "price": 1000,
+  "lootTable": "minecraft:chests/simple_dungeon"
+}
+```
+
+Common vanilla loot tables:
+- `minecraft:chests/simple_dungeon`
+- `minecraft:chests/desert_pyramid`
+- `minecraft:chests/end_city_treasure`
+- `minecraft:chests/bastion_treasure`
+- `minecraft:chests/ancient_city`
+
+#### Creating Custom Loot Tables
+
+To create custom loot tables, you need to set up a **datapack** on your server.
+
+**Folder Structure:**
+```
+your_server/
+  world/
+    datapacks/
+      my_custom_loot/                    <- Your datapack folder
+        pack.mcmeta                      <- Required datapack metadata
+        data/
+          mycrates/                      <- Your namespace (can be any name)
+            loot_table/
+              crates/                    <- Subfolder for organization
+                starter_crate.json       <- Your loot table file
+                premium_crate.json
+                legendary_crate.json
+```
+
+**Step 1: Create `pack.mcmeta`**
+
+Create the file `world/datapacks/my_custom_loot/pack.mcmeta`:
+
+```json
+{
+  "pack": {
+    "pack_format": 48,
+    "description": "Custom loot tables for Cobblemon Economy"
+  }
+}
+```
+
+> Note: `pack_format: 48` is for Minecraft 1.21.x. Adjust if using a different version.
+
+**Step 2: Create Your Loot Table**
+
+Create the file `world/datapacks/my_custom_loot/data/mycrates/loot_table/crates/starter_crate.json`:
+
+```json
+{
+  "type": "minecraft:gift",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:poke_ball",
+          "weight": 50,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "min": 5, "max": 10 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:great_ball",
+          "weight": 30,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "min": 2, "max": 5 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:ultra_ball",
+          "weight": 15
+        },
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:master_ball",
+          "weight": 5
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:potion",
+          "weight": 60
+        },
+        {
+          "type": "minecraft:item",
+          "name": "cobblemon:rare_candy",
+          "weight": 40
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Step 3: Reference in Shop Config**
+
+In your `config.json`, reference the loot table using the namespace and path:
+
+```json
+{
+  "id": "minecraft:chest",
+  "name": "Starter Crate",
+  "price": 500,
+  "lootTable": "mycrates:crates/starter_crate"
+}
+```
+
+The format is: `namespace:path/to/loot_table` (without `.json` extension)
+
+**Step 4: Reload the Datapack**
+
+After creating or modifying loot tables, reload with:
+```
+/reload
+```
+
+#### Loot Table Tips
+
+- **Weights**: Higher weight = more likely to be selected
+- **Rolls**: Number of times to pick from the pool (can give multiple items)
+- **Functions**: Modify items (set count, add enchantments, set NBT, etc.)
+- **Conditions**: Add requirements (luck-based, player conditions, etc.)
+
+Example with enchantments:
+```json
+{
+  "type": "minecraft:item",
+  "name": "minecraft:diamond_sword",
+  "weight": 5,
+  "functions": [
+    {
+      "function": "minecraft:enchant_randomly",
+      "options": ["minecraft:sharpness", "minecraft:fire_aspect", "minecraft:looting"]
+    },
+    {
+      "function": "minecraft:set_name",
+      "name": {"text": "Lucky Blade", "color": "gold", "italic": false}
+    }
+  ]
+}
+```
+
+---
+
 ## 📄 License
 
 This project is private and intended for use with the Cobblemon mod.

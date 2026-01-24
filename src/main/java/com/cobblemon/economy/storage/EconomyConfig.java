@@ -42,6 +42,7 @@ public class EconomyConfig {
         public int price;
         public String nbt;
         public List<String> dropTable;
+        public String lootTable; // Minecraft loot table resource location (e.g., "minecraft:chests/simple_dungeon")
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
@@ -49,6 +50,7 @@ public class EconomyConfig {
             this.price = price;
             this.nbt = null;
             this.dropTable = null;
+            this.lootTable = null;
         }
     }
 
