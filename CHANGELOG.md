@@ -2,9 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.9] - 2026-01-22
+
+### Added
+- **Dynamic Quantity Selection:**
+  - **Middle-Click Interaction:** Players can now Middle-Click shop items to rotate the quantity multiplier (1x -> 2x -> 4x ... -> 64x).
+  - **Live Price Calculation:** The tooltip dynamically updates to show the total price for the selected quantity.
+  - **Audio Feedback:** Rotating quantity now plays a UI click sound.
+- **Advanced Item Parsing:**
+  - **Component Syntax:** Shop items now support full Minecraft component syntax in their ID field (e.g., `minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]`).
+  - **Robust Parser:** Implemented a new reflection-based parsing system that works across both Development and Production environments, solving runtime obfuscation issues.
+- **Lootbox Support:** Added the `dropTable` configuration field. Purchasing an item with a `dropTable` will give the player one random item from the list instead of the item itself.
+
+### Changed
+- **Strict Configuration Loading:** The mod no longer automatically re-creates default shops (like `default_poke`, `apothecary`) if they are missing from the configuration file. This allows server admins to permanently delete default shops they don't want.
+- **Silent Rewards:** Set reward values to `0` in the config to disable them completely. The "You received 0P" chat message will no longer appear if the reward is zero.
+- **Improved Tooltips:** Shop tooltips now clearly indicate "Left: Buy | Middle: x{Quantity}" for better user experience.
+
+### Fixed
+- **Internationalization Support for Tools:** The **Shop Setter** (Nether Star) now uses internal NBT data to identify the target shop instead of relying on the item's display name. This fixes the issue where the tool wouldn't work if the game language was not English.
+- **Path & Database Stability:** Fixed a `java.sql.SQLException` caused by malformed file paths (`./world/./config`) by normalizing directory path construction.
+- **Startup Crash:** Resolved a `ClassNotFoundException` related to `ItemStackArgumentType` by implementing a safe reflection wrapper that handles Yarn, Mojang, and Intermediary mapping names.
+
+## [0.0.8] - 2026-01-22
+
+### Added
+- **Network Skin Synchronization:** Players no longer need resource packs to see custom shopkeeper skins.
+  - **Auto-Download:** The client now automatically downloads custom skins from the server upon encountering them.
+  - **Drop & Play:** Admins can simply place `.png` files in the server config folder, and they will sync to all connected players.
+- **Black Market & Lootboxes:**
+  - **Loot Table Support:** Added the `dropTable` field to shop items, allowing shops to sell "Mystery Boxes" or "Crates" that give a random item from a defined list upon purchase.
+  - **New Preset:** Added a `black_market` shop selling a "Suspicious Crate" containing rare items.
+- **Command Auto-Completion:**
+  - `/eco shop get <id>`: Now suggests all available shop IDs.
+  - `/eco skin <name>`: Now suggests all available skin files found in the config folder.
+
+### Fixed
+- **Shopkeeper Orientation:** Fixed a visual bug where shopkeepers wouldn't look at the player when spawned. They now instantly rotate their head and body to face the player who placed the spawn egg.
+- **Reward System Bug:** Fixed an issue where the "New Discovery" reward was being granted repeatedly for the same Pokémon. It now correctly checks the player's Pokedex and only rewards the *first* capture of a species (unless it is Shiny, Legendary, or Paradox).
+- **Config Path Correction:** Resolved an issue where the client and server were looking in different locations for skins. Both now correctly respect the world-specific configuration folder (`saves/<world>/config/cobblemon-economy/skins/` for Singleplayer).
+
 ## [0.0.7] - 2026-01-22
 
 ### Added
+- **Smart Pokedex Rewards:**
+  - **Logic:** The system now intelligently checks if a player *already* has the species (or any of its forms) unlocked in their Pokedex before granting the "New Discovery" reward.
+  - **Exploit Prevention:** Prevents players from receiving money multiple times by catching different forms (e.g., Alolan vs Normal) or shiny variants of a species they already own.
+  - **Trade & Evolution Safety:** Applies the same strict check to Pokémon obtained via trading or evolution.
+- **Improved NPC Spawning:**
+  - **Auto-Rotation:** Shopkeeper NPCs spawned via Spawn Egg or Command will now automatically rotate their body and head to face the nearest player upon creation.
 - **NBT Support for Shop Items**: You can now define custom NBT data for shop items using the `"nbt"` field in `config.json` (String format).
 - **Unified Per-World Storage**: All mod data, including the `skins/` folder, is now stored within the world directory at `world/config/cobblemon-economy/`.
 - **Cumulative Battle Rewards**: Winning battles against special Pokémon now grants additive rewards (e.g., Shiny + Legendary = 15x reward).
@@ -13,6 +59,28 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - **Config Path**: Moved all files to `world/config/cobblemon-economy/` to follow standard save organization.
+
+### Fixed
+- **NPC Persistence:** Hardened the `ShopkeeperEntity` code to override standard mob despawning rules, ensuring shopkeepers *never* disappear naturally, regardless of distance or chunk unloading.
+
+### Ajouts (FR)
+- **Récompenses Pokédex Intelligentes :**
+  - **Logique :** Le système vérifie désormais si le joueur possède *déjà* l'espèce (ou une de ses formes) dans son Pokédex avant de donner la récompense de "Nouvelle Découverte".
+  - **Anti-Exploit :** Empêche de recevoir l'argent plusieurs fois en capturant des formes différentes (ex: Alola vs Normal) ou des variantes Shiny d'une espèce déjà connue.
+  - **Sécurité Échanges & Évolutions :** Applique la même vérification stricte aux Pokémon obtenus par échange ou évolution.
+- **Apparition des NPC Améliorée :**
+  - **Auto-Rotation :** Les vendeurs (Shopkeepers) invoqués via un Œuf d'apparition ou une commande s'orientent désormais automatiquement (corps et tête) vers le joueur le plus proche lors de leur création.
+- **Support NBT pour les Articles de Boutique :** Vous pouvez maintenant définir des données NBT personnalisées pour les articles de la boutique en utilisant le champ `"nbt"` dans `config.json` (format String).
+- **Stockage Unifié par Monde :** Toutes les données du mod, y compris le dossier `skins/`, sont maintenant stockées dans le répertoire du monde à `world/config/cobblemon-economy/`.
+- **Récompenses de Combat Cumulatives :** Gagner des combats contre des Pokémon spéciaux accorde désormais des récompenses cumulatives (ex: Shiny + Légendaire = récompense x15).
+- **Stabilité de la Boutique Améliorée :** Ajout d'une logique de validation pour ignorer les articles malformés ou nuls dans le `config.json` au lieu de provoquer un crash.
+- **Boutique Générale par Défaut :** Ajout d'une boutique `default_poke` à la configuration par défaut.
+
+### Changements (FR)
+- **Chemin de Configuration :** Déplacement de tous les fichiers vers `world/config/cobblemon-economy/` pour suivre l'organisation standard des sauvegardes.
+
+### Corrections (FR)
+- **Persistance des NPC :** Renforcement du code de l'entité `ShopkeeperEntity` pour surcharger les règles de disparition standard, garantissant que les vendeurs ne disparaissent *jamais* naturellement, quelle que soit la distance.
 
 ## [0.0.6] - 2026-01-21
 

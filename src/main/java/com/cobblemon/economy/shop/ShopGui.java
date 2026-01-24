@@ -28,9 +28,11 @@ public class ShopGui {
     private static final Map<UUID, ResolvedShopSession> ACTIVE_SESSIONS = new HashMap<>();
 
     private static class ResolvedItem {
+        ItemStack templateStack; // Stores item + components
         Item item;
         int price;
         String name;
+        int quantity = 1; // Default quantity
         final String originalId;
         final EconomyConfig.ShopItemDefinition definition;
 
@@ -51,18 +53,83 @@ public class ShopGui {
                 if (candidates.isEmpty()) {
                     this.item = Items.BARRIER;
                     this.name = "Unknown Namespace: " + namespace;
+                    this.templateStack = new ItemStack(this.item);
                 } else {
                     this.item = candidates.get(rand.nextInt(candidates.size()));
-                    this.name = this.item.getName(new ItemStack(this.item)).getString();
+                    this.templateStack = new ItemStack(this.item);
+                    this.name = this.templateStack.getHoverName().getString();
                 }
 
                 // Random price +/- 25% ONLY for wildcards
                 double multiplier = 0.75 + (rand.nextDouble() * 0.5);
                 this.price = (int) Math.round(definition.price * multiplier);
             } else {
-                this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId));
+                // Try to parse using ItemStringReader to support components [foo=bar]
+                try {
+                    // Check if ID contains '[' indicating component syntax
+                    if (originalId.contains("[")) {
+                        var registries = CobblemonEconomy.getGameServer().registryAccess();
+                        
+                        // Use Reflection with fallback for Intermediary names (Production environment)
+                        Class<?> argTypeClass;
+                        try {
+                            argTypeClass = Class.forName("net.minecraft.command.argument.ItemStackArgumentType");
+                        } catch (ClassNotFoundException e) {
+                            argTypeClass = Class.forName("net.minecraft.class_2282"); // Intermediary
+                        }
+
+                        Class<?> commandRegistryAccessClass;
+                        try {
+                            commandRegistryAccessClass = Class.forName("net.minecraft.command.CommandRegistryAccess");
+                        } catch (ClassNotFoundException e) {
+                            commandRegistryAccessClass = Class.forName("net.minecraft.class_7157"); // Intermediary
+                        }
+                        
+                        java.lang.reflect.Method itemStackMethod;
+                        try {
+                            itemStackMethod = argTypeClass.getMethod("itemStack", commandRegistryAccessClass);
+                        } catch (NoSuchMethodException e) {
+                            itemStackMethod = argTypeClass.getMethod("method_9774", commandRegistryAccessClass); // Intermediary
+                        }
+                        Object argTypeInstance = itemStackMethod.invoke(null, registries);
+                        
+                        java.lang.reflect.Method parseMethod;
+                        try {
+                            parseMethod = argTypeClass.getMethod("parse", com.mojang.brigadier.StringReader.class);
+                        } catch (NoSuchMethodException e) {
+                            parseMethod = argTypeClass.getMethod("method_9776", com.mojang.brigadier.StringReader.class); // Intermediary
+                        }
+                        Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(originalId));
+                        
+                        Class<?> argumentClass;
+                        try {
+                            argumentClass = Class.forName("net.minecraft.command.argument.ItemStackArgument");
+                        } catch (ClassNotFoundException e) {
+                            argumentClass = Class.forName("net.minecraft.class_2287"); // Intermediary
+                        }
+
+                        java.lang.reflect.Method createStackMethod;
+                        try {
+                            createStackMethod = argumentClass.getMethod("createStack", int.class, boolean.class);
+                        } catch (NoSuchMethodException e) {
+                            createStackMethod = argumentClass.getMethod("method_9781", int.class, boolean.class); // Intermediary
+                        }
+                        
+                        this.templateStack = (ItemStack) createStackMethod.invoke(argumentInstance, 1, false);
+                        this.item = this.templateStack.getItem();
+                    } else {
+                        // Standard lookup
+                        this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId));
+                        this.templateStack = new ItemStack(this.item);
+                    }
+                } catch (Exception e) {
+                    CobblemonEconomy.LOGGER.error("Failed to parse item ID: " + originalId, e);
+                    this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId.split("\\[")[0])); // Fallback to base item
+                    this.templateStack = new ItemStack(this.item);
+                }
+
                 this.name = definition.name;
-                this.price = definition.price; // Fixed price for standard items
+                this.price = definition.price;
             }
         }
     }
@@ -162,21 +229,53 @@ public class ShopGui {
             if (itemIndex < endIndex) {
                 ResolvedItem resolved = session.resolvedItems.get(itemIndex);
                 
-                Component actionLabel = Component.translatable(isSell ? "cobblemon-economy.shop.sell_action" : "cobblemon-economy.shop.buy_action");
+                Component actionLabel = Component.translatable(
+                        isSell ? "cobblemon-economy.shop.sell_action" : "cobblemon-economy.shop.buy_action",
+                        isSell ? resolved.quantity : resolved.quantity, // First arg for Sell (Sell X), ignored for Buy? Wait, Buy needs logic.
+                        // Actually, let's make it generic.
+                        // Buy: "Left: Buy | Middle: x{quantity}"
+                        // Sell: "Left: Sell {quantity} | Right: Sell All | Middle: x{quantity}"
+                        resolved.quantity // Second arg for Sell (Middle click hint), or first for Buy (Middle click hint)
+                );
+                
+                // Re-doing the logic cleaner:
+                if (isSell) {
+                     actionLabel = Component.translatable("cobblemon-economy.shop.sell_action", resolved.quantity, resolved.quantity);
+                } else {
+                     actionLabel = Component.translatable("cobblemon-economy.shop.buy_action", resolved.quantity);
+                }
+
                 Component priceLabel = Component.translatable(isSell ? "cobblemon-economy.shop.sell_label" : "cobblemon-economy.shop.price_label");
                 ChatFormatting priceColor = isPco ? ChatFormatting.AQUA : ChatFormatting.GREEN;
 
-                gui.setSlot(slotIndex, new GuiElementBuilder(resolved.item)
+                // Calculate total price for current quantity
+                long totalPrice = (long) resolved.price * resolved.quantity;
+                
+                ItemStack displayStack = resolved.templateStack.copy();
+                displayStack.setCount(resolved.quantity);
+
+                gui.setSlot(slotIndex, new GuiElementBuilder(displayStack)
                     .setName(Component.literal(resolved.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
                     .addLoreLine(priceLabel.copy().withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(resolved.price + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
+                        .append(Component.literal(totalPrice + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
+                    .addLoreLine(Component.literal("x" + resolved.quantity).withStyle(ChatFormatting.WHITE))
                     .addLoreLine(Component.empty())
                     .addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
+                    // Removed the separate middle click line, integrated into actionLabel
                     .setCallback((index, type, action) -> {
-                        if (isSell) {
-                            handleSell(player, resolved, isPco, type.isRight);
+                        if (type.isMiddle) {
+                            // Rotate quantity: 1 -> 2 -> 4 -> 8 -> 16 -> 32 -> 64 -> 1
+                            if (resolved.quantity >= 64) resolved.quantity = 1;
+                            else resolved.quantity *= 2;
+                            
+                            // Play sound for feedback
+                            player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 0.5f, 1.2f);
                         } else {
-                            handlePurchase(player, resolved, isPco);
+                            if (isSell) {
+                                handleSell(player, resolved, isPco, type.isRight);
+                            } else {
+                                handlePurchase(player, resolved, isPco);
+                            }
                         }
                         // Refresh GUI
                         open(player, shopId, currentPage); 
@@ -213,27 +312,74 @@ public class ShopGui {
     }
 
     private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco) {
-        BigDecimal price = BigDecimal.valueOf(resolved.price);
+        BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
         boolean success = isPco ? CobblemonEconomy.getEconomyManager().subtractPco(player.getUUID(), price) : CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), price);
 
         if (success) {
-            ItemStack stack = new ItemStack(resolved.item);
+            ItemStack stackToGive;
             
-            // Apply NBT (CustomData) if present in definition (1.20.5+ way)
-            if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
-                try {
-                    CompoundTag nbt = TagParser.parseTag(resolved.definition.nbt);
-                    stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
-                } catch (Exception e) {
-                    CobblemonEconomy.LOGGER.error("Failed to parse NBT for item " + resolved.originalId, e);
+            // Check for Lootbox/DropTable
+            if (resolved.definition.dropTable != null && !resolved.definition.dropTable.isEmpty()) {
+                // For lootboxes, we give ONE random item per purchase count? Or one bulk?
+                // Typically lootboxes are opened one by one.
+                // If quantity > 1, we should probably give 'quantity' items.
+                // But resolved.definition.dropTable means the item IS a lootbox in concept (or rather, buying it gives the drop).
+                
+                // Let's iterate for quantity
+                for (int i = 0; i < resolved.quantity; i++) {
+                    String randomId = resolved.definition.dropTable.get(new Random().nextInt(resolved.definition.dropTable.size()));
+                    Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(randomId));
+                    stackToGive = new ItemStack(item);
+                    // Lootbox drops don't usually inherit the NBT of the "crate" item in config, 
+                    // but the crate itself isn't given.
+                    
+                    if (!player.getInventory().add(stackToGive)) {
+                        player.drop(stackToGive, false);
+                    }
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", stackToGive.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+                }
+                
+                // We've handled giving items in the loop.
+                // Skip the "else" block logic for standard items.
+                // Skip the NBT logic below? The NBT logic applies to the "sold item". 
+                // If dropTable is present, the "sold item" is the drop.
+                // But here we might have multiple drops.
+                
+                // NOTE: The original code logic was:
+                // stackToGive = new ItemStack(item); (random drop)
+                // THEN apply NBT from definition to it.
+                // THEN give it.
+                
+                // If I have a loop, I should probably apply NBT to each drop?
+                // But usually dropTable items are raw. NBT in config is usually for the display item or the fixed item.
+                
+                // Let's stick to simple logic: If dropTable, repeat logic quantity times.
+                // BUT the code structure needs to support "stackToGive" variable which implies single stack.
+                
+                // Refactoring handlePurchase to support quantity properly for lootboxes is tricky without changing structure.
+                // Let's assume for LOOTBOXES, quantity applies to the number of pulls.
+                
+            } else {
+                stackToGive = resolved.templateStack.copy();
+                stackToGive.setCount(resolved.quantity);
+                
+                // Apply NBT (CustomData) if present in definition (1.20.5+ way)
+                if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
+                    try {
+                        CompoundTag nbt = TagParser.parseTag(resolved.definition.nbt);
+                        stackToGive.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                    } catch (Exception e) {
+                        CobblemonEconomy.LOGGER.error("Failed to parse NBT for item " + resolved.originalId, e);
+                    }
+                }
+
+                if (!player.getInventory().add(stackToGive)) {
+                    player.drop(stackToGive, false);
                 }
             }
 
-            if (!player.getInventory().add(stack)) {
-                player.drop(stack, false);
-            }
-            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.name).withStyle(ChatFormatting.GREEN));
-            logTransaction(player, resolved, isPco, false, 1, price);
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
+            logTransaction(player, resolved, isPco, false, resolved.quantity, price);
             
             // Re-resolve the item for the next purchase
             resolved.resolve();
@@ -252,8 +398,18 @@ public class ShopGui {
         }
 
         if (totalCount > 0) {
-            int amountToSell = sellAll ? Math.min(totalCount, resolved.item.getDefaultMaxStackSize()) : 1;
-            ItemStack toRemove = new ItemStack(resolved.item, amountToSell);
+            // Sell All (Right Click) vs Sell Quantity (Left Click)
+            int amountToSell;
+            if (sellAll) {
+                amountToSell = Math.min(totalCount, resolved.item.getDefaultMaxStackSize() * 36); // Cap at inventory size? Just totalCount.
+                amountToSell = totalCount;
+            } else {
+                // Sell current quantity selection
+                amountToSell = Math.min(totalCount, resolved.quantity);
+            }
+            
+            ItemStack toRemove = resolved.templateStack.copy();
+            toRemove.setCount(amountToSell);
             
             if (removeItem(player, toRemove)) {
                 BigDecimal totalPrice = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(amountToSell));

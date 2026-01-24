@@ -66,6 +66,7 @@ public class CobblemonEconomy implements ModInitializer {
         LOGGER.info("Starting Cobblemon Economy (Common Init)...");
         
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
+        com.cobblemon.economy.networking.NetworkHandler.register();
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(content -> {
             content.accept(SHOPKEEPER_SPAWN_EGG);
@@ -75,8 +76,14 @@ public class CobblemonEconomy implements ModInitializer {
             gameServer = server;
             
             // Per-world configuration path: world/config/cobblemon-economy/
-            modDirectory = server.getWorldPath(LevelResource.ROOT).resolve("config").resolve("cobblemon-economy").toFile();
-            if (!modDirectory.exists()) modDirectory.mkdirs();
+            // Fix: Normalize path to avoid './' issues
+            Path worldPath = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+            modDirectory = worldPath.resolve("config").resolve("cobblemon-economy").toFile();
+            
+            if (!modDirectory.exists()) {
+                boolean created = modDirectory.mkdirs();
+                if (!created) LOGGER.error("Failed to create config directory: " + modDirectory.getAbsolutePath());
+            }
 
             // Create skins directory inside the world config directory
             File skinsDir = new File(modDirectory, "skins");
@@ -99,17 +106,31 @@ public class CobblemonEconomy implements ModInitializer {
             ItemStack stack = player.getItemInHand(hand);
             
             if (!stack.isEmpty() && stack.getCount() > 0) {
-                Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
-                if (customNameComp != null) {
-                    String customName = customNameComp.getString();
+                // 1. Check Shop Setter (Nether Star)
+                if (stack.is(Items.NETHER_STAR)) {
+                    // Try to read custom data (language-agnostic)
+                    net.minecraft.world.item.component.CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+                    String shopId = null;
+                    
+                    if (customData != null && customData.contains("ShopSetterId")) {
+                        shopId = customData.copyTag().getString("ShopSetterId");
+                    } else {
+                        // Fallback to Name-based check (Legacy support)
+                        Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
+                        if (customNameComp != null) {
+                            String customName = customNameComp.getString();
+                            if (customName.startsWith("Shop Setter: ")) {
+                                shopId = customName.replace("Shop Setter: ", "");
+                            }
+                        }
+                    }
 
-                    if (stack.is(Items.NETHER_STAR) && customName.startsWith("Shop Setter: ")) {
+                    if (shopId != null) {
                         if (player instanceof ServerPlayer serverPlayer) {
                             if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
                             serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
                         }
 
-                        String shopId = customName.replace("Shop Setter: ", "");
                         EconomyConfig.ShopDefinition shopDef = config.shops.get(shopId);
                         if (shopDef != null) {
                             shopkeeper.setShopId(shopId);
@@ -125,6 +146,11 @@ public class CobblemonEconomy implements ModInitializer {
                             return InteractionResult.SUCCESS;
                         }
                     }
+                }
+
+                Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
+                if (customNameComp != null) {
+                    String customName = customNameComp.getString();
 
                     if (stack.is(Items.PLAYER_HEAD) && customName.startsWith("Skin Setter: ")) {
                         if (player instanceof ServerPlayer serverPlayer) {

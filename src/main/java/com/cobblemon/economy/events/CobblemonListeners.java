@@ -1,6 +1,7 @@
 package com.cobblemon.economy.events;
 
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
+import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.api.Priority;
 import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
@@ -15,22 +16,68 @@ import net.minecraft.world.entity.LivingEntity;
 import java.math.BigDecimal;
 import java.util.List;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.resources.ResourceLocation;
+
 public class CobblemonListeners {
+    private static final Map<String, Boolean> preChangeKnowledge = new ConcurrentHashMap<>();
+
     public static void register() {
+        // Capture existing status before change
+        CobblemonEvents.POKEDEX_DATA_CHANGED_PRE.subscribe(Priority.NORMAL, event -> {
+            try {
+                if (event.getKnowledge() == PokedexEntryProgress.CAUGHT) {
+                    var speciesRecord = event.getRecord().getSpeciesDexRecord();
+                    // Store if it was ALREADY caught
+                    boolean wasCaught = speciesRecord.getKnowledge() == PokedexEntryProgress.CAUGHT;
+                    String key = event.getPlayerUUID().toString() + ":" + speciesRecord.getId().toString();
+                    preChangeKnowledge.put(key, wasCaught);
+                }
+            } catch (Exception e) {
+                CobblemonEconomy.LOGGER.error("Error in Pokedex PRE event", e);
+            }
+            return kotlin.Unit.INSTANCE;
+        });
+
         // Reward for Pokedex updates (First catch of a species)
         CobblemonEvents.POKEDEX_DATA_CHANGED_POST.subscribe(Priority.NORMAL, event -> {
             // Check if the change is marking a Pokemon as CAUGHT
             if (event.getKnowledge() == PokedexEntryProgress.CAUGHT) {
+                // Verify against PRE cache to ensure it's a new catch
+                var speciesRecord = event.getRecord().getSpeciesDexRecord();
+                String key = event.getPlayerUUID().toString() + ":" + speciesRecord.getId().toString();
+                Boolean wasCaught = preChangeKnowledge.remove(key); // Remove to clean up
+
+                // If we don't know the previous state, assume it might be a re-trigger (safer to deny if unsure? or allow?)
+                // Actually, if PRE didn't fire (unlikely), we might give duplicate.
+                // But generally PRE fires.
+                // If wasCaught is TRUE, return immediately.
+                if (Boolean.TRUE.equals(wasCaught)) {
+                    return kotlin.Unit.INSTANCE;
+                }
+
                 ServerPlayer player = CobblemonEconomy.getGameServer().getPlayerList().getPlayer(event.getPlayerUUID());
                 if (player == null) return kotlin.Unit.INSTANCE;
-
+ 
+                // Check if this species is a legendary, mythical or paradox to avoid double rewards
+                var species = com.cobblemon.mod.common.api.pokemon.PokemonSpecies.INSTANCE.getByIdentifier(speciesRecord.getId());
+                if (species != null) {
+                    var labels = species.getLabels();
+                    if (labels.contains("legendary") || labels.contains("mythical") || labels.contains("paradox")) {
+                        return kotlin.Unit.INSTANCE;
+                    }
+                }
+                
                 // For Pokedex discovery, we only give the base reward as it's for the species
                 BigDecimal reward = CobblemonEconomy.getConfig().newDiscoveryReward;
-                CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
-
-                String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
-                player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
-                    .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
+                
+                if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                    CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                    String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
+                        .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
+                }
             }
             return kotlin.Unit.INSTANCE;
         });
@@ -66,37 +113,55 @@ public class CobblemonListeners {
                 hadParadox = true;
             }
 
+            if (!isSpecial) {
+                try {
+                    // Check Pokedex to see if already caught
+                    var pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
+                    var speciesIdentifier = pokemon.getSpecies().getResourceIdentifier();
+                    boolean isCaught = pokedex.getHighestKnowledgeForSpecies(speciesIdentifier) == PokedexEntryProgress.CAUGHT;
+                    
+                    if (isCaught) {
+                        return kotlin.Unit.INSTANCE;
+                    }
+                } catch (Exception e) {
+                    CobblemonEconomy.LOGGER.error("Failed to check pokedex status in capture event", e);
+                }
+            }
+
             if (isSpecial) {
                 multiplier = currentPokemonMult;
             }
 
             BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward.multiply(multiplier);
-            CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
             
-            String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
-            
-            String translationKey = "cobblemon-economy.event.capture";
-            ChatFormatting color = ChatFormatting.GOLD;
-            
-            if (hadShiny && hadLegendary) {
-                translationKey = "cobblemon-economy.event.capture.shiny_legendary";
-                color = ChatFormatting.LIGHT_PURPLE;
-            } else if (hadShiny && hadParadox) {
-                translationKey = "cobblemon-economy.event.capture.shiny_paradox";
-                color = ChatFormatting.AQUA;
-            } else if (hadLegendary) {
-                translationKey = "cobblemon-economy.event.capture.legendary";
-                color = ChatFormatting.LIGHT_PURPLE;
-            } else if (hadShiny) {
-                translationKey = "cobblemon-economy.event.capture.shiny";
-                color = ChatFormatting.AQUA;
-            } else if (hadParadox) {
-                translationKey = "cobblemon-economy.event.capture.special";
-                color = ChatFormatting.DARK_PURPLE;
-            }
+            if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                
+                String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                
+                String translationKey = "cobblemon-economy.event.capture";
+                ChatFormatting color = ChatFormatting.GOLD;
+                
+                if (hadShiny && hadLegendary) {
+                    translationKey = "cobblemon-economy.event.capture.shiny_legendary";
+                    color = ChatFormatting.LIGHT_PURPLE;
+                } else if (hadShiny && hadParadox) {
+                    translationKey = "cobblemon-economy.event.capture.shiny_paradox";
+                    color = ChatFormatting.AQUA;
+                } else if (hadLegendary) {
+                    translationKey = "cobblemon-economy.event.capture.legendary";
+                    color = ChatFormatting.LIGHT_PURPLE;
+                } else if (hadShiny) {
+                    translationKey = "cobblemon-economy.event.capture.shiny";
+                    color = ChatFormatting.AQUA;
+                } else if (hadParadox) {
+                    translationKey = "cobblemon-economy.event.capture.special";
+                    color = ChatFormatting.DARK_PURPLE;
+                }
 
-            Component message = Component.translatable(translationKey, formattedReward);
-            player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
+                Component message = Component.translatable(translationKey, formattedReward);
+                player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
+            }
 
             return kotlin.Unit.INSTANCE;
         });
@@ -120,18 +185,35 @@ public class CobblemonListeners {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
                         BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
-                        CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
-                        
                         String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
-                        Component message = Component.translatable("cobblemon-economy.event.victory", formattedReward);
+                        Component message = Component.empty();
+                        boolean hasReward = false;
+
+                        if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                             CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                             message = Component.translatable("cobblemon-economy.event.victory", formattedReward);
+                             hasReward = true;
+                        }
 
                         if (isCombatTower) {
                             BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward;
-                            CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), pcoReward);
-                            message = message.copy().append(Component.translatable("cobblemon-economy.event.victory_pco", pcoReward));
+                            if (pcoReward.compareTo(BigDecimal.ZERO) > 0) {
+                                CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), pcoReward);
+                                if (hasReward) {
+                                     message = message.copy().append(Component.translatable("cobblemon-economy.event.victory_pco", pcoReward));
+                                } else {
+                                     // Just PCO message logic if needed, or reuse event key if it supports partial
+                                     // Assuming event.victory expects {0} arg. If no poke reward, we might need a different message or just append PCO
+                                     // For simplicity, let's just append to empty if no poke reward
+                                     message = Component.translatable("cobblemon-economy.event.victory_pco", pcoReward);
+                                }
+                                hasReward = true;
+                            }
                         }
                         
-                        player.sendSystemMessage(message.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+                        if (hasReward) {
+                            player.sendSystemMessage(message.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+                        }
                     }
                 }
             }

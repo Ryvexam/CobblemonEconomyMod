@@ -2,8 +2,8 @@
   "entity.cobblemon-economy.shopkeeper": "Shopkeeper",
   "item.cobblemon-economy.shopkeeper_spawn_egg": "Shopkeeper Spawn Egg",
 
-  "cobblemon-economy.shop.buy_action": "▶ Left Click: Buy 1",
-  "cobblemon-economy.shop.sell_action": "▶ Left Click: Sell 1 | Right Click: Sell Stack",
+  "cobblemon-economy.shop.buy_action": "▶ Left: Buy | Middle: x%s",
+  "cobblemon-economy.shop.sell_action": "▶ Left: Sell %s | Right: Sell All | Middle: x%s",
   "cobblemon-economy.shop.price_label": "Price: ",
   "cobblemon-economy.shop.sell_label": "Sell: ",
   "cobblemon-economy.shop.balance_title": "Your Balance",

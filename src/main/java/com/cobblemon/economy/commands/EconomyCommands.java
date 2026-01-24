@@ -16,10 +16,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.commands.SharedSuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.io.File;
 
 public class EconomyCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -41,12 +47,37 @@ public class EconomyCommands {
             .then(Commands.literal("reload").executes(EconomyCommands::reload))
             .then(Commands.literal("skin")
                 .then(Commands.argument("name", StringArgumentType.string())
+                    .suggests(EconomyCommands::suggestSkins)
                     .executes(EconomyCommands::giveSkinSetter)))
             .then(Commands.literal("shop")
                 .then(Commands.literal("list").executes(EconomyCommands::listShops))
                 .then(Commands.literal("get")
                     .then(Commands.argument("id", StringArgumentType.string())
+                        .suggests(EconomyCommands::suggestShopIds)
                         .executes(EconomyCommands::giveShopSetter)))));
+    }
+
+    private static CompletableFuture<Suggestions> suggestShopIds(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(CobblemonEconomy.getConfig().shops.keySet(), builder);
+    }
+
+    private static CompletableFuture<Suggestions> suggestSkins(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        List<String> skins = new ArrayList<>();
+        File modDir = CobblemonEconomy.getModDirectory();
+        if (modDir != null) {
+            File skinsDir = new File(modDir, "skins");
+            if (skinsDir.exists() && skinsDir.isDirectory()) {
+                File[] files = skinsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+                if (files != null) {
+                    for (File f : files) {
+                        skins.add(f.getName().substring(0, f.getName().length() - 4));
+                    }
+                }
+            }
+        }
+        // Also suggest default "shopkeeper"
+        skins.add("shopkeeper");
+        return SharedSuggestionProvider.suggest(skins, builder);
     }
 
     private static int giveSkinSetter(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -69,13 +100,25 @@ public class EconomyCommands {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         String shopId = StringArgumentType.getString(ctx, "id");
         
-        if (!CobblemonEconomy.getConfig().shops.containsKey(shopId)) {
-            ctx.getSource().sendFailure(Component.translatable("cobblemon-economy.command.shop.unknown", shopId));
-            return 0;
+        if (CobblemonEconomy.getConfig().shops.containsKey(shopId)) {
+            // Found by ID directly
+        } else {
+            // Check translation/display name fallback? No, commands usually use IDs.
+            // Just strict ID check as before.
+            if (!CobblemonEconomy.getConfig().shops.containsKey(shopId)) {
+                ctx.getSource().sendFailure(Component.translatable("cobblemon-economy.command.shop.unknown", shopId));
+                return 0;
+            }
         }
 
         ItemStack stack = new ItemStack(Items.NETHER_STAR);
         stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.shop_setter.name", shopId).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        
+        // Add internal NBT tag for language-agnostic identification
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+        tag.putString("ShopSetterId", shopId);
+        stack.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+
         stack.set(DataComponents.LORE, new ItemLore(List.of(
             Component.translatable("cobblemon-economy.item.shop_setter.lore1").withStyle(ChatFormatting.GRAY),
             Component.translatable("cobblemon-economy.item.shop_setter.lore2").withStyle(ChatFormatting.GRAY)

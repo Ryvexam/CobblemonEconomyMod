@@ -41,18 +41,21 @@ public class EconomyConfig {
         public String name;
         public int price;
         public String nbt;
+        public List<String> dropTable;
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
             this.name = name;
             this.price = price;
             this.nbt = null;
+            this.dropTable = null;
         }
     }
 
     public static EconomyConfig load(File configFile) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         EconomyConfig config = null;
+        boolean isNewConfig = !configFile.exists();
 
         if (configFile.exists()) {
             try (FileReader reader = new FileReader(configFile)) {
@@ -79,10 +82,11 @@ public class EconomyConfig {
             shop.items.removeIf(item -> item == null || item.id == null);
         }
 
-        // --- Add defaults if missing ---
+        // --- Add defaults ONLY if it's a fresh install ---
         boolean modified = false;
 
-        if (!config.shops.containsKey("default_poke")) {
+        if (isNewConfig) {
+            // 1. General Shop
             ShopDefinition defaultPoke = new ShopDefinition();
             defaultPoke.title = "🛒 GENERAL SHOP 🛒";
             defaultPoke.currency = "POKE";
@@ -94,10 +98,8 @@ public class EconomyConfig {
             defaultPoke.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
             defaultPoke.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 2000));
             config.shops.put("default_poke", defaultPoke);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("apothecary")) {
+            // 2. Apothecary
             ShopDefinition apothecary = new ShopDefinition();
             apothecary.title = "💊 APOTHECARY 💊";
             apothecary.currency = "POKE";
@@ -117,10 +119,8 @@ public class EconomyConfig {
             apothecary.items.add(new ShopItemDefinition("cobblemon:full_heal", "Full Heal", 400));
             apothecary.items.add(new ShopItemDefinition("cobblemon:escape_rope", "Escape Rope", 300));
             config.shops.put("apothecary", apothecary);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("ball_emporium")) {
+            // 3. Ball Emporium
             ShopDefinition ballShop = new ShopDefinition();
             ballShop.title = "⚪ BALL EMPORIUM ⚪";
             ballShop.currency = "POKE";
@@ -148,10 +148,8 @@ public class EconomyConfig {
             ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_wing_ball", "Ancient Wing Ball", 3500));
             ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_jet_ball", "Ancient Jet Ball", 4000));
             config.shops.put("ball_emporium", ballShop);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("jeweler")) {
+            // 4. Jeweler (Sell)
             ShopDefinition jeweler = new ShopDefinition();
             jeweler.title = "💎 JEWELER 💎";
             jeweler.currency = "POKE";
@@ -180,10 +178,8 @@ public class EconomyConfig {
             jeweler.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 300));
             jeweler.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 200));
             config.shops.put("jeweler", jeweler);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("battle_rewards")) {
+            // 5. Battle Rewards
             ShopDefinition battleRewards = new ShopDefinition();
             battleRewards.title = "⚔️ BATTLE REWARDS ⚔️";
             battleRewards.currency = "PCO";
@@ -199,10 +195,8 @@ public class EconomyConfig {
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000));
             config.shops.put("battle_rewards", battleRewards);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("berry_gardener")) {
+            // 6. Berry Gardener
             ShopDefinition berryShop = new ShopDefinition();
             berryShop.title = "🍎 BERRY GARDENER 🍎";
             berryShop.currency = "POKE";
@@ -215,10 +209,8 @@ public class EconomyConfig {
             berryShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Pecha Berry", 100));
             berryShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Rawst Berry", 100));
             config.shops.put("berry_gardener", berryShop);
-            modified = true;
-        }
 
-        if (!config.shops.containsKey("surprise_shop")) {
+            // 7. Surprise Shop
             ShopDefinition surpriseShop = new ShopDefinition();
             surpriseShop.title = "🎁 SURPRISE SHOP 🎁";
             surpriseShop.currency = "POKE";
@@ -228,6 +220,22 @@ public class EconomyConfig {
             surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
             surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
             config.shops.put("surprise_shop", surpriseShop);
+
+            // 8. Black Market
+            ShopDefinition blackMarket = new ShopDefinition();
+            blackMarket.title = "☠ BLACK MARKET ☠";
+            blackMarket.currency = "PCO";
+            blackMarket.skin = "shopkeeper";
+            ShopItemDefinition lootBox = new ShopItemDefinition("minecraft:black_shulker_box", "Suspicious Crate", 100);
+            lootBox.dropTable = new ArrayList<>();
+            lootBox.dropTable.add("cobblemon:master_ball");
+            lootBox.dropTable.add("cobblemon:rare_candy");
+            lootBox.dropTable.add("cobblemon:ability_patch");
+            lootBox.dropTable.add("minecraft:netherite_ingot");
+            lootBox.dropTable.add("minecraft:diamond_block");
+            blackMarket.items.add(lootBox);
+            config.shops.put("black_market", blackMarket);
+
             modified = true;
         }
 
@@ -239,7 +247,7 @@ public class EconomyConfig {
                 CobblemonEconomy.LOGGER.error("Failed to save updated config", e);
             }
         }
-
+        
         return config;
     }
 }
