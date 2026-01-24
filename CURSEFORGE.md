@@ -73,12 +73,16 @@ The configuration file is located at `world/config/cobblemon-economy/config.json
 | `startingBalance` | 1000 | Starting money for new players. |
 | `battleVictoryReward` | 100 | Money for winning wild battles (0 to disable). |
 | `newDiscoveryReward` | 100 | Money for **first-time** capture of a species (0 to disable). |
+| `shinyMultiplier` | 5.0 | Bonus multiplier for Shiny captures. |
+| `legendaryMultiplier` | 10.0 | Bonus multiplier for Legendary captures. |
+| `paradoxMultiplier` | 3.0 | Bonus multiplier for Paradox captures. |
 
 ### Creating Shops
 Shops are defined in the `"shops"` object.
 *   **title**: GUI Title.
 *   **currency**: `"POKE"` or `"PCO"`.
 *   **skin**: Filename of the skin in `skins/` folder (e.g. "nurse").
+*   **isSellShop**: Set to `true` to let players sell items here.
 *   **items**: List of items to sell.
 
 #### Item Examples
