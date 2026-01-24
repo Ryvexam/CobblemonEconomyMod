@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.10] - 2026-01-22
+## [0.0.10] - 2026-01-24
 
 ### Added
 - **Lootbox Support:** Added the `dropTable` configuration field. Purchasing an item with a `dropTable` will give the player one random item from the list instead of the item itself.
 
-## [0.0.9] - 2026-01-22
+## [0.0.9] - 2026-01-24
 
 ### Added
 - **Dynamic Quantity Selection:**
@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Internationalization Support for Tools:** The **Shop Setter** (Nether Star) now uses internal NBT data to identify the target shop instead of relying on the item's display name. This fixes the issue where the tool wouldn't work if the game language was not English.
+- **Path & Database Stability:** Fixed a `java.sql.SQLException` caused by malformed file paths (`./world/./config`) by normalizing directory path construction.
+- **Startup Crash:** Resolved a `ClassNotFoundException` related to `ItemStackArgumentType` by implementing a safe reflection wrapper that handles Yarn, Mojang, and Intermediary mapping names.
 - **Path & Database Stability:** Fixed a `java.sql.SQLException` caused by malformed file paths (`./world/./config`) by normalizing directory path construction.
 - **Startup Crash:** Resolved a `ClassNotFoundException` related to `ItemStackArgumentType` by implementing a safe reflection wrapper that handles Yarn, Mojang, and Intermediary mapping names.
 
