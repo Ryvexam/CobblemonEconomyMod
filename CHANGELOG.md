@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [0.0.10] - 2026-01-22
 
 ### Added
+- **Lootbox Support:** Added the `dropTable` configuration field. Purchasing an item with a `dropTable` will give the player one random item from the list instead of the item itself.
+
+## [0.0.9] - 2026-01-22
+
+### Added
 - **Dynamic Quantity Selection:**
   - **Middle-Click Interaction:** Players can now Middle-Click shop items to rotate the quantity multiplier (1x -> 2x -> 4x ... -> 64x).
   - **Live Price Calculation:** The tooltip dynamically updates to show the total price for the selected quantity.
@@ -14,23 +19,14 @@ All notable changes to this project will be documented in this file.
   - **Robust Parser:** Implemented a new reflection-based parsing system that works across both Development and Production environments, solving runtime obfuscation issues.
 
 ### Changed
+- **Strict Configuration Loading:** The mod no longer automatically re-creates default shops (like `default_poke`, `apothecary`) if they are missing from the configuration file. This allows server admins to permanently delete default shops they don't want.
+- **Silent Rewards:** Set reward values to `0` in the config to disable them completely. The "You received 0P" chat message will no longer appear if the reward is zero.
 - **Improved Tooltips:** Shop tooltips now clearly indicate "Left: Buy | Middle: x{Quantity}" for better user experience.
 
 ### Fixed
+- **Internationalization Support for Tools:** The **Shop Setter** (Nether Star) now uses internal NBT data to identify the target shop instead of relying on the item's display name. This fixes the issue where the tool wouldn't work if the game language was not English.
 - **Path & Database Stability:** Fixed a `java.sql.SQLException` caused by malformed file paths (`./world/./config`) by normalizing directory path construction.
 - **Startup Crash:** Resolved a `ClassNotFoundException` related to `ItemStackArgumentType` by implementing a safe reflection wrapper that handles Yarn, Mojang, and Intermediary mapping names.
-
-## [0.0.9] - 2026-01-22
-
-### Added
-- **Lootbox Support:** Added the `dropTable` configuration field. Purchasing an item with a `dropTable` will give the player one random item from the list instead of the item itself.
-
-### Changed
-- **Strict Configuration Loading:** The mod no longer automatically re-creates default shops (like `default_poke`, `apothecary`) if they are missing from the configuration file. This allows server admins to permanently delete default shops they don't want.
-- **Silent Rewards:** Set reward values to `0` in the config to disable them completely. The "You received 0P" chat message will no longer appear if the reward is zero.
-
-### Fixed
-- **Internationalization Support for Tools:** The **Shop Setter** (Nether Star) now uses internal NBT data to identify the target shop instead of relying on the item's display name. This fixes the issue where the tool wouldn't work if the game language was not English.
 
 ## [0.0.8] - 2026-01-22
 
