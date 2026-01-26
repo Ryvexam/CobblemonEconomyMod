@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.11] - 2026-01-26
+
+### Added
+- **Top Players Ranking:**
+  - Added `/bal top` (or `/balance top`) to display the top 10 richest players in PokeDollars.
+  - Added `/pco top` to display the top 10 players in PokeCoins.
+- **Star Academy Integration:**
+  - Added optional integration with the **Star Academy** mod (id: `academy`).
+  - Card grading NPCs now charge players using Cobblemon Economy instead of `numismatic-overhaul` if Star Academy is installed. (Huge thanks to **Rinkuji** for the mixin integration!)
+  - Automatically handles transaction failure messages (e.g., if the player is broke).
+
+### Ajouts (FR)
+- **Classement des Meilleurs Joueurs :**
+  - Ajout de `/bal top` pour afficher les 10 joueurs les plus riches.
+  - Ajout de `/pco top` pour afficher les 10 joueurs avec le plus de PCo.
+- **Intégration Star Academy :**
+  - Intégration optionnelle avec le mod **Star Academy** (id : `academy`).
+  - Les PNJ de gradation de cartes débitent désormais via Cobblemon Economy au lieu de `numismatic-overhaul`. (Merci à **Rinkuji** pour le mixin !)
+
 ## [0.0.10] - 2026-01-24
 
 ### Added
