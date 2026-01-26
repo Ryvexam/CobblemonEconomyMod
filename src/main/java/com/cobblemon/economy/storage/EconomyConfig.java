@@ -33,6 +33,7 @@ public class EconomyConfig {
         public String currency = "POKE"; 
         public String skin = "shopkeeper";
         public boolean isSellShop = false;
+        public String linkedShop = null; // Optional: ID of a linked shop (e.g., link a buy shop to a sell shop)
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
@@ -101,11 +102,12 @@ public class EconomyConfig {
             defaultPoke.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 2000));
             config.shops.put("default_poke", defaultPoke);
 
-            // 2. Apothecary
+            // 2. Apothecary (Buy Shop)
             ShopDefinition apothecary = new ShopDefinition();
             apothecary.title = "💊 APOTHECARY 💊";
             apothecary.currency = "POKE";
             apothecary.skin = "shopkeeper";
+            apothecary.linkedShop = "apothecary_sell"; // Link to sell shop
             apothecary.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
             apothecary.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
             apothecary.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 1500));
@@ -121,6 +123,22 @@ public class EconomyConfig {
             apothecary.items.add(new ShopItemDefinition("cobblemon:full_heal", "Full Heal", 400));
             apothecary.items.add(new ShopItemDefinition("cobblemon:escape_rope", "Escape Rope", 300));
             config.shops.put("apothecary", apothecary);
+
+            // 2b. Apothecary Sell Shop (Linked to Apothecary)
+            ShopDefinition apothecary_sell = new ShopDefinition();
+            apothecary_sell.title = "💊 APOTHECARY - SELL 💊";
+            apothecary_sell.currency = "POKE";
+            apothecary_sell.isSellShop = true;
+            apothecary_sell.skin = "shopkeeper";
+            apothecary_sell.linkedShop = "apothecary"; // Link back to buy shop
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 100));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 350));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 750));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:max_potion", "Max Potion", 1250));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:full_restore", "Full Restore", 1500));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 1000));
+            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:max_revive", "Max Revive", 2000));
+            config.shops.put("apothecary_sell", apothecary_sell);
 
             // 3. Ball Emporium
             ShopDefinition ballShop = new ShopDefinition();
@@ -157,6 +175,7 @@ public class EconomyConfig {
             jeweler.currency = "POKE";
             jeweler.isSellShop = true;
             jeweler.skin = "shopkeeper";
+            jeweler.linkedShop = "jeweler_buy"; // Link to buy shop
             jeweler.items.add(new ShopItemDefinition("minecraft:coal", "Coal", 2));
             jeweler.items.add(new ShopItemDefinition("minecraft:iron_ingot", "Iron Ingot", 10));
             jeweler.items.add(new ShopItemDefinition("minecraft:copper_ingot", "Copper Ingot", 5));
@@ -180,6 +199,26 @@ public class EconomyConfig {
             jeweler.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 300));
             jeweler.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 200));
             config.shops.put("jeweler", jeweler);
+
+            // 4b. Jeweler Buy Shop (Linked to Jeweler)
+            ShopDefinition jeweler_buy = new ShopDefinition();
+            jeweler_buy.title = "💎 JEWELER - BUY 💎";
+            jeweler_buy.currency = "POKE";
+            jeweler_buy.skin = "shopkeeper";
+            jeweler_buy.linkedShop = "jeweler"; // Link back to sell shop
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:fire_stone", "Fire Stone", 1000));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:water_stone", "Water Stone", 1000));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:thunder_stone", "Thunder Stone", 1000));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:leaf_stone", "Leaf Stone", 1000));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:moon_stone", "Moon Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:sun_stone", "Sun Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:shiny_stone", "Shiny Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:dusk_stone", "Dusk Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:dawn_stone", "Dawn Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:ice_stone", "Ice Stone", 1500));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 600));
+            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 400));
+            config.shops.put("jeweler_buy", jeweler_buy);
 
             // 5. Battle Rewards
             ShopDefinition battleRewards = new ShopDefinition();

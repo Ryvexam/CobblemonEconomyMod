@@ -229,6 +229,26 @@ public class ShopGui {
                 .withStyle(style -> style.withFont(ResourceLocation.withDefaultNamespace("default"))))
         );
 
+        // Add linked shop switch button in slot 8 (top right corner)
+        if (shop.linkedShop != null && !shop.linkedShop.isEmpty()) {
+            EconomyConfig.ShopDefinition linkedShop = CobblemonEconomy.getConfig().shops.get(shop.linkedShop);
+            if (linkedShop != null) {
+                String linkedTitle = linkedShop.title != null ? linkedShop.title : "Linked Shop";
+                Item switchIcon = linkedShop.isSellShop ? Items.EMERALD : Items.GOLD_INGOT;
+                
+                gui.setSlot(8, new GuiElementBuilder(switchIcon)
+                    .setName(Component.literal("⇄ Switch Shop").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                    .addLoreLine(Component.literal(linkedTitle).withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.empty())
+                    .addLoreLine(Component.literal("Click to switch").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC))
+                    .setCallback((index, type, action) -> {
+                        player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 0.5f, 1.0f);
+                        open(player, shop.linkedShop, 0);
+                    })
+                );
+            }
+        }
+
         if (hasPrev) {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR)
                 .setName(Component.translatable("cobblemon-economy.shop.return_to_start"))
