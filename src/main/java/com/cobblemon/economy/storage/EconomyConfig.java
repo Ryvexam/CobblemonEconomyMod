@@ -34,6 +34,7 @@ public class EconomyConfig {
         public String skin = "shopkeeper";
         public boolean isSellShop = false;
         public String linkedShop = null; // Optional: ID of a linked shop (e.g., link a buy shop to a sell shop)
+        public String linkedShopIcon = null; // Optional: Custom icon for the linked shop button (e.g., "minecraft:diamond")
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
@@ -108,6 +109,7 @@ public class EconomyConfig {
             apothecary.currency = "POKE";
             apothecary.skin = "shopkeeper";
             apothecary.linkedShop = "apothecary_sell"; // Link to sell shop
+            apothecary.linkedShopIcon = "cobblemon:potion"; // Custom icon for the linked shop button
             apothecary.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
             apothecary.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
             apothecary.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 1500));
@@ -131,6 +133,7 @@ public class EconomyConfig {
             apothecary_sell.isSellShop = true;
             apothecary_sell.skin = "shopkeeper";
             apothecary_sell.linkedShop = "apothecary"; // Link back to buy shop
+            apothecary_sell.linkedShopIcon = "cobblemon:super_potion"; // Custom icon for the linked shop button
             apothecary_sell.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 100));
             apothecary_sell.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 350));
             apothecary_sell.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 750));
