@@ -234,7 +234,14 @@ public class ShopGui {
             EconomyConfig.ShopDefinition linkedShop = CobblemonEconomy.getConfig().shops.get(shop.linkedShop);
             if (linkedShop != null) {
                 String linkedTitle = linkedShop.title != null ? linkedShop.title : "Linked Shop";
-                Item switchIcon = linkedShop.isSellShop ? Items.EMERALD : Items.GOLD_INGOT;
+                Item switchIcon;
+                if (shop.linkedShopIcon != null && !shop.linkedShopIcon.isEmpty()) {
+                    // Use configured custom icon
+                    switchIcon = BuiltInRegistries.ITEM.get(ResourceLocation.parse(shop.linkedShopIcon));
+                } else {
+                    // Fallback to default behavior
+                    switchIcon = linkedShop.isSellShop ? Items.EMERALD : Items.GOLD_INGOT;
+                }
                 
                 gui.setSlot(8, new GuiElementBuilder(switchIcon)
                     .setName(Component.literal("⇄ Switch Shop").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
