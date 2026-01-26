@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.12] - 2026-01-26
+
+### Added
+- **Developer API:**
+  - Introduced `EconomyEvents` API for other mods to hook into the economy system.
+  - `BALANCE_UPDATE_PRE`: Cancellable event fired *before* a balance change.
+  - `BALANCE_UPDATE_POST`: Informational event fired *after* a balance change.
+- **Enhanced Shopkeeper AI:**
+  - **Invulnerability:** Shopkeepers are now invulnerable to survival damage (mobs, players) but can still be killed by Creative players or commands.
+  - **Immovable:** Shopkeepers can no longer be pushed by players or other entities.
+  - **Look Behavior:** Shopkeepers now smoothly look at the nearest player within a 6-block radius.
+
+### Changed
+- **Internal Economy Logic:** Refactored `EconomyManager` to utilize the new event system for all balance changes, ensuring consistency across the mod.
+
+### Ajouts (FR)
+- **API Développeur :**
+  - Introduction de l'API `EconomyEvents` permettant aux autres mods d'interagir avec le système économique.
+  - `BALANCE_UPDATE_PRE` : Évènement annulable déclenché *avant* un changement de solde.
+  - `BALANCE_UPDATE_POST` : Évènement informatif déclenché *après* un changement de solde.
+- **IA des Vendeurs Améliorée :**
+  - **Invulnérabilité :** Les vendeurs sont désormais invulnérables aux dégâts en survie (mobs, joueurs) mais peuvent toujours être tués par les joueurs en Créatif ou via commande.
+  - **Immuable :** Les vendeurs ne peuvent plus être poussés par les joueurs ou d'autres entités.
+  - **Regard :** Les vendeurs regardent désormais fluidement le joueur le plus proche dans un rayon de 6 blocs.
+
 ## [0.0.11] - 2026-01-26
 
 ### Added
