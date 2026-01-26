@@ -18,6 +18,7 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.ServerLevelAccessor;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.player.Player;
 
 public class ShopkeeperEntity extends PathfinderMob {
@@ -26,7 +27,22 @@ public class ShopkeeperEntity extends PathfinderMob {
 
     public ShopkeeperEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
-        this.setNoAi(true);
+        this.setInvulnerable(true);
+    }
+    
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(0, new LookAtPlayerGoal(this, Player.class, 6.0F));
+    }
+
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
+    @Override
+    protected void doPush(net.minecraft.world.entity.Entity entity) {
+        // No push
     }
 
     @Override
