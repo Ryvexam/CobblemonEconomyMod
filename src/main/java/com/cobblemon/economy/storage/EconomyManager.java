@@ -6,6 +6,10 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class EconomyManager {
@@ -125,6 +129,34 @@ public class EconomyManager {
         if (current.compareTo(amount) < 0) return false;
         setPco(uuid, current.subtract(amount));
         return true;
+    }
+
+    public List<Map.Entry<UUID, BigDecimal>> getTopBalance(int limit) {
+        return getTopCurrency("balance", limit);
+    }
+
+    public List<Map.Entry<UUID, BigDecimal>> getTopPco(int limit) {
+        return getTopCurrency("pco", limit);
+    }
+
+    private List<Map.Entry<UUID, BigDecimal>> getTopCurrency(String column, int limit) {
+        List<Map.Entry<UUID, BigDecimal>> topList = new ArrayList<>();
+        // Casting to REAL for sorting. Note: This might lose precision for extremely large numbers but is sufficient for ranking.
+        String sql = "SELECT uuid, " + column + " FROM balances ORDER BY CAST(" + column + " AS REAL) DESC LIMIT ?";
+        
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, limit);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("uuid"));
+                BigDecimal amount = new BigDecimal(rs.getString(column));
+                topList.add(new AbstractMap.SimpleEntry<>(uuid, amount));
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to get top " + column, e);
+        }
+        return topList;
     }
 }
 
