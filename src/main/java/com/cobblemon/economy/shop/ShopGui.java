@@ -214,10 +214,20 @@ public class ShopGui {
         }
 
         SimpleGui gui = new SimpleGui(MenuType.GENERIC_9x6, player, false);
-        gui.setTitle(Component.literal("\uF804" + titleChar).withStyle(style -> 
-            style.withFont(ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "default"))
-                 .withColor(0xFFFFFF)
-        ));
+        
+        String shopTitle = shop.title != null ? shop.title : "Shop";
+        String negativeSpace = "\uF804".repeat(21);
+        
+        gui.setTitle(Component.literal("\uF804" + titleChar)
+            .withStyle(style -> 
+                style.withFont(ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "default"))
+                     .withColor(0xFFFFFF)
+            )
+            .append(Component.literal(negativeSpace)
+                .withStyle(style -> style.withFont(ResourceLocation.fromNamespaceAndPath(CobblemonEconomy.MOD_ID, "default"))))
+            .append(Component.literal(shopTitle)
+                .withStyle(style -> style.withFont(ResourceLocation.withDefaultNamespace("default"))))
+        );
 
         if (hasPrev) {
             gui.setSlot(0, new GuiElementBuilder(Items.AIR)
