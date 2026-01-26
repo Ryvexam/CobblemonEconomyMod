@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.cobblemon.economy.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.cobblemon.economy.mixin.MixinPlugin",
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
