@@ -24,8 +24,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.io.File;
+import java.util.Optional;
 
 public class EconomyCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -146,12 +148,41 @@ public class EconomyCommands {
     private static void registerPublicCurrencyCommand(CommandDispatcher<CommandSourceStack> dispatcher, String label, String symbol, ChatFormatting color, boolean isMain) {
         dispatcher.register(Commands.literal(label)
             .executes(ctx -> getCurrencyBal(ctx, ctx.getSource().getPlayerOrException(), symbol, color, isMain))
+            .then(Commands.literal("top").executes(ctx -> sendTop(ctx, symbol, color, isMain)))
             .then(Commands.argument("player", EntityArgument.player())
                 .requires(source -> source.hasPermission(2))
                 .executes(ctx -> getCurrencyBal(ctx, EntityArgument.getPlayer(ctx, "player"), symbol, color, isMain))
                 .then(Commands.literal("add").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01)).executes(ctx -> modifyCurrency(ctx, label, "give", isMain))))
                 .then(Commands.literal("remove").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01)).executes(ctx -> modifyCurrency(ctx, label, "take", isMain))))
                 .then(Commands.literal("set").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0)).executes(ctx -> modifyCurrency(ctx, label, "set", isMain))))));
+    }
+
+    private static int sendTop(CommandContext<CommandSourceStack> context, String symbol, ChatFormatting color, boolean isMain) {
+        List<Map.Entry<UUID, BigDecimal>> topList = isMain 
+            ? CobblemonEconomy.getEconomyManager().getTopBalance(10) 
+            : CobblemonEconomy.getEconomyManager().getTopPco(10);
+            
+        context.getSource().sendSuccess(() -> Component.translatable(
+            isMain ? "cobblemon-economy.command.balance.top.title" : "cobblemon-economy.command.pco.top.title"
+        ).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+
+        int rank = 1;
+        for (Map.Entry<UUID, BigDecimal> entry : topList) {
+            Optional<com.mojang.authlib.GameProfile> profileOpt = context.getSource().getServer().getProfileCache().get(entry.getKey());
+            String name = profileOpt.map(com.mojang.authlib.GameProfile::getName).orElse(entry.getKey().toString());
+                
+            String amount = entry.getValue().stripTrailingZeros().toPlainString() + symbol;
+            
+            final int currentRank = rank;
+            context.getSource().sendSuccess(() -> Component.translatable(
+                "cobblemon-economy.command.top.entry",
+                currentRank,
+                name,
+                amount
+            ).withStyle(ChatFormatting.YELLOW), false);
+            rank++;
+        }
+        return 1;
     }
 
     private static int sendHelp(CommandContext<CommandSourceStack> context) {
