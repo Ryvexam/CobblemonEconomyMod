@@ -27,5 +27,8 @@
     "minecraft": "~1.21.1",
     "fabric": "*",
     "cobblemon": ">=1.7.1"
-  }
+  },
+  "mixins": [
+    "cobblemon-economy.mixins.json"
+  ]
 }
