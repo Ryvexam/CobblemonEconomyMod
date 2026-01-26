@@ -1,5 +1,6 @@
 package com.cobblemon.economy.storage;
 
+import com.cobblemon.economy.api.EconomyEvents;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 
 import java.io.File;
@@ -88,11 +89,21 @@ public class EconomyManager {
     }
 
     public void setBalance(UUID uuid, BigDecimal amount) {
+        BigDecimal oldBalance = getBalance(uuid);
+        if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, amount, false)) {
+            return;
+        }
         updateCurrency(uuid, "balance", amount);
+        EconomyEvents.BALANCE_UPDATE_POST.invoker().handle(uuid, oldBalance, amount, false);
     }
 
     public void setPco(UUID uuid, BigDecimal amount) {
+        BigDecimal oldBalance = getPco(uuid);
+        if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, amount, true)) {
+            return;
+        }
         updateCurrency(uuid, "pco", amount);
+        EconomyEvents.BALANCE_UPDATE_POST.invoker().handle(uuid, oldBalance, amount, true);
     }
 
     private void updateCurrency(UUID uuid, String column, BigDecimal amount) {
