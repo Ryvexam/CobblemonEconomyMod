@@ -74,7 +74,7 @@ public class CobblemonListeners {
                 
                 if (reward.compareTo(BigDecimal.ZERO) > 0) {
                     CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
-                    String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                    String formattedReward = reward.stripTrailingZeros().toPlainString();
                     player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
                         .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
                 }
@@ -137,7 +137,7 @@ public class CobblemonListeners {
             if (reward.compareTo(BigDecimal.ZERO) > 0) {
                 CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
                 
-                String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                String formattedReward = reward.stripTrailingZeros().toPlainString();
                 
                 String translationKey = "cobblemon-economy.event.capture";
                 ChatFormatting color = ChatFormatting.GOLD;
@@ -185,7 +185,7 @@ public class CobblemonListeners {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
                         BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
-                        String formattedReward = reward.stripTrailingZeros().toPlainString() + "₽";
+                        String formattedReward = reward.stripTrailingZeros().toPlainString();
                         Component message = Component.empty();
                         boolean hasReward = false;
 
