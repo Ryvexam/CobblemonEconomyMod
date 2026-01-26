@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.math.BigDecimal;
 import java.util.Random;
-import java.util.function.Function;
 
 /**
  * Star Academy integration: charges players for card grading using Cobblemon Economy.
@@ -23,8 +22,6 @@ import java.util.function.Function;
 @Pseudo
 @Mixin(targets = "abeshutt.staracademy.entity.CardGraderNPCEntity", remap = false)
 public abstract class MixinCardGraderNPCEntity {
-
-    @Shadow @Final public static Function<Object, String> INITIAL_BROKE;
 
     private static final ThreadLocal<Boolean> CHARGED = ThreadLocal.withInitial(() -> false);
 
@@ -50,30 +47,29 @@ public abstract class MixinCardGraderNPCEntity {
         CHARGED.set(true);
 
         long cost = getGradingCost();
+
+        if (cost <= 0) return;
+
         BigDecimal balance = CobblemonEconomy.getEconomyManager().getBalance(player.getUUID());
 
         if (balance.longValue() < cost) {
-            sendBrokeMessage(player);
+            sendBrokeMessage(player, cost, balance.longValue());
             cir.setReturnValue(InteractionResult.CONSUME);
             return;
         }
 
         CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), BigDecimal.valueOf(cost));
-        player.sendSystemMessage(Component.literal("Charged " + cost + " for card grading!").withStyle(ChatFormatting.GREEN));
+        player.sendSystemMessage(Component.translatable("cobblemon-economy.grading.charged", cost).withStyle(ChatFormatting.GREEN));
     }
 
-    private void sendBrokeMessage(ServerPlayer player) {
-        try {
-            Object randomProxy = java.lang.reflect.Proxy.newProxyInstance(
-                    getClass().getClassLoader(),
-                    new Class<?>[]{Class.forName("abeshutt.staracademy.math.random.RandomSource")},
-                    (p, m, a) -> m.getName().equals("nextInt") ? new Random().nextInt((int) a[0]) : null
-            );
-            String key = (String) INITIAL_BROKE.apply(randomProxy);
-            player.sendSystemMessage(Component.translatable(key).withStyle(ChatFormatting.GRAY));
-        } catch (Exception e) {
-            player.sendSystemMessage(Component.literal("You can't afford this!").withStyle(ChatFormatting.RED));
-        }
+    private void sendBrokeMessage(ServerPlayer player, long cost, long balance) {
+        // Message d'erreur en rouge
+        player.sendSystemMessage(Component.translatable("cobblemon-economy.grading.insufficient", balance).withStyle(ChatFormatting.RED));
+        
+        // Message RP en gris
+        int randomIndex = new Random().nextInt(3);
+        String key = "cobblemon-economy.grading.broke." + randomIndex;
+        player.sendSystemMessage(Component.translatable(key, cost).withStyle(ChatFormatting.GRAY));
     }
 
     private static long getGradingCost() {

@@ -48,6 +48,12 @@
   "cobblemon-economy.notification.shopkeeper_set": "Shopkeeper assigned to: %s",
   "cobblemon-economy.notification.tag_added": "Tag added",
   "cobblemon-economy.notification.tag_removed": "Tag removed",
+
+  "cobblemon-economy.grading.charged": "Paid %s PokeDollars for card grading!",
+  "cobblemon-economy.grading.insufficient": "Insufficient funds! (Balance: %s₽)",
+  "cobblemon-economy.grading.broke.0": "My ancient art requires payment—%s PokeDollars to be exact. Come back when you can afford it!",
+  "cobblemon-economy.grading.broke.1": "I don't do charity. This grading costs %s PokeDollars—more than what's in your wallet!",
+  "cobblemon-economy.grading.broke.2": "Thanks won't put food on my table. I need %s PokeDollars!",
   "cobblemon-economy.notification.skin_updated": "Skin updated",
 
   "cobblemon-economy.event.discovery.title": "§bNew Discovery! §r",

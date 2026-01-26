@@ -48,6 +48,12 @@
   "cobblemon-economy.notification.shopkeeper_set": "Boutique du marchand réglée sur : %s",
   "cobblemon-economy.notification.tag_added": "Tag ajouté",
   "cobblemon-economy.notification.tag_removed": "Tag supprimé",
+
+  "cobblemon-economy.grading.charged": "Vous avez payé %s PokeDollars pour l'évaluation de carte !",
+  "cobblemon-economy.grading.insufficient": "Fonds insuffisants ! (Balance : %s₽)",
+  "cobblemon-economy.grading.broke.0": "Mon art ancestral requiert un paiement—%s PokeDollars précisément. Revenez quand vous pourrez vous le permettre !",
+  "cobblemon-economy.grading.broke.1": "Je ne fais pas la charité. Cette évaluation coûte %s PokeDollars—plus que ce qu'il y a dans votre bourse !",
+  "cobblemon-economy.grading.broke.2": "La gratitude ne paie pas les factures. Il me faut %s PokeDollars !",
   "cobblemon-economy.notification.skin_updated": "Skin mis à jour",
 
   "cobblemon-economy.event.discovery.title": "§bNouvelle Découverte ! §r",
