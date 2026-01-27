@@ -27,7 +27,6 @@
   "cobblemon-economy.command.help.shop_get": "/eco shop get <id> - Config tool (Shop Setter)",
   "cobblemon-economy.command.help.skin": "/eco skin <name> - Assign skin (Local/Player)",
   "cobblemon-economy.command.help.item": "/eco item - Tower Tagger",
-  "cobblemon-economy.command.help.npcnametoggler": "/npcnametoggler - Name Visibility Toggler",
 
   "cobblemon-economy.command.reload.success": "Configuration reloaded!",
   "cobblemon-economy.command.shop.unknown": "Unknown shop '%s'!",

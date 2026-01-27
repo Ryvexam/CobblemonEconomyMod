@@ -21,6 +21,14 @@ Visit our website: [ryvexam.fr](https://ryvexam.fr)
     *   Default skin is `shopkeeper.png`.
     *   If a local file is not found, the mod attempts to load the player skin by name (client-side cache).
 
+### Integrations
+
+*   **Yet Another World Protector (YAWP):**
+    *   **Soft Dependency:** The mod works without YAWP, but integrates if present.
+    *   **Flag:** `melee-npc-cobeco` (or `cobblemon-economy:melee-npc-cobeco`).
+    *   **Usage:** Set flag to `DENY` to make Shopkeepers invulnerable in a region. Set to `ALLOW` to make them vulnerable (killable).
+    *   **Default:** Without YAWP (or if flag unset), Shopkeepers are invulnerable to Survival players but killable by Creative players/Commands.
+
 ---
 
 ## 🛠 Commands

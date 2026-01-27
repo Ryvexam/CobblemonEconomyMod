@@ -11,17 +11,14 @@ All notable changes to this project will be documented in this file.
   - Allows server admins to control whether Shopkeepers are vulnerable or invulnerable in specific regions.
   - If the flag is set to `DENY`, the NPC is invulnerable. If `ALLOW`, they can be hurt (unless otherwise protected).
   - Integration is "Soft Dependency": The mod works perfectly fine without YAWP installed.
-- **Name Visibility Tool:**
-  - Added new command: `/npcnametoggler` (Requires permission level 2).
-  - Gives a "Name Toggler" tool (Feather).
-  - **Right-Click** on a Shopkeeper to cycle name visibility modes:
-    1.  **Hover Only** (Default): Name appears when looking at the NPC.
-    2.  **Always Visible**: Name floats above the NPC permanently.
-    3.  **Never Visible**: Name is completely hidden.
+- **Audio Feedback:**
+  - Buying and selling items now plays a satisfying "Experience Orb Pickup" sound effect.
 
 ### Changed
-- **Command Structure:**
-  - `/npcnametoggler` is now a root command for easier access.
+- **Default Name Visibility:**
+  - Shopkeepers now have their names **hidden by default** (hover only or completely hidden depending on client settings), similar to vanilla mobs.
+  - To name a Shopkeeper, simply use a standard **Name Tag**.
+  - (Removed previous experimental name toggler tool).
 
 ### Ajouts (FR)
 - **Intégration YAWP :**
@@ -30,13 +27,14 @@ All notable changes to this project will be documented in this file.
   - Permet aux admins de contrôler la vulnérabilité des vendeurs dans des régions spécifiques.
   - Si le flag est sur `DENY`, le NPC est invulnérable. Si `ALLOW`, il peut être blessé.
   - Intégration "Soft" : Le mod fonctionne parfaitement sans YAWP.
-- **Outil de Visibilité du Nom :**
-  - Nouvelle commande : `/npcnametoggler` (Permission niveau 2).
-  - Donne l'outil "Name Toggler" (Plume).
-  - **Clic-Droit** sur un vendeur pour changer le mode de visibilité :
-    1.  **Au Survol** (Défaut) : Nom visible en regardant le NPC.
-    2.  **Toujours Visible** : Nom affiché en permanence.
-    3.  **Jamais Visible** : Nom toujours caché.
+- **Feedback Audio :**
+  - L'achat et la vente d'objets jouent maintenant un son satisfaisant (Ramassage d'XP).
+
+### Changements (FR)
+- **Visibilité du Nom par Défaut :**
+  - Les noms des vendeurs sont désormais **cachés par défaut** (visible seulement au survol), comme les mobs vanilla.
+  - Pour nommer un vendeur, utilisez simplement une **Étiquette (Name Tag)** standard.
+  - (Suppression de l'outil expérimental de bascule de nom).
 
 ## [0.0.11] - 2026-01-26
 
