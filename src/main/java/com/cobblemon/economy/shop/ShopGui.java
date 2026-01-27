@@ -244,10 +244,10 @@ public class ShopGui {
                 }
                 
                 gui.setSlot(8, new GuiElementBuilder(switchIcon)
-                    .setName(Component.literal("⇄ Switch Shop").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                    .setName(Component.translatable("cobblemon-economy.shop.switch_shop").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
                     .addLoreLine(Component.literal(linkedTitle).withStyle(ChatFormatting.YELLOW))
                     .addLoreLine(Component.empty())
-                    .addLoreLine(Component.literal("Click to switch").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC))
+                    .addLoreLine(Component.translatable("cobblemon-economy.shop.switch_shop_lore").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC))
                     .setCallback((index, type, action) -> {
                         player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 0.5f, 1.0f);
                         open(player, shop.linkedShop, 0);
@@ -470,7 +470,7 @@ public class ShopGui {
             }
 
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
-            player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+            player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
             logTransaction(player, resolved, isPco, false, resolved.quantity, price);
 
             // Re-resolve the item for the next purchase
@@ -509,7 +509,7 @@ public class ShopGui {
                 else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
                 
                 player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
-                player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+                player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
                 logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
                 
                 // Re-resolve the item for the next sale

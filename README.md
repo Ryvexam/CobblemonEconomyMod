@@ -25,7 +25,7 @@ Visit our website: [ryvexam.fr](https://ryvexam.fr)
 
 *   **Yet Another World Protector (YAWP):**
     *   **Soft Dependency:** The mod works without YAWP, but integrates if present.
-    *   **Flag:** `melee-npc-cobeco` (or `cobblemon-economy:melee-npc-cobeco`).
+    *   **Flag:** `melee-npc-cobeco`
     *   **Usage:** Set flag to `DENY` to make Shopkeepers invulnerable in a region. Set to `ALLOW` to make them vulnerable (killable).
     *   **Default:** Without YAWP (or if flag unset), Shopkeepers are invulnerable to Survival players but killable by Creative players/Commands.
 
@@ -67,7 +67,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew build
 ```
 
-The resulting JAR file will be located in: `build/libs/cobblemon-economy-0.0.1.jar`.
+The resulting JAR file will be located in: `build/libs/cobblemon-economy-0.0.12.jar`.
 
 ---
 

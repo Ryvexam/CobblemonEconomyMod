@@ -151,6 +151,17 @@ public class CobblemonEconomy implements ModInitializer {
                     }
                 }
 
+                if (stack.is(Items.NAME_TAG)) {
+                    if (!player.hasPermissions(2)) {
+                        player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.op_only").withStyle(ChatFormatting.RED));
+                        return InteractionResult.FAIL;
+                    }
+                    // Allow OPs to name it (will be handled by vanilla if sneaking)
+                    if (player.isShiftKeyDown()) {
+                        return InteractionResult.PASS;
+                    }
+                }
+
                 Component customNameComp = stack.get(DataComponents.CUSTOM_NAME);
                 if (customNameComp != null) {
                     String customName = customNameComp.getString();

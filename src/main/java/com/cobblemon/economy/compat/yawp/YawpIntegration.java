@@ -20,8 +20,8 @@ public class YawpIntegration {
 
     public static void register() {
         FlagMetaInfo meta = new FlagMetaInfo(Set.of(), FlagFrequency.NORMAL);
-        FlagRegister.registerFlag("cobblemon-economy", FLAG_ID, meta);
-        MELEE_NPC_FLAG = FlagRegister.getFlag(ResourceLocation.fromNamespaceAndPath("cobblemon-economy", FLAG_ID));
+        FlagRegister.registerFlag("yawp", FLAG_ID, meta);
+        MELEE_NPC_FLAG = FlagRegister.getFlag(ResourceLocation.fromNamespaceAndPath("yawp", FLAG_ID));
     }
 
     public static Boolean checkFlag(Entity target, Entity attacker) {

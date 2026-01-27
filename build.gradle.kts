@@ -16,6 +16,9 @@ repositories {
         url = uri("https://api.modrinth.com/maven")
     }
     maven {
+        url = uri("https://cursemaven.com")
+    }
+    maven {
         name = "Nucleoid"
         url = uri("https://maven.nucleoid.xyz/")
     }
@@ -40,7 +43,8 @@ dependencies {
     // Cobblemon from Modrinth
     modImplementation("maven.modrinth:cobblemon:1.7.1")
     
-    // YAWP Integration (Local Lib)
+    // YAWP Integration
+    modApi("curse.maven:yawp-663276:6176022")
     modImplementation(files("libs/yawp-1.21.1-fabric-0.6.3-beta1.jar"))
 }
 

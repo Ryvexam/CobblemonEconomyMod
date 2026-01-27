@@ -5,36 +5,17 @@ All notable changes to this project will be documented in this file.
 ## [0.0.12] - 2026-01-27
 
 ### Added
-- **YAWP Integration:**
-  - Added optional support for **Yet Another World Protector (YAWP)**.
-  - New Flag: `melee-npc-cobeco` (ID: `cobblemon-economy:melee-npc-cobeco`).
-  - Allows server admins to control whether Shopkeepers are vulnerable or invulnerable in specific regions.
-  - If the flag is set to `DENY`, the NPC is invulnerable. If `ALLOW`, they can be hurt (unless otherwise protected).
-  - Integration is "Soft Dependency": The mod works perfectly fine without YAWP installed.
 - **Audio Feedback:**
   - Buying and selling items now plays a satisfying "Experience Orb Pickup" sound effect.
 
 ### Changed
-- **Default Name Visibility:**
-  - Shopkeepers now have their names **hidden by default** (hover only or completely hidden depending on client settings), similar to vanilla mobs.
-  - To name a Shopkeeper, simply use a standard **Name Tag**.
-  - (Removed previous experimental name toggler tool).
-
-### Ajouts (FR)
-- **Intégration YAWP :**
-  - Support optionnel pour **Yet Another World Protector (YAWP)**.
-  - Nouveau Flag : `melee-npc-cobeco` (ID : `cobblemon-economy:melee-npc-cobeco`).
-  - Permet aux admins de contrôler la vulnérabilité des vendeurs dans des régions spécifiques.
-  - Si le flag est sur `DENY`, le NPC est invulnérable. Si `ALLOW`, il peut être blessé.
-  - Intégration "Soft" : Le mod fonctionne parfaitement sans YAWP.
-- **Feedback Audio :**
-  - L'achat et la vente d'objets jouent maintenant un son satisfaisant (Ramassage d'XP).
-
-### Changements (FR)
-- **Visibilité du Nom par Défaut :**
-  - Les noms des vendeurs sont désormais **cachés par défaut** (visible seulement au survol), comme les mobs vanilla.
-  - Pour nommer un vendeur, utilisez simplement une **Étiquette (Name Tag)** standard.
-  - (Suppression de l'outil expérimental de bascule de nom).
+- **NPC Hardening:**
+  - **Invulnerability:** Shopkeepers are now strictly invulnerable to Survival players by default. They remain killable by Creative players and the `/kill` command.
+  - **Name Visibility:** Shopkeepers names are now hidden by default and only show when looking at them within 8 blocks.
+  - **Permissions:** Using a Name Tag on a Shopkeeper is now restricted to **Operators** (level 2).
+- **Internationalization:**
+  - Fully translated all remaining hardcoded strings in the Shop GUI.
+  - Improved consistency across translations.
 
 ## [0.0.11] - 2026-01-26
 
@@ -49,22 +30,6 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - **Internal Economy Logic:** Refactored `EconomyManager` to utilize the new event system for all balance changes, ensuring consistency across the mod.
-
-### Ajouts (FR)
-- **API Développeur :**
-  - Introduction de l'API `EconomyEvents` permettant aux autres mods d'interagir avec le système économique.
-  - `BALANCE_UPDATE_PRE` : Évènement annulable déclenché *avant* un changement de solde.
-  - `BALANCE_UPDATE_POST` : Évènement informatif déclenché *après* un changement de solde.
-- **IA des Vendeurs Améliorée :**
-  - **Invulnérabilité :** Les vendeurs sont désormais invulnérables aux dégâts en survie (mobs, joueurs) mais peuvent toujours être tués par les joueurs en Créatif ou via commande.
-  - **Immuable :** Les vendeurs ne peuvent plus être poussés par les joueurs ou d'autres entités.
-  - **Regard :** Les vendeurs regardent désormais fluidement le joueur le plus proche dans un rayon de 6 blocs.
-- **Classement des Meilleurs Joueurs :**
-  - Ajout de `/bal top` pour afficher les 10 joueurs les plus riches.
-  - Ajout de `/pco top` pour afficher les 10 joueurs avec le plus de PCo.
-- **Intégration Star Academy :**
-  - Intégration optionnelle avec le mod **Star Academy** (id : `academy`).
-  - Les PNJ de gradation de cartes débitent désormais via Cobblemon Economy au lieu de `numismatic-overhaul`. (Merci à **Rinkuji** pour le mixin !)
 
 ## [0.0.10] - 2026-01-24
 
@@ -133,26 +98,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **NPC Persistence:** Hardened the `ShopkeeperEntity` code to override standard mob despawning rules, ensuring shopkeepers *never* disappear naturally, regardless of distance or chunk unloading.
 
-### Ajouts (FR)
-- **Récompenses Pokédex Intelligentes :**
-  - **Logique :** Le système vérifie désormais si le joueur possède *déjà* l'espèce (ou une de ses formes) dans son Pokédex avant de donner la récompense de "Nouvelle Découverte".
-  - **Anti-Exploit :** Empêche de recevoir l'argent plusieurs fois en capturant des formes différentes (ex: Alola vs Normal) ou des variantes Shiny d'une espèce déjà connue.
-  - **Sécurité Échanges & Évolutions :** Applique la même vérification stricte aux Pokémon obtenus par échange ou évolution.
-- **Apparition des NPC Améliorée :**
-  - **Auto-Rotation :** Les vendeurs (Shopkeepers) invoqués via un Œuf d'apparition ou une commande s'orientent désormais automatiquement (corps et tête) vers le joueur le plus proche lors de leur création.
-- **Support NBT pour les Articles de Boutique :** Vous pouvez maintenant définir des données NBT personnalisées pour les articles de la boutique en utilisant le champ `"nbt"` dans `config.json` (format String).
-- **Stockage Unifié par Monde :** Toutes les données du mod, y compris le dossier `skins/`, sont maintenant stockées dans le répertoire du monde à `world/config/cobblemon-economy/`.
-- **Récompenses de Combat Cumulatives :** Gagner des combats contre des Pokémon spéciaux accorde désormais des récompenses cumulatives (ex: Shiny + Légendaire = récompense x15).
-- **Stabilité de la Boutique Améliorée :** Ajout d'une logique de validation pour ignorer les articles malformés ou nuls dans le `config.json` au lieu de provoquer un crash.
-- **Boutique Générale par Défaut :** Ajout d'une boutique `default_poke` à la configuration par défaut.
-
-### Changements (FR)
-- **Chemin de Configuration :** Déplacement de tous les fichiers vers `world/config/cobblemon-economy/` pour suivre l'organisation standard des sauvegardes.
-
-### Corrections (FR)
-- **Persistance des NPC :** Renforcement du code de l'entité `ShopkeeperEntity` pour surcharger les règles de disparition standard, garantissant que les vendeurs ne disparaissent *jamais* naturellement, quelle que soit la distance.
-
 ## [0.0.6] - 2026-01-21
+
+
 
 ### Added
 - **External Skins Support**: You can now add custom skins by dropping `.png` files into the `skins/` folder.

@@ -10,6 +10,8 @@
   "cobblemon-economy.shop.page_info": "Page %s/%s",
   "cobblemon-economy.shop.purchase_success": "✔ Purchase successful: %s",
   "cobblemon-economy.shop.insufficient_balance": "✖ Insufficient balance!",
+  "cobblemon-economy.shop.switch_shop": "⇄ Switch Shop",
+  "cobblemon-economy.shop.switch_shop_lore": "Click to switch",
   "cobblemon-economy.shop.sell_success": "✔ Sold %sx %s for %s%s",
   "cobblemon-economy.shop.no_item_to_sell": "✖ You don't have this item!",
   "cobblemon-economy.shop.return_to_start": "Return to Start",
@@ -47,6 +49,7 @@
   "cobblemon-economy.item.name_toggler.name": "Name Toggler",
 
   "cobblemon-economy.notification.shopkeeper_set": "Shopkeeper assigned to: %s",
+  "cobblemon-economy.notification.op_only": "Only operators can name shopkeepers.",
   "cobblemon-economy.notification.tag_added": "Tag added",
   "cobblemon-economy.notification.tag_removed": "Tag removed",
   "cobblemon-economy.notification.name_visible": "Nameplate: ALWAYS VISIBLE",
