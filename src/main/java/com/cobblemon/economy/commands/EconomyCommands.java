@@ -37,6 +37,10 @@ public class EconomyCommands {
         registerPublicCurrencyCommand(dispatcher, "bal", "₽", ChatFormatting.GOLD, true);
         registerPublicCurrencyCommand(dispatcher, "pco", " PCo", ChatFormatting.AQUA, false);
 
+        dispatcher.register(Commands.literal("npcnametoggler")
+            .requires(source -> source.hasPermission(2))
+            .executes(EconomyCommands::giveNameToggler));
+
         dispatcher.register(Commands.literal("pay")
             .then(Commands.argument("player", EntityArgument.player())
                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
@@ -46,6 +50,7 @@ public class EconomyCommands {
         dispatcher.register(Commands.literal("eco")
             .requires(source -> source.hasPermission(2))
             .then(Commands.literal("item").executes(EconomyCommands::giveTagger))
+            // Removed redundant subcommand
             .then(Commands.literal("reload").executes(EconomyCommands::reload))
             .then(Commands.literal("skin")
                 .then(Commands.argument("name", StringArgumentType.string())
@@ -139,6 +144,14 @@ public class EconomyCommands {
         return 1;
     }
 
+    private static int giveNameToggler(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        ItemStack stack = new ItemStack(Items.FEATHER);
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.name_toggler.name").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        player.getInventory().add(stack);
+        return 1;
+    }
+
     private static int reload(CommandContext<CommandSourceStack> ctx) {
         CobblemonEconomy.reloadConfig();
         ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.reload.success").withStyle(ChatFormatting.GREEN), true);
@@ -198,6 +211,7 @@ public class EconomyCommands {
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.shop_get").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.skin").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.item").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.npcnametoggler").withStyle(ChatFormatting.GRAY), false);
         }
         return 1;
     }

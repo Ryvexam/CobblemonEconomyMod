@@ -39,6 +39,9 @@ dependencies {
 
     // Cobblemon from Modrinth
     modImplementation("maven.modrinth:cobblemon:1.7.1")
+    
+    // YAWP Integration (Local Lib)
+    modImplementation(files("libs/yawp-1.21.1-fabric-0.6.3-beta1.jar"))
 }
 
 tasks.processResources {

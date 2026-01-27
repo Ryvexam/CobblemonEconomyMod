@@ -27,6 +27,7 @@
   "cobblemon-economy.command.help.shop_get": "/eco shop get <id> - Config tool (Shop Setter)",
   "cobblemon-economy.command.help.skin": "/eco skin <name> - Assign skin (Local/Player)",
   "cobblemon-economy.command.help.item": "/eco item - Tower Tagger",
+  "cobblemon-economy.command.help.npcnametoggler": "/npcnametoggler - Name Visibility Toggler",
 
   "cobblemon-economy.command.reload.success": "Configuration reloaded!",
   "cobblemon-economy.command.shop.unknown": "Unknown shop '%s'!",
@@ -44,10 +45,14 @@
   "cobblemon-economy.item.skin_setter.lore1": "Right click on a shopkeeper",
   "cobblemon-economy.item.skin_setter.lore2": "to give them the skin of: %s",
   "cobblemon-economy.item.tower_tagger.name": "Tower Tagger",
+  "cobblemon-economy.item.name_toggler.name": "Name Toggler",
 
   "cobblemon-economy.notification.shopkeeper_set": "Shopkeeper assigned to: %s",
   "cobblemon-economy.notification.tag_added": "Tag added",
   "cobblemon-economy.notification.tag_removed": "Tag removed",
+  "cobblemon-economy.notification.name_visible": "Nameplate: ALWAYS VISIBLE",
+  "cobblemon-economy.notification.name_hover": "Nameplate: HOVER ONLY",
+  "cobblemon-economy.notification.name_hidden": "Nameplate: NEVER VISIBLE",
 
   "cobblemon-economy.grading.charged": "Paid %s PokeDollars for card grading!",
   "cobblemon-economy.grading.insufficient": "Insufficient funds! (Balance: ₽%s)",
@@ -65,15 +70,6 @@
   "cobblemon-economy.event.capture.special": "SPECIAL CAPTURE! You received ₽%s",
   "cobblemon-economy.event.capture.shiny_legendary": "SHINY LEGENDARY CAPTURE! You received ₽%s",
   "cobblemon-economy.event.capture.shiny_paradox": "SHINY PARADOX CAPTURE! You received ₽%s",
-  "cobblemon-economy.event.victory_pco": " and %s PCo"
-  "cobblemon-economy.event.discovery.reward": "You received %s for your catch!",
-  "cobblemon-economy.event.victory": "Victory! You received %s",
-  "cobblemon-economy.event.capture": "Capture! You received %s",
-  "cobblemon-economy.event.capture.shiny": "SHINY CAPTURE! You received %s",
-  "cobblemon-economy.event.capture.legendary": "LEGENDARY CAPTURE! You received %s",
-  "cobblemon-economy.event.capture.special": "SPECIAL CAPTURE! You received %s",
-  "cobblemon-economy.event.capture.shiny_legendary": "SHINY LEGENDARY CAPTURE! You received %s",
-  "cobblemon-economy.event.capture.shiny_paradox": "SHINY PARADOX CAPTURE! You received %s",
   "cobblemon-economy.event.victory_pco": " and %s PCo",
   "cobblemon-economy.command.balance.top.title": "--- Richest Players (PokeDollars) ---",
   "cobblemon-economy.command.pco.top.title": "--- Top PCo Holders ---",
