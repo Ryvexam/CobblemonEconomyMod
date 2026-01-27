@@ -1,6 +1,7 @@
 package com.cobblemon.economy.fabric;
 
 import com.cobblemon.economy.commands.EconomyCommands;
+import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.events.CobblemonListeners;
 import com.cobblemon.economy.storage.EconomyConfig;
@@ -64,6 +65,8 @@ public class CobblemonEconomy implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Starting Cobblemon Economy (Common Init)...");
+        
+        CompatHandler.init();
         
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
         com.cobblemon.economy.networking.NetworkHandler.register();
@@ -179,6 +182,24 @@ public class CobblemonEconomy implements ModInitializer {
                         } else {
                             shopkeeper.addTag("tour_de_combat");
                             player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.tag_added").withStyle(ChatFormatting.AQUA));
+                        }
+                        return InteractionResult.SUCCESS;
+                    }
+
+                    if (stack.is(Items.FEATHER) && customName.equals("Name Toggler")) {
+                        if (player instanceof ServerPlayer serverPlayer) {
+                            if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
+                            serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
+                        }
+                        
+                        int currentMode = shopkeeper.getNameVisibility();
+                        int newMode = (currentMode + 1) % 3;
+                        shopkeeper.setNameVisibility(newMode);
+                        
+                        switch (newMode) {
+                            case ShopkeeperEntity.NAME_MODE_HOVER -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_hover").withStyle(ChatFormatting.YELLOW));
+                            case ShopkeeperEntity.NAME_MODE_ALWAYS -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_visible").withStyle(ChatFormatting.GREEN));
+                            case ShopkeeperEntity.NAME_MODE_NEVER -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_hidden").withStyle(ChatFormatting.RED));
                         }
                         return InteractionResult.SUCCESS;
                     }

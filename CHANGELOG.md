@@ -2,17 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.12] - 2026-01-26
+## [0.0.12] - 2026-01-27
 
 ### Added
-- **Developer API:**
-  - Introduced `EconomyEvents` API for other mods to hook into the economy system.
-  - `BALANCE_UPDATE_PRE`: Cancellable event fired *before* a balance change.
-  - `BALANCE_UPDATE_POST`: Informational event fired *after* a balance change.
-- **Enhanced Shopkeeper AI:**
-  - **Invulnerability:** Shopkeepers are now invulnerable to survival damage (mobs, players) but can still be killed by Creative players or commands.
-  - **Immovable:** Shopkeepers can no longer be pushed by players or other entities.
-  - **Look Behavior:** Shopkeepers now smoothly look at the nearest player within a 6-block radius.
+- **YAWP Integration:**
+  - Added optional support for **Yet Another World Protector (YAWP)**.
+  - New Flag: `melee-npc-cobeco` (ID: `cobblemon-economy:melee-npc-cobeco`).
+  - Allows server admins to control whether Shopkeepers are vulnerable or invulnerable in specific regions.
+  - If the flag is set to `DENY`, the NPC is invulnerable. If `ALLOW`, they can be hurt (unless otherwise protected).
+  - Integration is "Soft Dependency": The mod works perfectly fine without YAWP installed.
+- **Name Visibility Tool:**
+  - Added new command: `/npcnametoggler` (Requires permission level 2).
+  - Gives a "Name Toggler" tool (Feather).
+  - **Right-Click** on a Shopkeeper to cycle name visibility modes:
+    1.  **Hover Only** (Default): Name appears when looking at the NPC.
+    2.  **Always Visible**: Name floats above the NPC permanently.
+    3.  **Never Visible**: Name is completely hidden.
+
+### Changed
+- **Command Structure:**
+  - `/npcnametoggler` is now a root command for easier access.
+
+### Ajouts (FR)
+- **Intégration YAWP :**
+  - Support optionnel pour **Yet Another World Protector (YAWP)**.
+  - Nouveau Flag : `melee-npc-cobeco` (ID : `cobblemon-economy:melee-npc-cobeco`).
+  - Permet aux admins de contrôler la vulnérabilité des vendeurs dans des régions spécifiques.
+  - Si le flag est sur `DENY`, le NPC est invulnérable. Si `ALLOW`, il peut être blessé.
+  - Intégration "Soft" : Le mod fonctionne parfaitement sans YAWP.
+- **Outil de Visibilité du Nom :**
+  - Nouvelle commande : `/npcnametoggler` (Permission niveau 2).
+  - Donne l'outil "Name Toggler" (Plume).
+  - **Clic-Droit** sur un vendeur pour changer le mode de visibilité :
+    1.  **Au Survol** (Défaut) : Nom visible en regardant le NPC.
+    2.  **Toujours Visible** : Nom affiché en permanence.
+    3.  **Jamais Visible** : Nom toujours caché.
+
+## [0.0.11] - 2026-01-26
+
+### Added
+- **Top Players Ranking:**
+  - Added `/bal top` (or `/balance top`) to display the top 10 richest players in PokeDollars.
+  - Added `/pco top` to display the top 10 players in PokeCoins.
+- **Star Academy Integration:**
+  - Added optional integration with the **Star Academy** mod (id: `academy`).
+  - Card grading NPCs now charge players using Cobblemon Economy instead of `numismatic-overhaul` if Star Academy is installed. (Huge thanks to **Rinkuji** for the mixin integration!)
+  - Automatically handles transaction failure messages (e.g., if the player is broke).
 
 ### Changed
 - **Internal Economy Logic:** Refactored `EconomyManager` to utilize the new event system for all balance changes, ensuring consistency across the mod.
@@ -26,19 +61,6 @@ All notable changes to this project will be documented in this file.
   - **Invulnérabilité :** Les vendeurs sont désormais invulnérables aux dégâts en survie (mobs, joueurs) mais peuvent toujours être tués par les joueurs en Créatif ou via commande.
   - **Immuable :** Les vendeurs ne peuvent plus être poussés par les joueurs ou d'autres entités.
   - **Regard :** Les vendeurs regardent désormais fluidement le joueur le plus proche dans un rayon de 6 blocs.
-
-## [0.0.11] - 2026-01-26
-
-### Added
-- **Top Players Ranking:**
-  - Added `/bal top` (or `/balance top`) to display the top 10 richest players in PokeDollars.
-  - Added `/pco top` to display the top 10 players in PokeCoins.
-- **Star Academy Integration:**
-  - Added optional integration with the **Star Academy** mod (id: `academy`).
-  - Card grading NPCs now charge players using Cobblemon Economy instead of `numismatic-overhaul` if Star Academy is installed. (Huge thanks to **Rinkuji** for the mixin integration!)
-  - Automatically handles transaction failure messages (e.g., if the player is broke).
-
-### Ajouts (FR)
 - **Classement des Meilleurs Joueurs :**
   - Ajout de `/bal top` pour afficher les 10 joueurs les plus riches.
   - Ajout de `/pco top` pour afficher les 10 joueurs avec le plus de PCo.
