@@ -470,6 +470,7 @@ public class ShopGui {
             }
 
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
+            player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
             logTransaction(player, resolved, isPco, false, resolved.quantity, price);
 
             // Re-resolve the item for the next purchase
@@ -508,6 +509,7 @@ public class ShopGui {
                 else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
                 
                 player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
+                player.playSound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
                 logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
                 
                 // Re-resolve the item for the next sale

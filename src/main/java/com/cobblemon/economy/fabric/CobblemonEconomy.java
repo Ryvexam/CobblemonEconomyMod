@@ -185,26 +185,9 @@ public class CobblemonEconomy implements ModInitializer {
                         }
                         return InteractionResult.SUCCESS;
                     }
-
-                    if (stack.is(Items.FEATHER) && customName.equals("Name Toggler")) {
-                        if (player instanceof ServerPlayer serverPlayer) {
-                            if (serverPlayer.getCooldowns().isOnCooldown(stack.getItem())) return InteractionResult.FAIL;
-                            serverPlayer.getCooldowns().addCooldown(stack.getItem(), 20);
-                        }
-                        
-                        int currentMode = shopkeeper.getNameVisibility();
-                        int newMode = (currentMode + 1) % 3;
-                        shopkeeper.setNameVisibility(newMode);
-                        
-                        switch (newMode) {
-                            case ShopkeeperEntity.NAME_MODE_HOVER -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_hover").withStyle(ChatFormatting.YELLOW));
-                            case ShopkeeperEntity.NAME_MODE_ALWAYS -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_visible").withStyle(ChatFormatting.GREEN));
-                            case ShopkeeperEntity.NAME_MODE_NEVER -> player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.name_hidden").withStyle(ChatFormatting.RED));
-                        }
-                        return InteractionResult.SUCCESS;
-                    }
                 }
             }
+
 
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());

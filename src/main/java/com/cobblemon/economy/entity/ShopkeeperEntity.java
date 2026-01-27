@@ -26,12 +26,6 @@ import net.minecraft.world.entity.player.Player;
 public class ShopkeeperEntity extends PathfinderMob {
     private String shopId = "default_poke";
     private static final EntityDataAccessor<String> SKIN_NAME = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
-    private static final EntityDataAccessor<Integer> NAME_VISIBILITY = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.INT);
-
-    // 0: Hover Only (Default), 1: Always Visible, 2: Never Visible
-    public static final int NAME_MODE_HOVER = 0;
-    public static final int NAME_MODE_ALWAYS = 1;
-    public static final int NAME_MODE_NEVER = 2;
 
     public ShopkeeperEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -97,27 +91,6 @@ public class ShopkeeperEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(SKIN_NAME, "shopkeeper"); // Valeur par défaut : "shopkeeper"
-        builder.define(NAME_VISIBILITY, NAME_MODE_HOVER); // Default: Hover Only
-    }
-
-    public int getNameVisibility() {
-        return this.entityData.get(NAME_VISIBILITY);
-    }
-
-    public void setNameVisibility(int mode) {
-        this.entityData.set(NAME_VISIBILITY, mode);
-        // Apply vanilla logic
-        if (mode == NAME_MODE_ALWAYS) {
-            this.setCustomNameVisible(true);
-        } else {
-            this.setCustomNameVisible(false); // Valid for both Hover and Never (Never handled by override)
-        }
-    }
-
-    @Override
-    public boolean shouldShowName() {
-        // Force logic based on our custom flag, ignoring vanilla CustomNameVisible tag which might be desynced/wrong
-        return getNameVisibility() == NAME_MODE_ALWAYS;
     }
 
     public String getSkinName() {
@@ -152,7 +125,6 @@ public class ShopkeeperEntity extends PathfinderMob {
         super.addAdditionalSaveData(nbt);
         nbt.putString("ShopId", shopId);
         nbt.putString("SkinName", getSkinName());
-        nbt.putInt("NameVisibility", getNameVisibility());
     }
 
     @Override
@@ -163,12 +135,6 @@ public class ShopkeeperEntity extends PathfinderMob {
         }
         if (nbt.contains("SkinName")) {
             setSkinName(nbt.getString("SkinName"));
-        }
-        if (nbt.contains("NameVisibility")) {
-            setNameVisibility(nbt.getInt("NameVisibility"));
-        } else {
-            // Ensure default state is applied (especially for upgraded entities)
-            setNameVisibility(NAME_MODE_HOVER);
         }
     }
 }
