@@ -34,19 +34,37 @@ public class ShopkeeperEntity extends PathfinderMob {
     
     @Override
     public boolean hurt(net.minecraft.world.damagesource.DamageSource source, float amount) {
+        if (this.isInvulnerableTo(source)) {
+            return false;
+        }
+        return super.hurt(source, amount);
+    }
+
+    @Override
+    public boolean isInvulnerableTo(net.minecraft.world.damagesource.DamageSource source) {
         // Allow Creative players and /kill command
         if (source.isCreativePlayer() || source.is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)) {
-            return super.hurt(source, amount);
+            return false;
         }
-        
+
         // Check YAWP flag
         Boolean allowed = com.cobblemon.economy.compat.CompatHandler.checkYawpAttack(this, source.getEntity());
-        
-        if (allowed != null && allowed) {
-             return super.hurt(source, amount);
+        if (allowed != null) {
+            return !allowed;
         }
-        
-        return false; // Default invulnerable
+
+        return true; // Default invulnerable
+    }
+
+    @Override
+    public void setCustomNameVisible(boolean visible) {
+        // Always force to false to prevent Name Tags from making it visible from far away
+        super.setCustomNameVisible(false);
+    }
+
+    @Override
+    public boolean isCustomNameVisible() {
+        return false;
     }
     
     @Override
