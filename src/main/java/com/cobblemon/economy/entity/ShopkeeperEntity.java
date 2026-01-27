@@ -136,5 +136,15 @@ public class ShopkeeperEntity extends PathfinderMob {
         if (nbt.contains("SkinName")) {
             setSkinName(nbt.getString("SkinName"));
         }
+        
+        // Sanitize: Ensure CustomNameVisible is off if it was accidentally enabled by previous versions
+        if (this.isCustomNameVisible()) {
+            this.setCustomNameVisible(false);
+        }
+        
+        // Remove default name if it was persisted
+        if (this.hasCustomName() && this.getCustomName().getString().equalsIgnoreCase("shopkeeper")) {
+            this.setCustomName(null);
+        }
     }
 }

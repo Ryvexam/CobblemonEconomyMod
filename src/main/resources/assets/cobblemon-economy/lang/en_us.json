@@ -1,5 +1,5 @@
 {
-  "entity.cobblemon-economy.shopkeeper": "Shopkeeper",
+  "entity.cobblemon-economy.shopkeeper": "",
   "item.cobblemon-economy.shopkeeper_spawn_egg": "Shopkeeper Spawn Egg",
 
   "cobblemon-economy.shop.buy_action": "▶ Left: Buy | Middle: x%s",

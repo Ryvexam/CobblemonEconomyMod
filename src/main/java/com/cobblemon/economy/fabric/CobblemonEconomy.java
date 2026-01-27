@@ -188,7 +188,6 @@ public class CobblemonEconomy implements ModInitializer {
                 }
             }
 
-
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
                 com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
                 return InteractionResult.SUCCESS;
