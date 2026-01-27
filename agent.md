@@ -1,56 +1,77 @@
-# Cobblemon Economy Project Documentation
+# Cobblemon Economy AI Agent Guide
 
-This project is a Fabric mod for Minecraft 1.21.1, specifically designed to add a robust, data-driven economy system to Cobblemon servers and single-player worlds.
+This guide provides a concise operational model of how the mod works and how to make reliable, scalable changes.
 
-## Core Features
+## Purpose and scope
+- Maintain a stable Cobblemon economy system for Fabric 1.21.1.
+- Keep per-world data isolated and compatible across updates.
+- Prefer additive, backward-compatible changes unless a migration is explicit.
 
-- **Dual Currency**: Supports "PokeDollars" (₽) and "PCo" (Combat Points).
-- **Per-World Storage**: Balances and configurations are isolated within each world's save folder (`saves/WORLD_NAME/cobblemon-economy/`).
-- **Dynamic Shop System**: Shops are fully configurable via a `config.json` file in the world folder. Each NPC (Shopkeeper) can be assigned a specific shop ID.
-- **Custom UI**: Features a custom `HandledScreen` that integrates with Minecraft's inventory system while using high-quality custom textures (`ultraspace_shop_x.png`).
-- **Cobblemon Integration**: Awards PokeDollars for first-time captures (Pokedex updates) and rewards PCo for defeating NPCs tagged with `tour_de_combat`.
+## Architecture map
+- Server entrypoint: `src/main/java/com/cobblemon/economy/fabric/CobblemonEconomy.java`
+- Client entrypoint: `src/main/java/com/cobblemon/economy/client/CobblemonEconomyClient.java`
+- Economy storage: `src/main/java/com/cobblemon/economy/storage/EconomyManager.java`
+- Config model: `src/main/java/com/cobblemon/economy/storage/EconomyConfig.java`
+- Commands: `src/main/java/com/cobblemon/economy/commands/EconomyCommands.java`
+- Shop UI: `src/main/java/com/cobblemon/economy/shop/ShopGui.java`
+- Entity: `src/main/java/com/cobblemon/economy/entity/ShopkeeperEntity.java`
+- Rewards: `src/main/java/com/cobblemon/economy/events/CobblemonListeners.java`
+- Networking: `src/main/java/com/cobblemon/economy/networking/NetworkHandler.java`
+- Client skins: `src/main/java/com/cobblemon/economy/client/ClientNetworkHandler.java`
+- Renderer: `src/main/java/com/cobblemon/economy/client/ShopkeeperRenderer.java`
+- Optional compat: `src/main/java/com/cobblemon/economy/compat/CompatHandler.java`, `src/main/java/com/cobblemon/economy/mixin/MixinPlugin.java`
+- Assets: `src/main/resources/assets/cobblemon-economy/`
 
-## Project Structure
+## Runtime flow (how it works)
+1. Server start initializes per-world folder `world/config/cobblemon-economy/`, loads `config.json`, and opens `economy.db`.
+2. Shopkeeper entity and spawn egg are registered, plus commands and networking.
+3. Player interacts with shopkeeper:
+   - Shop Setter (Nether Star with custom data) assigns shop ID and optional skin.
+   - Skin Setter (Player Head with custom name) updates skin.
+   - Tower Tagger (Blaze Rod) toggles the `tour_de_combat` tag.
+   - Otherwise, the shop GUI opens.
+4. Shop GUI resolves items, handles buy/sell, updates balances in SQLite, and appends `transactions.log`.
+5. Cobblemon events grant rewards for captures, Pokedex progress, and battle victories.
+6. Client requests skins from server if not cached; server responds with PNG bytes and client registers a dynamic texture.
 
-- `src/main/java/com/cobblemon/economy/`:
-    - `fabric/CobblemonEconomy.java`: Main entry point, handles networking registration, entity registration, and world-start lifecycle events.
-    - `storage/`:
-        - `EconomyManager.java`: Manages SQLite persistence for player balances (`economy.db`).
-        - `EconomyConfig.java`: Handles the GSON-based configuration for rewards and shop definitions (`config.json`).
-    - `commands/EconomyCommands.java`: Implements `/bal`, `/pco`, `/pay`, and admin commands under `/eco` and `/cobeco`.
-    - `entity/ShopkeeperEntity.java`: The custom NPC entity that players interact with to open shops.
-    - `shop/ShopScreenHandler.java`: Server-side logic for the shop container and inventory slot positioning.
-    - `client/`:
-        - `CobblemonEconomyClient.java`: Client-side initializer, handles packet reception and screen opening.
-        - `ShopScreen.java`: The custom UI rendering logic, aligning items and inventory slots to custom textures.
-        - `ShopkeeperRenderer.java`: Handles the 3D rendering of the Shopkeeper NPC using a player model and custom skin.
-    - `events/CobblemonListeners.java`: Subscribes to Cobblemon API events for capture and battle rewards.
-    - `networking/`: Defines `OpenShopPayload` and `PurchasePayload` for server-client communication.
+## Data locations
+- Config and data root: `world/config/cobblemon-economy/`
+- Config file: `world/config/cobblemon-economy/config.json`
+- SQLite: `world/config/cobblemon-economy/economy.db`
+- Skins: `world/config/cobblemon-economy/skins/`
+- Transactions log: `world/config/cobblemon-economy/transactions.log`
 
-## Configuration & Data
+## Config schema essentials
+- Global values: `startingBalance`, `startingPco`, `battleVictoryReward`, `newDiscoveryReward`, `battleVictoryPcoReward`, `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`.
+- Shop entry: `title`, `currency` (POKE or PCO), `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`.
+- Item entry: `id`, `name`, `price`, optional `nbt`, optional `dropTable`, optional `lootTable`.
 
-- **Path**: `world_folder/cobblemon-economy/`
-- **`config.json`**:
-    - `startingBalance`, `startingPco`: Initial values for new players.
-    - `shops`: A map of shop IDs to definitions (title, currency, items list).
-- **`economy.db`**: SQLite database with a `balances` table storing UUIDs and balance strings.
+## UI and assets
+- GUI backgrounds are custom font glyphs mapped in `src/main/resources/assets/cobblemon-economy/font/default.json`.
+- Texture atlases are in `src/main/resources/assets/cobblemon-economy/textures/gui/shop/`.
+- The shop title layout uses negative spacing glyphs such as `\uF804` and background glyphs `\uE000` to `\uE00F`; keep these consistent if modifying the GUI.
 
-## Admin Tools
+## Networking and skins
+- `RequestSkinPayload` (C2S) and `ProvideSkinPayload` (S2C) are registered in `NetworkHandler`.
+- Server searches for skins in world config first, then global config; payload size is capped at 1MB.
+- Client caches and reuses textures by sanitized skin name.
 
-- **/eco shop get <id>**: Gives a "Shop Setter" item. Right-click a Shopkeeper to assign the specified shop. Consumed on use (unless creative).
-- **/eco item**: Gives a "Tower Tagger" item. Right-click any entity to toggle the `tour_de_combat` tag (used for PCo rewards).
-- **/eco reload**: Reloads the `config.json` from the current world folder.
-- **/cobeco**: Displays the help menu.
+## Compatibility rules
+- YAWP flag `melee-npc-cobeco` controls shopkeeper vulnerability.
+- Star Academy integration is optional and loaded via mixin plugin when mod `academy` is present.
 
-## Assets
+## Reliability and scalability guardrails
+- Do not break per-world isolation or data formats without a migration plan.
+- Avoid blocking IO or large computations in event handlers and GUI callbacks.
+- Keep BigDecimal storage in string form to preserve precision.
+- Keep translations updated for all user-facing text in `src/main/resources/assets/cobblemon-economy/lang/en_us.json`.
+- Keep optional integrations isolated to avoid hard dependencies.
 
-- Found in `src/main/resources/assets/cobblemon-economy/`.
-- Textures for UI are categorized by currency: `textures/gui/shop/pokedollar/` and `textures/gui/shop/pco/`.
-- The mod icon is `icon.png` and the NPC skin is `textures/entity/shopkeeper.png`.
+## Development commands
+- Build: `./gradlew build`
+- Run client/server: `./gradlew runClient` / `./gradlew runServer`
 
-## Technical Notes for Future Agents
-
-- **Networking**: Uses Fabric's latest `PayloadTypeRegistry` and `StreamCodec` for 1.21.1.
-- **UI Scaling**: The `ShopScreen` is designed for 256x256 textures. Inventory slots are centered using an offset of 48 pixels.
-- **SQLite**: Using `sqlite-jdbc`. Ensure the driver is included and shaded in the JAR.
-- **Mappings**: Project uses official Mojang mappings.
+## Change checklist
+- Update config model and defaults if you add new features.
+- Update translations and user docs when behavior changes.
+- Verify shop opening, buy/sell flow, and reward events in a test world.
