@@ -9,7 +9,13 @@ import java.nio.file.Files;
 import net.fabricmc.loader.api.FabricLoader;
 
 public class NetworkHandler {
+    private static boolean registered = false;
+
     public static void register() {
+        if (registered) {
+            return;
+        }
+        registered = true;
         PayloadTypeRegistry.playC2S().register(RequestSkinPayload.TYPE, RequestSkinPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ProvideSkinPayload.TYPE, ProvideSkinPayload.CODEC);
 

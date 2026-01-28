@@ -61,6 +61,7 @@ public class CobblemonListeners {
 
                 ServerPlayer player = CobblemonEconomy.getGameServer().getPlayerList().getPlayer(event.getPlayerUUID());
                 if (player == null) return kotlin.Unit.INSTANCE;
+                CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
 
                 int uniqueCount = getUniqueCaptureCount(player);
                 if (uniqueCount >= 0) {
@@ -98,6 +99,7 @@ public class CobblemonListeners {
             ServerPlayer player = event.getPlayer();
             Pokemon pokemon = event.getPokemon();
             if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
+            CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
 
             BigDecimal multiplier = BigDecimal.ONE;
             BigDecimal currentPokemonMult = BigDecimal.ZERO;
@@ -196,6 +198,7 @@ public class CobblemonListeners {
                 if (winner instanceof PlayerBattleActor playerActor) {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
+                        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
                         BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
                         String formattedReward = reward.stripTrailingZeros().toPlainString();
                         Component message = Component.empty();

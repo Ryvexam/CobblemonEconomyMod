@@ -213,6 +213,7 @@ public class EconomyCommands {
     }
 
     private static int getCurrencyBal(CommandContext<CommandSourceStack> context, ServerPlayer player, String symbol, ChatFormatting color, boolean isMain) {
+        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
         BigDecimal balance = isMain ? CobblemonEconomy.getEconomyManager().getBalance(player.getUUID()) : CobblemonEconomy.getEconomyManager().getPco(player.getUUID());
         Component label = Component.translatable(isMain ? "cobblemon-economy.command.balance.label" : "cobblemon-economy.command.pco.label");
         String display = balance.stripTrailingZeros().toPlainString() + symbol;
@@ -224,6 +225,8 @@ public class EconomyCommands {
         ServerPlayer source = context.getSource().getPlayerOrException();
         ServerPlayer target = EntityArgument.getPlayer(context, "player");
         BigDecimal amount = BigDecimal.valueOf(DoubleArgumentType.getDouble(context, "amount"));
+        CobblemonEconomy.getEconomyManager().updateUsername(source.getUUID(), source.getGameProfile().getName());
+        CobblemonEconomy.getEconomyManager().updateUsername(target.getUUID(), target.getGameProfile().getName());
         if (source.getUUID().equals(target.getUUID())) return 0;
         if (CobblemonEconomy.getEconomyManager().subtractBalance(source.getUUID(), amount)) {
             CobblemonEconomy.getEconomyManager().addBalance(target.getUUID(), amount);
@@ -237,6 +240,7 @@ public class EconomyCommands {
     private static int modifyCurrency(CommandContext<CommandSourceStack> context, String label, String action, boolean isMain) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer target = EntityArgument.getPlayer(context, "player");
         BigDecimal amount = BigDecimal.valueOf(DoubleArgumentType.getDouble(context, "amount"));
+        CobblemonEconomy.getEconomyManager().updateUsername(target.getUUID(), target.getGameProfile().getName());
         if (isMain) {
             switch (action) {
                 case "give" -> CobblemonEconomy.getEconomyManager().addBalance(target.getUUID(), amount);

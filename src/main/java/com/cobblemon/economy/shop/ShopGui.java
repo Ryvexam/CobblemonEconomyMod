@@ -320,6 +320,7 @@ public class ShopGui {
     }
 
     public static void open(ServerPlayer player, String shopId) {
+        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
         EconomyConfig.ShopDefinition shop = CobblemonEconomy.getConfig().shops.get(shopId);
         if (shop == null) {
             shop = CobblemonEconomy.getConfig().shops.get("default_poke");

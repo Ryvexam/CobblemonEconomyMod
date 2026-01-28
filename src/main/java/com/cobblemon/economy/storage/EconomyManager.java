@@ -35,7 +35,8 @@ public class EconomyManager {
         String sql = "CREATE TABLE IF NOT EXISTS balances (" +
                      "uuid TEXT PRIMARY KEY," +
                      "balance TEXT NOT NULL," +
-                     "pco TEXT NOT NULL" +
+                     "pco TEXT NOT NULL," +
+                     "username TEXT" +
                      ");";
         String limitSql = "CREATE TABLE IF NOT EXISTS purchase_limits (" +
                           "uuid TEXT NOT NULL," +
@@ -60,8 +61,25 @@ public class EconomyManager {
             stmt.execute(limitSql);
             stmt.execute(captureCountSql);
             stmt.execute(captureMilestonesSql);
+            ensureColumnExists(conn, "balances", "username", "TEXT");
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to initialize SQLite database", e);
+        }
+    }
+
+    private void ensureColumnExists(Connection conn, String table, String column, String type) throws SQLException {
+        String pragma = "PRAGMA table_info(" + table + ")";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(pragma)) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                if (column.equalsIgnoreCase(name)) {
+                    return;
+                }
+            }
+        }
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
         }
     }
 
@@ -278,19 +296,42 @@ public class EconomyManager {
         return false;
     }
 
+    public void updateUsername(UUID uuid, String username) {
+        if (username == null || username.isBlank()) {
+            ensurePlayerExists(uuid);
+            return;
+        }
+        ensurePlayerExists(uuid, username);
+    }
+
     private void ensurePlayerExists(UUID uuid) {
-        String checkSql = "SELECT uuid FROM balances WHERE uuid = ?";
+        ensurePlayerExists(uuid, null);
+    }
+
+    private void ensurePlayerExists(UUID uuid, String username) {
+        String checkSql = "SELECT uuid, username FROM balances WHERE uuid = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
             pstmt.setString(1, uuid.toString());
             ResultSet rs = pstmt.executeQuery();
             if (!rs.next()) {
-                String insertSql = "INSERT INTO balances(uuid, balance, pco) VALUES(?, ?, ?)";
+                String insertSql = "INSERT INTO balances(uuid, balance, pco, username) VALUES(?, ?, ?, ?)";
                 try (PreparedStatement insertPstmt = conn.prepareStatement(insertSql)) {
                     insertPstmt.setString(1, uuid.toString());
                     insertPstmt.setString(2, CobblemonEconomy.getConfig().startingBalance.toString());
                     insertPstmt.setString(3, CobblemonEconomy.getConfig().startingPco.toString());
+                    insertPstmt.setString(4, username);
                     insertPstmt.executeUpdate();
+                }
+            } else if (username != null && !username.isBlank()) {
+                String existingUsername = rs.getString("username");
+                if (existingUsername == null || !existingUsername.equals(username)) {
+                    String updateSql = "UPDATE balances SET username = ? WHERE uuid = ?";
+                    try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                        updateStmt.setString(1, username);
+                        updateStmt.setString(2, uuid.toString());
+                        updateStmt.executeUpdate();
+                    }
                 }
             }
         } catch (SQLException e) {
