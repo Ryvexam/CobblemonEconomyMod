@@ -36,6 +36,11 @@ Admin (permission level 2):
 Config path: `world/config/cobblemon-economy/config.json`
 Milestones path: `world/config/cobblemon-economy/milestone.json`
 
+Milestone rules:
+- File missing: defaults are generated.
+- Empty file: defaults are used and saved.
+- Keys are unique-capture counts (strings), values are rewards in PokeDollars.
+
 Global settings:
 - `startingBalance`
 - `startingPco`
@@ -65,6 +70,12 @@ Item definition fields:
 - `lootTable` (minecraft loot table id)
 - `buyLimit` (optional)
 - `buyCooldownMinutes` (optional, 0 means lifetime limit)
+
+Item limit rules:
+- Missing `buyLimit` or `buyLimit <= 0`: unlimited.
+- `buyLimit > 0` and missing `buyCooldownMinutes`: lifetime limit.
+- `buyLimit > 0` and `buyCooldownMinutes = 0`: lifetime limit.
+- `buyLimit > 0` and `buyCooldownMinutes > 0`: limit resets every N minutes.
 
 Example shop:
 ```json
