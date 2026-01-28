@@ -117,15 +117,19 @@ public class ShopGui {
     private static ItemStack parseItemStack(String itemId, int count) {
         try {
             var registries = CobblemonEconomy.getGameServer().registryAccess();
+            Object commandContext = buildCommandContext(registries);
             Class<?> argTypeClass = tryClass(
                     "net.minecraft.commands.arguments.item.ItemArgument",
                     "net.minecraft.command.argument.ItemStackArgumentType",
                     "net.minecraft.class_2282"
             );
-            java.lang.reflect.Method itemMethod = tryFactoryMethod(argTypeClass, new String[] {"item", "itemStack", "method_9774", "method_9775"}, registries);
-            Object argTypeInstance = itemMethod.getParameterCount() == 0
-                    ? itemMethod.invoke(null)
-                    : itemMethod.invoke(null, registries);
+            java.lang.reflect.Method itemMethod = tryFactoryMethod(
+                    argTypeClass,
+                    new String[] {"item", "itemStack", "method_9774", "method_9775"},
+                    commandContext,
+                    registries
+            );
+            Object argTypeInstance = invokeFactory(itemMethod, commandContext, registries);
 
             java.lang.reflect.Method parseMethod = tryMethod(argTypeClass, new String[] {"parse", "method_9776"}, com.mojang.brigadier.StringReader.class);
             Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(itemId));
@@ -171,6 +175,10 @@ public class ShopGui {
     }
 
     private static java.lang.reflect.Method tryFactoryMethod(Class<?> target, String[] methodNames, Object registryAccess) throws NoSuchMethodException {
+        return tryFactoryMethod(target, methodNames, registryAccess, null);
+    }
+
+    private static java.lang.reflect.Method tryFactoryMethod(Class<?> target, String[] methodNames, Object primaryArg, Object secondaryArg) throws NoSuchMethodException {
         for (String name : methodNames) {
             for (java.lang.reflect.Method method : target.getMethods()) {
                 if (!method.getName().equals(name)) {
@@ -182,8 +190,14 @@ public class ShopGui {
                 if (method.getParameterCount() == 0) {
                     return method;
                 }
-                if (method.getParameterCount() == 1 && method.getParameterTypes()[0].isAssignableFrom(registryAccess.getClass())) {
-                    return method;
+                if (method.getParameterCount() == 1) {
+                    Class<?> paramType = method.getParameterTypes()[0];
+                    if (primaryArg != null && paramType.isAssignableFrom(primaryArg.getClass())) {
+                        return method;
+                    }
+                    if (secondaryArg != null && paramType.isAssignableFrom(secondaryArg.getClass())) {
+                        return method;
+                    }
                 }
             }
         }
@@ -207,6 +221,71 @@ public class ShopGui {
             }
         }
         throw new NoSuchMethodException("No stack builder method found for " + target.getName());
+    }
+
+    private static Object buildCommandContext(Object registryAccess) {
+        try {
+            Class<?> featureFlagsClass = tryClass(
+                    "net.minecraft.world.flag.FeatureFlags",
+                    "net.minecraft.class_7699"
+            );
+            Object flags = featureFlagsClass.getField("DEFAULT_FLAGS").get(null);
+
+            Class<?> contextClass = tryClass(
+                    "net.minecraft.commands.CommandBuildContext",
+                    "net.minecraft.command.CommandRegistryAccess",
+                    "net.minecraft.class_7157"
+            );
+
+            for (java.lang.reflect.Method method : contextClass.getMethods()) {
+                if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                if (!method.getName().equals("simple") && !method.getName().equals("create")) {
+                    continue;
+                }
+                Class<?>[] params = method.getParameterTypes();
+                if (params.length == 2
+                        && params[0].isAssignableFrom(registryAccess.getClass())
+                        && params[1].isAssignableFrom(flags.getClass())) {
+                    return method.invoke(null, registryAccess, flags);
+                }
+                if (params.length == 1 && params[0].isAssignableFrom(registryAccess.getClass())) {
+                    return method.invoke(null, registryAccess);
+                }
+            }
+
+            for (java.lang.reflect.Constructor<?> constructor : contextClass.getConstructors()) {
+                Class<?>[] params = constructor.getParameterTypes();
+                if (params.length == 2
+                        && params[0].isAssignableFrom(registryAccess.getClass())
+                        && params[1].isAssignableFrom(flags.getClass())) {
+                    return constructor.newInstance(registryAccess, flags);
+                }
+                if (params.length == 1 && params[0].isAssignableFrom(registryAccess.getClass())) {
+                    return constructor.newInstance(registryAccess);
+                }
+            }
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to build command context", e);
+        }
+        return null;
+    }
+
+    private static Object invokeFactory(java.lang.reflect.Method method, Object primaryArg, Object secondaryArg) throws Exception {
+        if (method.getParameterCount() == 0) {
+            return method.invoke(null);
+        }
+        if (method.getParameterCount() == 1) {
+            Class<?> paramType = method.getParameterTypes()[0];
+            if (primaryArg != null && paramType.isAssignableFrom(primaryArg.getClass())) {
+                return method.invoke(null, primaryArg);
+            }
+            if (secondaryArg != null && paramType.isAssignableFrom(secondaryArg.getClass())) {
+                return method.invoke(null, secondaryArg);
+            }
+        }
+        throw new IllegalArgumentException("Unsupported factory method signature: " + method);
     }
 
     private static class ResolvedShopSession {
