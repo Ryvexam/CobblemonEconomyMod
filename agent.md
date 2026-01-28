@@ -42,7 +42,7 @@ This guide provides a concise operational model of how the mod works and how to 
 - Transactions log: `world/config/cobblemon-economy/transactions.log`
 
 ## Config schema essentials
-- Global values: `startingBalance`, `startingPco`, `battleVictoryReward`, `newDiscoveryReward`, `battleVictoryPcoReward`, `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`.
+- Global values: `startingBalance`, `startingPco`, `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`, `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`.
 - Shop entry: `title`, `currency` (POKE or PCO), `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`.
 - Item entry: `id`, `name`, `price`, optional `nbt`, optional `dropTable`, optional `lootTable`.
 
@@ -75,3 +75,5 @@ This guide provides a concise operational model of how the mod works and how to 
 - Update config model and defaults if you add new features.
 - Update translations and user docs when behavior changes.
 - Verify shop opening, buy/sell flow, and reward events in a test world.
+- In commit messages, include the version you are working on.
+- Always commit and push code.

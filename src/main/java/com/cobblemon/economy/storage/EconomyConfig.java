@@ -19,6 +19,7 @@ public class EconomyConfig {
     public BigDecimal startingBalance = new BigDecimal(1000);
     public BigDecimal startingPco = new BigDecimal(0);
     public BigDecimal battleVictoryReward = new BigDecimal(100);
+    public BigDecimal captureReward = null;
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
 
@@ -46,6 +47,8 @@ public class EconomyConfig {
         public List<String> dropTable;
         public String lootTable; // Minecraft loot table resource location (e.g., "minecraft:chests/simple_dungeon")
         public Map<String, String> components;
+        public Integer buyLimit;
+        public Integer buyCooldownMinutes;
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
@@ -55,6 +58,8 @@ public class EconomyConfig {
             this.dropTable = null;
             this.lootTable = null;
             this.components = null;
+            this.buyLimit = null;
+            this.buyCooldownMinutes = null;
         }
     }
 
@@ -80,6 +85,10 @@ public class EconomyConfig {
             config.shops = new HashMap<>();
         }
 
+        if (config.captureReward == null) {
+            config.captureReward = config.battleVictoryReward;
+        }
+
         // --- Validate and Clean Config ---
         for (Map.Entry<String, ShopDefinition> entry : config.shops.entrySet()) {
             ShopDefinition shop = entry.getValue();
@@ -95,7 +104,7 @@ public class EconomyConfig {
         if (isNewConfig) {
             // 1. General Shop
             ShopDefinition defaultPoke = new ShopDefinition();
-            defaultPoke.title = "🛒 GENERAL SHOP 🛒";
+            defaultPoke.title = "GENERAL SHOP";
             defaultPoke.currency = "POKE";
             defaultPoke.skin = "shopkeeper";
             defaultPoke.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
@@ -108,7 +117,7 @@ public class EconomyConfig {
 
             // 2. Apothecary (Buy Shop)
             ShopDefinition apothecary = new ShopDefinition();
-            apothecary.title = "💊 APOTHECARY 💊";
+            apothecary.title = "APOTHECARY";
             apothecary.currency = "POKE";
             apothecary.skin = "shopkeeper";
             apothecary.linkedShop = "apothecary_sell"; // Link to sell shop
@@ -131,7 +140,7 @@ public class EconomyConfig {
 
             // 2b. Apothecary Sell Shop (Linked to Apothecary)
             ShopDefinition apothecary_sell = new ShopDefinition();
-            apothecary_sell.title = "💊 APOTHECARY - SELL 💊";
+            apothecary_sell.title = "APOTHECARY - SELL";
             apothecary_sell.currency = "POKE";
             apothecary_sell.isSellShop = true;
             apothecary_sell.skin = "shopkeeper";
@@ -148,7 +157,7 @@ public class EconomyConfig {
 
             // 3. Ball Emporium
             ShopDefinition ballShop = new ShopDefinition();
-            ballShop.title = "⚪ BALL EMPORIUM ⚪";
+            ballShop.title = "BALL EMPORIUM";
             ballShop.currency = "POKE";
             ballShop.skin = "shopkeeper";
             ballShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
@@ -177,7 +186,7 @@ public class EconomyConfig {
 
             // 4. Jeweler (Sell)
             ShopDefinition jeweler = new ShopDefinition();
-            jeweler.title = "💎 JEWELER 💎";
+            jeweler.title = "JEWELER";
             jeweler.currency = "POKE";
             jeweler.isSellShop = true;
             jeweler.skin = "shopkeeper";
@@ -208,7 +217,7 @@ public class EconomyConfig {
 
             // 4b. Jeweler Buy Shop (Linked to Jeweler)
             ShopDefinition jeweler_buy = new ShopDefinition();
-            jeweler_buy.title = "💎 JEWELER - BUY 💎";
+            jeweler_buy.title = "JEWELER - BUY";
             jeweler_buy.currency = "POKE";
             jeweler_buy.skin = "shopkeeper";
             jeweler_buy.linkedShop = "jeweler"; // Link back to sell shop
@@ -228,24 +237,35 @@ public class EconomyConfig {
 
             // 5. Battle Rewards
             ShopDefinition battleRewards = new ShopDefinition();
-            battleRewards.title = "⚔️ BATTLE REWARDS ⚔️";
+            battleRewards.title = "BATTLE REWARDS";
             battleRewards.currency = "PCO";
             battleRewards.skin = "shopkeeper";
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500));
+            ShopItemDefinition rareCandy = new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50);
+            rareCandy.buyLimit = 3;
+            rareCandy.buyCooldownMinutes = 1200;
+            battleRewards.items.add(rareCandy);
+
+            ShopItemDefinition masterBall = new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500);
+            masterBall.buyLimit = 1;
+            masterBall.buyCooldownMinutes = 1440;
+            battleRewards.items.add(masterBall);
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_band", "Choice Band", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_specs", "Choice Specs", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_scarf", "Choice Scarf", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:life_orb", "Life Orb", 200));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Assault Vest", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Focus Sash", 100));
+            battleRewards.items.add(new ShopItemDefinition("academy:booster_pack[academy:booster_pack=\"base\"]", "Booster Pack (Base)", 100));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000));
+            ShopItemDefinition abilityPatch = new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000);
+            abilityPatch.buyLimit = 1;
+            abilityPatch.buyCooldownMinutes = 720;
+            battleRewards.items.add(abilityPatch);
             config.shops.put("battle_rewards", battleRewards);
 
             // 6. Berry Gardener
             ShopDefinition berryShop = new ShopDefinition();
-            berryShop.title = "🍎 BERRY GARDENER 🍎";
+            berryShop.title = "BERRY GARDENER";
             berryShop.currency = "POKE";
             berryShop.skin = "shopkeeper";
             berryShop.items.add(new ShopItemDefinition("cobblemon:oran_berry", "Oran Berry", 50));
@@ -259,7 +279,7 @@ public class EconomyConfig {
 
             // 7. Surprise Shop
             ShopDefinition surpriseShop = new ShopDefinition();
-            surpriseShop.title = "🎁 SURPRISE SHOP 🎁";
+            surpriseShop.title = "SURPRISE SHOP";
             surpriseShop.currency = "POKE";
             surpriseShop.skin = "shopkeeper";
             surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
@@ -270,10 +290,12 @@ public class EconomyConfig {
 
             // 8. Black Market
             ShopDefinition blackMarket = new ShopDefinition();
-            blackMarket.title = "☠ BLACK MARKET ☠";
+            blackMarket.title = "BLACK MARKET";
             blackMarket.currency = "PCO";
             blackMarket.skin = "shopkeeper";
             ShopItemDefinition lootBox = new ShopItemDefinition("minecraft:black_shulker_box", "Suspicious Crate", 100);
+            lootBox.buyLimit = 3;
+            lootBox.buyCooldownMinutes = 1200;
             lootBox.dropTable = new ArrayList<>();
             lootBox.dropTable.add("cobblemon:master_ball");
             lootBox.dropTable.add("cobblemon:rare_candy");

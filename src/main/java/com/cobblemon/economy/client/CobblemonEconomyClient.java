@@ -14,6 +14,7 @@ public class CobblemonEconomyClient implements ClientModInitializer {
         CLIENT_LOGGER.info("Starting Cobblemon Economy (Client Init)...");
         EntityRendererRegistry.register(CobblemonEconomy.SHOPKEEPER, ShopkeeperRenderer::new);
         ClientNetworkHandler.register();
+        ClientVersionHandshake.registerClient();
         CLIENT_LOGGER.info("Cobblemon Economy (Client Init) - DONE");
     }
 }
