@@ -14,6 +14,7 @@
   "cobblemon-economy.shop.switch_shop_lore": "Click to switch",
   "cobblemon-economy.shop.sell_success": "✔ Sold %sx %s for %s%s",
   "cobblemon-economy.shop.no_item_to_sell": "✖ You don't have this item!",
+  "cobblemon-economy.shop.not_enough_items": "✖ You don't have enough items! (%s required)",
   "cobblemon-economy.shop.return_to_start": "Return to Start",
   "cobblemon-economy.shop.lootbox_open": "You received: %s",
   "cobblemon-economy.shop.lootbox_error": "Failed to open loot crate!",
