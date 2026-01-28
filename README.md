@@ -86,6 +86,16 @@ Example shop:
 }
 ```
 
+Item limit only:
+```json
+{ "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
+```
+
+Item with components (booster example):
+```json
+{ "id": "academy:booster_pack[academy:booster_pack=\"base\"]", "name": "Booster Pack (Base)", "price": 100 }
+```
+
 ## Skins
 - Place PNGs in `world/config/cobblemon-economy/skins/`.
 - Use `/eco skin <name>` to get a Skin Setter.

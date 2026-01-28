@@ -57,11 +57,21 @@ Item fields:
 { "id": "minecraft:chest", "name": "Mystery Box", "price": 500, "dropTable": ["minecraft:diamond", "cobblemon:rare_candy"] }
 { "id": "minecraft:chest", "name": "Dungeon Loot", "price": 1000, "lootTable": "minecraft:chests/simple_dungeon" }
 { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
+```
+
+Item limit only:
+```json
+{ "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
+```
+
+Item with components (booster example):
+```json
+{ "id": "academy:booster_pack[academy:booster_pack=\"base\"]", "name": "Booster Pack (Base)", "price": 100 }
+```
 
 Capture milestones example (`milestone.json`):
 ```json
 { "10": 300, "50": 700, "100": 1500, "200": 3000, "300": 6000 }
-```
 ```
 
 ## Support
