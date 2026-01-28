@@ -160,9 +160,14 @@ public class ShopkeeperEntity extends PathfinderMob {
             this.setCustomNameVisible(false);
         }
         
-        // Remove default name if it was persisted
-        if (this.hasCustomName() && this.getCustomName().getString().equalsIgnoreCase("shopkeeper")) {
-            this.setCustomName(null);
+        // Remove default name if it was persisted by older versions
+        if (this.hasCustomName()) {
+            String customName = this.getCustomName().getString();
+            if (customName.equalsIgnoreCase("shopkeeper")
+                    || customName.equalsIgnoreCase("shop keeper")
+                    || customName.equalsIgnoreCase("shop-keeper")) {
+                this.setCustomName(null);
+            }
         }
     }
 }

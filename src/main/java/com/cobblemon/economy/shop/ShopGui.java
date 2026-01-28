@@ -10,6 +10,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
@@ -35,6 +36,7 @@ import java.math.BigDecimal;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
+import com.cobblemon.economy.storage.EconomyManager;
 
 public class ShopGui {
     private static final int ITEMS_PER_PAGE = 36; // Slots 9 to 44
@@ -64,6 +66,7 @@ public class ShopGui {
             Random rand = new Random();
 
             // 1. Resolve the Item ID
+            String normalizedId = normalizeItemId(originalId);
             if (originalId.contains(":*")) {
                 String namespace = originalId.split(":")[0];
                 List<Item> candidates = BuiltInRegistries.ITEM.stream()
@@ -76,7 +79,7 @@ public class ShopGui {
                 double multiplier = 0.75 + (rand.nextDouble() * 0.5);
                 this.price = (int) Math.round(this.definition.price * multiplier);
             } else {
-                ResourceLocation loc = ResourceLocation.parse(originalId);
+                ResourceLocation loc = ResourceLocation.parse(normalizedId);
                 this.item = BuiltInRegistries.ITEM.get(loc);
                 
                 if (this.item == Items.AIR && !originalId.equals("minecraft:air")) {
@@ -144,6 +147,157 @@ public class ShopGui {
                         .ifPresent(value -> stack.set(type, value));
             }
         }
+
+    private static String normalizeItemId(String itemId) {
+        if (itemId == null || itemId.isEmpty()) {
+            return itemId;
+        }
+        return itemId
+                .replace('\u00AB', '"')
+                .replace('\u00BB', '"')
+                .replace('\u201C', '"')
+                .replace('\u201D', '"')
+                .replace('\u201E', '"')
+                .replace('\u201F', '"');
+    }
+
+    private static Class<?> tryClass(String... classNames) throws ClassNotFoundException {
+        ClassNotFoundException lastError = null;
+        for (String name : classNames) {
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                lastError = e;
+            }
+        }
+        throw lastError;
+    }
+
+    private static java.lang.reflect.Method tryMethod(Class<?> target, String[] methodNames, Class<?>... params) throws NoSuchMethodException {
+        NoSuchMethodException lastError = null;
+        for (String name : methodNames) {
+            try {
+                return target.getMethod(name, params);
+            } catch (NoSuchMethodException e) {
+                lastError = e;
+            }
+        }
+        throw lastError;
+    }
+
+    private static java.lang.reflect.Method tryFactoryMethod(Class<?> target, String[] methodNames, Object registryAccess) throws NoSuchMethodException {
+        return tryFactoryMethod(target, methodNames, registryAccess, null);
+    }
+
+    private static java.lang.reflect.Method tryFactoryMethod(Class<?> target, String[] methodNames, Object primaryArg, Object secondaryArg) throws NoSuchMethodException {
+        for (String name : methodNames) {
+            for (java.lang.reflect.Method method : target.getMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                if (method.getParameterCount() == 0) {
+                    return method;
+                }
+                if (method.getParameterCount() == 1) {
+                    Class<?> paramType = method.getParameterTypes()[0];
+                    if (primaryArg != null && paramType.isAssignableFrom(primaryArg.getClass())) {
+                        return method;
+                    }
+                    if (secondaryArg != null && paramType.isAssignableFrom(secondaryArg.getClass())) {
+                        return method;
+                    }
+                }
+            }
+        }
+        throw new NoSuchMethodException("No factory method found for " + target.getName());
+    }
+
+    private static java.lang.reflect.Method tryStackMethod(Class<?> target, String[] methodNames) throws NoSuchMethodException {
+        for (String name : methodNames) {
+            for (java.lang.reflect.Method method : target.getMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                if (method.getParameterCount() == 2
+                        && method.getParameterTypes()[0] == int.class
+                        && method.getParameterTypes()[1] == boolean.class) {
+                    return method;
+                }
+                if (method.getParameterCount() == 1 && method.getParameterTypes()[0] == int.class) {
+                    return method;
+                }
+            }
+        }
+        throw new NoSuchMethodException("No stack builder method found for " + target.getName());
+    }
+
+    private static Object buildCommandContext(Object registryAccess) {
+        try {
+            Class<?> featureFlagsClass = tryClass(
+                    "net.minecraft.world.flag.FeatureFlags",
+                    "net.minecraft.class_7699"
+            );
+            Object flags = featureFlagsClass.getField("DEFAULT_FLAGS").get(null);
+
+            Class<?> contextClass = tryClass(
+                    "net.minecraft.commands.CommandBuildContext",
+                    "net.minecraft.command.CommandRegistryAccess",
+                    "net.minecraft.class_7157"
+            );
+
+            for (java.lang.reflect.Method method : contextClass.getMethods()) {
+                if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                if (!method.getName().equals("simple") && !method.getName().equals("create")) {
+                    continue;
+                }
+                Class<?>[] params = method.getParameterTypes();
+                if (params.length == 2
+                        && params[0].isAssignableFrom(registryAccess.getClass())
+                        && params[1].isAssignableFrom(flags.getClass())) {
+                    return method.invoke(null, registryAccess, flags);
+                }
+                if (params.length == 1 && params[0].isAssignableFrom(registryAccess.getClass())) {
+                    return method.invoke(null, registryAccess);
+                }
+            }
+
+            for (java.lang.reflect.Constructor<?> constructor : contextClass.getConstructors()) {
+                Class<?>[] params = constructor.getParameterTypes();
+                if (params.length == 2
+                        && params[0].isAssignableFrom(registryAccess.getClass())
+                        && params[1].isAssignableFrom(flags.getClass())) {
+                    return constructor.newInstance(registryAccess, flags);
+                }
+                if (params.length == 1 && params[0].isAssignableFrom(registryAccess.getClass())) {
+                    return constructor.newInstance(registryAccess);
+                }
+            }
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to build command context", e);
+        }
+        return null;
+    }
+
+    private static Object invokeFactory(java.lang.reflect.Method method, Object primaryArg, Object secondaryArg) throws Exception {
+        if (method.getParameterCount() == 0) {
+            return method.invoke(null);
+        }
+        if (method.getParameterCount() == 1) {
+            Class<?> paramType = method.getParameterTypes()[0];
+            if (primaryArg != null && paramType.isAssignableFrom(primaryArg.getClass())) {
+                return method.invoke(null, primaryArg);
+            }
+            if (secondaryArg != null && paramType.isAssignableFrom(secondaryArg.getClass())) {
+                return method.invoke(null, secondaryArg);
+            }
+        }
+        throw new IllegalArgumentException("Unsupported factory method signature: " + method);
+    }
 
     private static class ResolvedShopSession {
         final String shopId;
@@ -302,13 +456,40 @@ public class ShopGui {
                 ItemStack displayStack = resolved.templateStack.copy();
                 displayStack.setCount(resolved.quantity);
 
-                gui.setSlot(slotIndex, new GuiElementBuilder(displayStack)
+                EconomyManager.PurchaseLimitStatus limitStatus = null;
+                if (!isSell && resolved.definition.buyLimit != null && resolved.definition.buyLimit > 0) {
+                    limitStatus = CobblemonEconomy.getEconomyManager().getPurchaseLimitStatus(
+                            player.getUUID(),
+                            shopId,
+                            resolved.definition.id,
+                            resolved.definition.buyLimit,
+                            resolved.definition.buyCooldownMinutes
+                    );
+                }
+
+                GuiElementBuilder elementBuilder = new GuiElementBuilder(displayStack)
                     .setName(Component.literal(resolved.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
                     .addLoreLine(priceLabel.copy().withStyle(ChatFormatting.GRAY)
                         .append(Component.literal(totalPrice + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
                     .addLoreLine(Component.literal("x" + resolved.quantity).withStyle(ChatFormatting.WHITE))
-                    .addLoreLine(Component.empty())
-                    .addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.empty());
+
+                if (limitStatus != null && limitStatus.enabled) {
+                    elementBuilder.addLoreLine(Component.translatable(
+                                    "cobblemon-economy.shop.limit_status",
+                                    limitStatus.remaining,
+                                    resolved.definition.buyLimit
+                            ).withStyle(ChatFormatting.GRAY));
+                    if (limitStatus.resetAtMillis > 0) {
+                        long remainingMs = Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis());
+                        elementBuilder.addLoreLine(Component.translatable(
+                                        "cobblemon-economy.shop.limit_resets_in",
+                                        formatDuration(remainingMs)
+                                ).withStyle(ChatFormatting.DARK_GRAY));
+                    }
+                }
+
+                elementBuilder.addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
                     // Removed the separate middle click line, integrated into actionLabel
                     .setCallback((index, type, action) -> {
                         if (type.isMiddle) {
@@ -322,13 +503,14 @@ public class ShopGui {
                             if (isSell) {
                                 handleSell(player, resolved, isPco, type.isRight);
                             } else {
-                                handlePurchase(player, resolved, isPco);
+                                handlePurchase(player, resolved, isPco, shopId);
                             }
                         }
                         // Refresh GUI
                         open(player, shopId, currentPage); 
-                    })
-                );
+                    });
+
+                gui.setSlot(slotIndex, elementBuilder);
             }
         }
 
@@ -359,11 +541,64 @@ public class ShopGui {
         gui.open();
     }
 
-    private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco) {
+    private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco, String shopId) {
+        EconomyManager economyManager = CobblemonEconomy.getEconomyManager();
+        EconomyConfig.ShopItemDefinition definition = resolved.definition;
+
+        EconomyManager.PurchaseLimitStatus limitStatus = economyManager.getPurchaseLimitStatus(
+                player.getUUID(),
+                shopId,
+                definition.id,
+                definition.buyLimit,
+                definition.buyCooldownMinutes
+        );
+
+        if (limitStatus.enabled && resolved.quantity > limitStatus.remaining) {
+            long remainingMs = limitStatus.resetAtMillis > 0 ? Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis()) : 0;
+            if (limitStatus.remaining <= 0) {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            } else {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_remaining", limitStatus.remaining)
+                        .withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            }
+            return;
+        }
+
         BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
-        boolean success = isPco ? CobblemonEconomy.getEconomyManager().subtractPco(player.getUUID(), price) : CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), price);
+        boolean success = isPco ? economyManager.subtractPco(player.getUUID(), price) : economyManager.subtractBalance(player.getUUID(), price);
 
         if (success) {
+            if (limitStatus.enabled) {
+                boolean consumed = economyManager.consumePurchaseLimit(
+                        player.getUUID(),
+                        shopId,
+                        definition.id,
+                        resolved.quantity,
+                        definition.buyLimit,
+                        definition.buyCooldownMinutes
+                );
+                if (!consumed) {
+                    if (isPco) {
+                        economyManager.addPco(player.getUUID(), price);
+                    } else {
+                        economyManager.addBalance(player.getUUID(), price);
+                    }
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED));
+                    return;
+                }
+            }
             ItemStack stackToGive;
 
             // Check for Minecraft Loot Table (native loot table system)
@@ -485,6 +720,19 @@ public class ShopGui {
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
+    }
+
+    private static String formatDuration(long millis) {
+        long totalMinutes = Math.max(0, millis / 60000L);
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        if (hours > 0 && minutes > 0) {
+            return hours + "h " + minutes + "m";
+        }
+        if (hours > 0) {
+            return hours + "h";
+        }
+        return minutes + "m";
     }
 
     private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll) {
