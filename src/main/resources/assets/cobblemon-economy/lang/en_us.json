@@ -76,6 +76,7 @@
   "cobblemon-economy.event.capture.special": "SPECIAL CAPTURE! You received ₽%s",
   "cobblemon-economy.event.capture.shiny_legendary": "SHINY LEGENDARY CAPTURE! You received ₽%s",
   "cobblemon-economy.event.capture.shiny_paradox": "SHINY PARADOX CAPTURE! You received ₽%s",
+  "cobblemon-economy.event.milestone": "Milestone! %s unique captures: +%s₽",
   "cobblemon-economy.event.victory_pco": " and %s PCo",
   "cobblemon-economy.command.balance.top.title": "--- Richest Players (PokeDollars) ---",
   "cobblemon-economy.command.pco.top.title": "--- Top PCo Holders ---",

@@ -40,6 +40,7 @@ Global settings:
 - `startingBalance`, `startingPco`
 - `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
 - `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`
+- `captureMilestones` (map of unique-capture counts to rewards)
 
 Shop fields:
 - `title`, `currency`, `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`

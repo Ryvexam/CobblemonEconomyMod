@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Version enforcement:** Clients must match the server mod version or get disconnected.
 - **Purchase limits:** Per-item buy limits with optional cooldowns (minutes) and UI display of remaining quota.
 - **Capture reward config:** New `captureReward` setting, defaulting to `battleVictoryReward` if missing.
+- **Capture milestones:** Configurable rewards for unique-capture counts.
 
 ### Changed
 - **Default shops:** Added limited items for Battle Rewards/Black Market and removed emoji titles.
