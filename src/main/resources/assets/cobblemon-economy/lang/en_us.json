@@ -14,6 +14,7 @@
   "cobblemon-economy.shop.switch_shop_lore": "Click to switch",
   "cobblemon-economy.shop.sell_success": "✔ Sold %sx %s for %s%s",
   "cobblemon-economy.shop.no_item_to_sell": "✖ You don't have this item!",
+  "cobblemon-economy.shop.not_enough_items": "✖ You don't have enough items! (%s required)",
   "cobblemon-economy.shop.return_to_start": "Return to Start",
   "cobblemon-economy.shop.lootbox_open": "You received: %s",
   "cobblemon-economy.shop.lootbox_error": "Failed to open loot crate!",
@@ -22,6 +23,7 @@
   "cobblemon-economy.shop.limit_remaining": "✖ You can only buy %s more.",
   "cobblemon-economy.shop.limit_resets_in": "Resets in %s.",
   "cobblemon-economy.shop.limit_status": "Limit: %s/%s",
+  "cobblemon-economy.shop.inventory_full": "✖ Your inventory is full!",
 
   "cobblemon-economy.command.help.title": "--- Cobblemon Economy ---",
   "cobblemon-economy.command.help.bal": "/bal - View your balance",
