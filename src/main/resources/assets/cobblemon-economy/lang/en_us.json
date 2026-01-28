@@ -22,6 +22,7 @@
   "cobblemon-economy.shop.limit_remaining": "✖ You can only buy %s more.",
   "cobblemon-economy.shop.limit_resets_in": "Resets in %s.",
   "cobblemon-economy.shop.limit_status": "Limit: %s/%s",
+  "cobblemon-economy.shop.inventory_full": "✖ Your inventory is full!",
 
   "cobblemon-economy.command.help.title": "--- Cobblemon Economy ---",
   "cobblemon-economy.command.help.bal": "/bal - View your balance",
