@@ -576,6 +576,20 @@ public class ShopGui {
             return;
         }
 
+        // Check if inventory is full
+        boolean inventoryFull = true;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack slot = player.getInventory().getItem(i);
+            if (slot.isEmpty() || slot.getCount() < slot.getMaxStackSize()) {
+                inventoryFull = false;
+                break;
+            }
+        }
+        if (inventoryFull) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.inventory_full").withStyle(ChatFormatting.RED));
+            return;
+        }
+
         BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
         boolean success = isPco ? economyManager.subtractPco(player.getUUID(), price) : economyManager.subtractBalance(player.getUUID(), price);
 
