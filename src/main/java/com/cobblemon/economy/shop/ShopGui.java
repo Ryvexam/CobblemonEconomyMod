@@ -6,6 +6,7 @@ import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
@@ -29,6 +30,7 @@ import java.math.BigDecimal;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
+import com.cobblemon.economy.storage.EconomyManager;
 
 public class ShopGui {
     private static final int ITEMS_PER_PAGE = 36; // Slots 9 to 44
@@ -298,13 +300,40 @@ public class ShopGui {
                 ItemStack displayStack = resolved.templateStack.copy();
                 displayStack.setCount(resolved.quantity);
 
-                gui.setSlot(slotIndex, new GuiElementBuilder(displayStack)
+                EconomyManager.PurchaseLimitStatus limitStatus = null;
+                if (!isSell && resolved.definition.buyLimit != null && resolved.definition.buyLimit > 0) {
+                    limitStatus = CobblemonEconomy.getEconomyManager().getPurchaseLimitStatus(
+                            player.getUUID(),
+                            shopId,
+                            resolved.definition.id,
+                            resolved.definition.buyLimit,
+                            resolved.definition.buyCooldownMinutes
+                    );
+                }
+
+                GuiElementBuilder elementBuilder = new GuiElementBuilder(displayStack)
                     .setName(Component.literal(resolved.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
                     .addLoreLine(priceLabel.copy().withStyle(ChatFormatting.GRAY)
                         .append(Component.literal(totalPrice + (isPco ? " PCo" : "₽")).withStyle(priceColor)))
                     .addLoreLine(Component.literal("x" + resolved.quantity).withStyle(ChatFormatting.WHITE))
-                    .addLoreLine(Component.empty())
-                    .addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.empty());
+
+                if (limitStatus != null && limitStatus.enabled) {
+                    elementBuilder.addLoreLine(Component.translatable(
+                                    "cobblemon-economy.shop.limit_status",
+                                    limitStatus.remaining,
+                                    resolved.definition.buyLimit
+                            ).withStyle(ChatFormatting.GRAY));
+                    if (limitStatus.resetAtMillis > 0) {
+                        long remainingMs = Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis());
+                        elementBuilder.addLoreLine(Component.translatable(
+                                        "cobblemon-economy.shop.limit_resets_in",
+                                        formatDuration(remainingMs)
+                                ).withStyle(ChatFormatting.DARK_GRAY));
+                    }
+                }
+
+                elementBuilder.addLoreLine(actionLabel.copy().withStyle(ChatFormatting.YELLOW))
                     // Removed the separate middle click line, integrated into actionLabel
                     .setCallback((index, type, action) -> {
                         if (type.isMiddle) {
@@ -318,13 +347,14 @@ public class ShopGui {
                             if (isSell) {
                                 handleSell(player, resolved, isPco, type.isRight);
                             } else {
-                                handlePurchase(player, resolved, isPco);
+                                handlePurchase(player, resolved, isPco, shopId);
                             }
                         }
                         // Refresh GUI
                         open(player, shopId, currentPage); 
-                    })
-                );
+                    });
+
+                gui.setSlot(slotIndex, elementBuilder);
             }
         }
 
@@ -355,11 +385,64 @@ public class ShopGui {
         gui.open();
     }
 
-    private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco) {
+    private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco, String shopId) {
+        EconomyManager economyManager = CobblemonEconomy.getEconomyManager();
+        EconomyConfig.ShopItemDefinition definition = resolved.definition;
+
+        EconomyManager.PurchaseLimitStatus limitStatus = economyManager.getPurchaseLimitStatus(
+                player.getUUID(),
+                shopId,
+                definition.id,
+                definition.buyLimit,
+                definition.buyCooldownMinutes
+        );
+
+        if (limitStatus.enabled && resolved.quantity > limitStatus.remaining) {
+            long remainingMs = limitStatus.resetAtMillis > 0 ? Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis()) : 0;
+            if (limitStatus.remaining <= 0) {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            } else {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_remaining", limitStatus.remaining)
+                        .withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            }
+            return;
+        }
+
         BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
-        boolean success = isPco ? CobblemonEconomy.getEconomyManager().subtractPco(player.getUUID(), price) : CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), price);
+        boolean success = isPco ? economyManager.subtractPco(player.getUUID(), price) : economyManager.subtractBalance(player.getUUID(), price);
 
         if (success) {
+            if (limitStatus.enabled) {
+                boolean consumed = economyManager.consumePurchaseLimit(
+                        player.getUUID(),
+                        shopId,
+                        definition.id,
+                        resolved.quantity,
+                        definition.buyLimit,
+                        definition.buyCooldownMinutes
+                );
+                if (!consumed) {
+                    if (isPco) {
+                        economyManager.addPco(player.getUUID(), price);
+                    } else {
+                        economyManager.addBalance(player.getUUID(), price);
+                    }
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED));
+                    return;
+                }
+            }
             ItemStack stackToGive;
 
             // Check for Minecraft Loot Table (native loot table system)
@@ -478,6 +561,19 @@ public class ShopGui {
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
+    }
+
+    private static String formatDuration(long millis) {
+        long totalMinutes = Math.max(0, millis / 60000L);
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        if (hours > 0 && minutes > 0) {
+            return hours + "h " + minutes + "m";
+        }
+        if (hours > 0) {
+            return hours + "h";
+        }
+        return minutes + "m";
     }
 
     private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll) {

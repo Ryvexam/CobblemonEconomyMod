@@ -16,6 +16,10 @@
   "cobblemon-economy.shop.lootbox_open": "Vous avez recu : %s",
   "cobblemon-economy.shop.lootbox_error": "Echec de l'ouverture de la caisse !",
   "cobblemon-economy.shop.lootbox_empty": "La caisse etait vide !",
+  "cobblemon-economy.shop.limit_reached": "✖ Limite d'achat atteinte.",
+  "cobblemon-economy.shop.limit_remaining": "✖ Vous pouvez encore acheter %s.",
+  "cobblemon-economy.shop.limit_resets_in": "Reinitialisation dans %s.",
+  "cobblemon-economy.shop.limit_status": "Limite : %s/%s",
 
   "cobblemon-economy.command.help.title": "--- Cobblemon Economy ---",
   "cobblemon-economy.command.help.bal": "/bal - Voir son argent",

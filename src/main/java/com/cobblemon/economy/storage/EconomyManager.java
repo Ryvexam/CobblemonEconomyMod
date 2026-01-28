@@ -37,12 +37,158 @@ public class EconomyManager {
                      "balance TEXT NOT NULL," +
                      "pco TEXT NOT NULL" +
                      ");";
+        String limitSql = "CREATE TABLE IF NOT EXISTS purchase_limits (" +
+                          "uuid TEXT NOT NULL," +
+                          "shop_id TEXT NOT NULL," +
+                          "item_id TEXT NOT NULL," +
+                          "window_start INTEGER NOT NULL," +
+                          "count INTEGER NOT NULL," +
+                          "PRIMARY KEY (uuid, shop_id, item_id)" +
+                          ");";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
+            stmt.execute(limitSql);
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to initialize SQLite database", e);
         }
+    }
+
+    public static class PurchaseLimitStatus {
+        public final boolean enabled;
+        public final int remaining;
+        public final long resetAtMillis;
+
+        public PurchaseLimitStatus(boolean enabled, int remaining, long resetAtMillis) {
+            this.enabled = enabled;
+            this.remaining = remaining;
+            this.resetAtMillis = resetAtMillis;
+        }
+    }
+
+    public PurchaseLimitStatus getPurchaseLimitStatus(UUID uuid, String shopId, String itemId, Integer limit, Integer cooldownMinutes) {
+        if (limit == null || limit <= 0) {
+            return new PurchaseLimitStatus(false, -1, 0);
+        }
+
+        long now = System.currentTimeMillis();
+        long windowMs = cooldownMinutes == null ? 0 : cooldownMinutes.longValue() * 60000L;
+        long windowStart = now;
+        int count = 0;
+
+        String selectSql = "SELECT window_start, count FROM purchase_limits WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+        String insertSql = "INSERT INTO purchase_limits(uuid, shop_id, item_id, window_start, count) VALUES(?, ?, ?, ?, ?)";
+        String updateSql = "UPDATE purchase_limits SET window_start = ?, count = ? WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            selectStmt.setString(2, shopId);
+            selectStmt.setString(3, itemId);
+            ResultSet rs = selectStmt.executeQuery();
+
+            boolean found = rs.next();
+            if (found) {
+                windowStart = rs.getLong("window_start");
+                count = rs.getInt("count");
+            }
+
+            if (windowMs > 0 && now - windowStart >= windowMs) {
+                windowStart = now;
+                count = 0;
+            }
+
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setString(2, shopId);
+                    insertStmt.setString(3, itemId);
+                    insertStmt.setLong(4, windowStart);
+                    insertStmt.setInt(5, count);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setLong(1, windowStart);
+                    updateStmt.setInt(2, count);
+                    updateStmt.setString(3, uuid.toString());
+                    updateStmt.setString(4, shopId);
+                    updateStmt.setString(5, itemId);
+                    updateStmt.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to read purchase limit for " + uuid, e);
+        }
+
+        long resetAt = windowMs > 0 ? windowStart + windowMs : 0;
+        int remaining = Math.max(0, limit - count);
+        return new PurchaseLimitStatus(true, remaining, resetAt);
+    }
+
+    public boolean consumePurchaseLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
+        if (limit == null || limit <= 0) {
+            return true;
+        }
+
+        long now = System.currentTimeMillis();
+        long windowMs = cooldownMinutes == null ? 0 : cooldownMinutes.longValue() * 60000L;
+        long windowStart = now;
+        int count = 0;
+
+        String selectSql = "SELECT window_start, count FROM purchase_limits WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+        String insertSql = "INSERT INTO purchase_limits(uuid, shop_id, item_id, window_start, count) VALUES(?, ?, ?, ?, ?)";
+        String updateSql = "UPDATE purchase_limits SET window_start = ?, count = ? WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            selectStmt.setString(2, shopId);
+            selectStmt.setString(3, itemId);
+            ResultSet rs = selectStmt.executeQuery();
+
+            boolean found = rs.next();
+            if (found) {
+                windowStart = rs.getLong("window_start");
+                count = rs.getInt("count");
+            }
+
+            if (windowMs > 0 && now - windowStart >= windowMs) {
+                windowStart = now;
+                count = 0;
+            }
+
+            if (count + quantity > limit) {
+                return false;
+            }
+
+            int newCount = count + quantity;
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setString(2, shopId);
+                    insertStmt.setString(3, itemId);
+                    insertStmt.setLong(4, windowStart);
+                    insertStmt.setInt(5, newCount);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setLong(1, windowStart);
+                    updateStmt.setInt(2, newCount);
+                    updateStmt.setString(3, uuid.toString());
+                    updateStmt.setString(4, shopId);
+                    updateStmt.setString(5, itemId);
+                    updateStmt.executeUpdate();
+                }
+            }
+
+            return true;
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to update purchase limit for " + uuid, e);
+        }
+
+        return false;
     }
 
     private void ensurePlayerExists(UUID uuid) {
@@ -170,5 +316,3 @@ public class EconomyManager {
         return topList;
     }
 }
-
-
