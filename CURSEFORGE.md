@@ -43,11 +43,22 @@ Global settings:
 Milestones file:
 - `world/config/cobblemon-economy/milestone.json`
 
+Milestone rules:
+- File missing: defaults are generated.
+- Empty file: defaults are used and saved.
+- Keys are unique-capture counts (strings), values are rewards in PokeDollars.
+
 Shop fields:
 - `title`, `currency`, `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`
 
 Item fields:
 - `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `buyLimit`, `buyCooldownMinutes`
+
+Item limit rules:
+- Missing `buyLimit` or `buyLimit <= 0`: unlimited.
+- `buyLimit > 0` and missing `buyCooldownMinutes`: lifetime limit.
+- `buyLimit > 0` and `buyCooldownMinutes = 0`: lifetime limit.
+- `buyLimit > 0` and `buyCooldownMinutes > 0`: limit resets every N minutes.
 
 ## Example item entries
 ```json
