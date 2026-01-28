@@ -2,8 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.12] - 2026-01-27
-
 ## [0.0.13] - 2026-01-28
 
 ### Added
@@ -17,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Name cleanup:** Clears persisted default shopkeeper names from older versions.
+
+## [0.0.12] - 2026-01-27
 
 ### Added
 - **Audio Feedback:**
