@@ -78,54 +78,11 @@ public class ShopGui {
                 try {
                     // Check if ID contains '[' indicating component syntax
                     if (normalizedId.contains("[")) {
-                        var registries = CobblemonEconomy.getGameServer().registryAccess();
-                        
-                        // Use Reflection with fallback for Intermediary names (Production environment)
-                        Class<?> argTypeClass;
-                        try {
-                            argTypeClass = Class.forName("net.minecraft.command.argument.ItemStackArgumentType");
-                        } catch (ClassNotFoundException e) {
-                            argTypeClass = Class.forName("net.minecraft.class_2282"); // Intermediary
+                        ItemStack parsedStack = parseItemStack(normalizedId, 1);
+                        if (parsedStack == null) {
+                            throw new IllegalArgumentException("Failed to parse item stack from " + normalizedId);
                         }
-
-                        Class<?> commandRegistryAccessClass;
-                        try {
-                            commandRegistryAccessClass = Class.forName("net.minecraft.command.CommandRegistryAccess");
-                        } catch (ClassNotFoundException e) {
-                            commandRegistryAccessClass = Class.forName("net.minecraft.class_7157"); // Intermediary
-                        }
-                        
-                        java.lang.reflect.Method itemStackMethod;
-                        try {
-                            itemStackMethod = argTypeClass.getMethod("itemStack", commandRegistryAccessClass);
-                        } catch (NoSuchMethodException e) {
-                            itemStackMethod = argTypeClass.getMethod("method_9774", commandRegistryAccessClass); // Intermediary
-                        }
-                        Object argTypeInstance = itemStackMethod.invoke(null, registries);
-                        
-                        java.lang.reflect.Method parseMethod;
-                        try {
-                            parseMethod = argTypeClass.getMethod("parse", com.mojang.brigadier.StringReader.class);
-                        } catch (NoSuchMethodException e) {
-                            parseMethod = argTypeClass.getMethod("method_9776", com.mojang.brigadier.StringReader.class); // Intermediary
-                        }
-                        Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(normalizedId));
-                        
-                        Class<?> argumentClass;
-                        try {
-                            argumentClass = Class.forName("net.minecraft.command.argument.ItemStackArgument");
-                        } catch (ClassNotFoundException e) {
-                            argumentClass = Class.forName("net.minecraft.class_2287"); // Intermediary
-                        }
-
-                        java.lang.reflect.Method createStackMethod;
-                        try {
-                            createStackMethod = argumentClass.getMethod("createStack", int.class, boolean.class);
-                        } catch (NoSuchMethodException e) {
-                            createStackMethod = argumentClass.getMethod("method_9781", int.class, boolean.class); // Intermediary
-                        }
-                        
-                        this.templateStack = (ItemStack) createStackMethod.invoke(argumentInstance, 1, false);
+                        this.templateStack = parsedStack;
                         this.item = this.templateStack.getItem();
                     } else {
                         // Standard lookup
@@ -155,6 +112,63 @@ public class ShopGui {
                 .replace('\u201D', '"')
                 .replace('\u201E', '"')
                 .replace('\u201F', '"');
+    }
+
+    private static ItemStack parseItemStack(String itemId, int count) {
+        try {
+            var registries = CobblemonEconomy.getGameServer().registryAccess();
+            Class<?> argTypeClass = tryClass(
+                    "net.minecraft.commands.arguments.item.ItemArgument",
+                    "net.minecraft.command.argument.ItemStackArgumentType",
+                    "net.minecraft.class_2282"
+            );
+            Class<?> registryAccessClass = tryClass(
+                    "net.minecraft.commands.CommandBuildContext",
+                    "net.minecraft.command.CommandRegistryAccess",
+                    "net.minecraft.class_7157"
+            );
+
+            java.lang.reflect.Method itemMethod = tryMethod(argTypeClass, new String[] {"item", "itemStack", "method_9774"}, registryAccessClass);
+            Object argTypeInstance = itemMethod.invoke(null, registries);
+
+            java.lang.reflect.Method parseMethod = tryMethod(argTypeClass, new String[] {"parse", "method_9776"}, com.mojang.brigadier.StringReader.class);
+            Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(itemId));
+
+            Class<?> argumentClass = tryClass(
+                    "net.minecraft.commands.arguments.item.ItemInput",
+                    "net.minecraft.command.argument.ItemStackArgument",
+                    "net.minecraft.class_2287"
+            );
+            java.lang.reflect.Method createStackMethod = tryMethod(argumentClass, new String[] {"createItemStack", "createStack", "method_9781"}, int.class, boolean.class);
+            return (ItemStack) createStackMethod.invoke(argumentInstance, count, false);
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.error("Failed to parse item stack: " + itemId, e);
+            return null;
+        }
+    }
+
+    private static Class<?> tryClass(String... classNames) throws ClassNotFoundException {
+        ClassNotFoundException lastError = null;
+        for (String name : classNames) {
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                lastError = e;
+            }
+        }
+        throw lastError;
+    }
+
+    private static java.lang.reflect.Method tryMethod(Class<?> target, String[] methodNames, Class<?>... params) throws NoSuchMethodException {
+        NoSuchMethodException lastError = null;
+        for (String name : methodNames) {
+            try {
+                return target.getMethod(name, params);
+            } catch (NoSuchMethodException e) {
+                lastError = e;
+            }
+        }
+        throw lastError;
     }
 
     private static class ResolvedShopSession {
