@@ -56,7 +56,6 @@ public class ShopGui {
             this.definition = def;
             this.originalId = def.id;
             this.components = def.components;
-            // FIX: Initialize these from the definition
             this.price = def.price;
             this.name = def.name; 
             resolve(lookupProvider);
@@ -576,6 +575,21 @@ public class ShopGui {
             return;
         }
 
+        // Inventory full check WIP (not working properly yet)
+        // // Check if inventory is full
+        // boolean inventoryFull = true;
+        // for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+        //     ItemStack slot = player.getInventory().getItem(i);
+        //     if (slot.isEmpty() || slot.getCount() < slot.getMaxStackSize()) {
+        //         inventoryFull = false;
+        //         break;
+        //     }
+        // }
+        // if (inventoryFull) {
+        //     player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.inventory_full").withStyle(ChatFormatting.RED));
+        //     return;
+        // }
+
         BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
         boolean success = isPco ? economyManager.subtractPco(player.getUUID(), price) : economyManager.subtractBalance(player.getUUID(), price);
 
@@ -737,49 +751,56 @@ public class ShopGui {
 
     private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll) {
         int totalCount = 0;
+
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            ItemStack stack = player.getInventory().getItem(i);
-            if (stack.is(resolved.item)) {
-                totalCount += stack.getCount();
+                ItemStack stack = player.getInventory().getItem(i);
+                if (ItemStack.isSameItemSameComponents(stack, resolved.templateStack)) {
+                    totalCount += stack.getCount();
+                }
             }
+
+        if (totalCount == 0) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
+            return;
         }
 
-        if (totalCount > 0) {
-            // Sell All (Right Click) vs Sell Quantity (Left Click)
-            int amountToSell;
-            if (sellAll) {
-                amountToSell = Math.min(totalCount, resolved.item.getDefaultMaxStackSize() * 36); // Cap at inventory size? Just totalCount.
-                amountToSell = totalCount;
-            } else {
-                // Sell current quantity selection
-                amountToSell = Math.min(totalCount, resolved.quantity);
-            }
-            
-            ItemStack toRemove = resolved.templateStack.copy();
-            toRemove.setCount(amountToSell);
-            
-            if (removeItem(player, toRemove)) {
-                BigDecimal totalPrice = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(amountToSell));
-                if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), totalPrice);
-                else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
-                
-                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
-                player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
-                logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
-                
-                // Re-resolve the item for the next sale
-                resolved.resolve(player.registryAccess());
-            }
-        } else {
-            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
+        if (totalCount < resolved.quantity) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.not_enough_items", resolved.quantity).withStyle(ChatFormatting.RED));
+            return;
         }
+
+        int amountToSell = 0;
+        if (sellAll) {
+            amountToSell = (totalCount / resolved.quantity) * resolved.quantity;
+        } else {
+            amountToSell = resolved.quantity;
+        }
+
+        ItemStack toRemove = resolved.templateStack.copy();
+        toRemove.setCount(amountToSell);
+
+        if (!removeItem(player, toRemove)) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
+            return;
+        }
+
+        BigDecimal totalPrice = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(amountToSell));
+        if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), totalPrice);
+        else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
+        
+        player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
+        player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
+        logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
+        
+        // Re-resolve the item for the next sale
+        resolved.resolve(player.registryAccess());
     }
 
     private static boolean removeItem(ServerPlayer player, ItemStack toRemove) {
         int remaining = toRemove.getCount();
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
-            if (ItemStack.isSameItem(stack, toRemove)) {
+            if (ItemStack.isSameItemSameComponents(stack, toRemove)) {
                 int count = stack.getCount();
                 int taken = Math.min(count, remaining);
                 stack.shrink(taken);
