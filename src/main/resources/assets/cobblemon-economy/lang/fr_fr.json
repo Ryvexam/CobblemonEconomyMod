@@ -12,6 +12,7 @@
   "cobblemon-economy.shop.insufficient_balance": "✖ Solde insuffisant !",
   "cobblemon-economy.shop.sell_success": "✔ Vendu %sx %s pour %s%s",
   "cobblemon-economy.shop.no_item_to_sell": "✖ Vous n'avez pas cet objet !",
+  "cobblemon-economy.shop.not_enough_items": "✖ Vous n'avez pas assez d'objets ! (%s requis)",
   "cobblemon-economy.shop.return_to_start": "Retour au début",
   "cobblemon-economy.shop.lootbox_open": "Vous avez recu : %s",
   "cobblemon-economy.shop.lootbox_error": "Echec de l'ouverture de la caisse !",
