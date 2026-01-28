@@ -35,6 +35,7 @@ Admin (permission level 2):
 
 ## Configuration
 Config path: `world/config/cobblemon-economy/config.json`
+Milestones path: `world/config/cobblemon-economy/milestone.json`
 
 Global settings:
 - `startingBalance`
@@ -46,7 +47,6 @@ Global settings:
 - `shinyMultiplier`
 - `legendaryMultiplier`
 - `paradoxMultiplier`
-- `captureMilestones` (map of unique-capture counts to rewards)
 
 Shop definition fields:
 - `title`
@@ -83,8 +83,7 @@ Example shop:
         { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
       ]
     }
-  },
-  "captureMilestones": { "10": 300, "50": 700, "100": 1500, "200": 3000, "300": 6000 }
+  }
 }
 ```
 
@@ -94,6 +93,7 @@ Example shop:
 
 ## Storage
 - Config: `world/config/cobblemon-economy/config.json`
+- Milestones: `world/config/cobblemon-economy/milestone.json`
 - Database: `world/config/cobblemon-economy/economy.db`
 - Transactions: `world/config/cobblemon-economy/transactions.log`
 - Skins: `world/config/cobblemon-economy/skins/`
