@@ -16,7 +16,6 @@ Website: https://ryvexam.fr
 - Transaction logging to file
 - Capture, discovery, and battle rewards with multipliers
 - Optional integrations: YAWP protection flag and Star Academy grading
-- Version enforcement to prevent mismatched client mods
 
 ## Commands
 Player:

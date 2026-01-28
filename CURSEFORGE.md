@@ -12,7 +12,6 @@ Cobblemon Economy is a server-focused economy and shop system for Cobblemon on F
 - Per-world config and SQLite storage
 - Capture, discovery, and battle rewards with multipliers
 - Optional YAWP and Star Academy integrations
-- Client/server version enforcement
 
 ## Setup
 1. Drop the jar into `mods/`.
