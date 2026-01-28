@@ -1,10 +1,14 @@
 package com.cobblemon.economy.shop;
 
+import com.mojang.serialization.JsonOps;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyConfig;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +20,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -25,6 +28,9 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.RegistryOps;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 import java.math.BigDecimal;
 import java.io.File;
@@ -37,69 +43,110 @@ public class ShopGui {
     private static final Map<UUID, ResolvedShopSession> ACTIVE_SESSIONS = new HashMap<>();
 
     private static class ResolvedItem {
-        ItemStack templateStack; // Stores item + components
+        ItemStack templateStack;
         Item item;
         int price;
         String name;
-        int quantity = 1; // Default quantity
+        int quantity = 1;
         final String originalId;
+        final Map<String, String> components;
         final EconomyConfig.ShopItemDefinition definition;
 
-        ResolvedItem(EconomyConfig.ShopItemDefinition def) {
+        ResolvedItem(EconomyConfig.ShopItemDefinition def, HolderLookup.Provider lookupProvider) {
             this.definition = def;
             this.originalId = def.id;
-            resolve();
+            this.components = def.components;
+            // FIX: Initialize these from the definition
+            this.price = def.price;
+            this.name = def.name; 
+            resolve(lookupProvider);
         }
 
-        void resolve() {
+        public void resolve(HolderLookup.Provider lookupProvider) {
             Random rand = new Random();
+
+            // 1. Resolve the Item ID
             String normalizedId = normalizeItemId(originalId);
             if (originalId.contains(":*")) {
                 String namespace = originalId.split(":")[0];
                 List<Item> candidates = BuiltInRegistries.ITEM.stream()
-                    .filter(i -> BuiltInRegistries.ITEM.getKey(i).getNamespace().equals(namespace))
-                    .toList();
+                        .filter(i -> BuiltInRegistries.ITEM.getKey(i).getNamespace().equals(namespace))
+                        .toList();
+
+                this.item = candidates.isEmpty() ? Items.BARRIER : candidates.get(rand.nextInt(candidates.size()));
                 
-                if (candidates.isEmpty()) {
-                    this.item = Items.BARRIER;
-                    this.name = "Unknown Namespace: " + namespace;
-                    this.templateStack = new ItemStack(this.item);
-                } else {
-                    this.item = candidates.get(rand.nextInt(candidates.size()));
-                    this.templateStack = new ItemStack(this.item);
-                    this.name = this.templateStack.getHoverName().getString();
-                }
-
-                // Random price +/- 25% ONLY for wildcards
+                // Random price +/- 25% for wildcards
                 double multiplier = 0.75 + (rand.nextDouble() * 0.5);
-                this.price = (int) Math.round(definition.price * multiplier);
+                this.price = (int) Math.round(this.definition.price * multiplier);
             } else {
-                // Try to parse using ItemStringReader to support components [foo=bar]
-                try {
-                    // Check if ID contains '[' indicating component syntax
-                    if (normalizedId.contains("[")) {
-                        ItemStack parsedStack = parseItemStack(normalizedId, 1);
-                        if (parsedStack == null) {
-                            throw new IllegalArgumentException("Failed to parse item stack from " + normalizedId);
-                        }
-                        this.templateStack = parsedStack;
-                        this.item = this.templateStack.getItem();
-                    } else {
-                        // Standard lookup
-                        this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(normalizedId));
-                        this.templateStack = new ItemStack(this.item);
-                    }
-                } catch (Exception e) {
-                    CobblemonEconomy.LOGGER.error("Failed to parse item ID: " + originalId, e);
-                    this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(normalizedId.split("\\[")[0])); // Fallback to base item
-                    this.templateStack = new ItemStack(this.item);
+                ResourceLocation loc = ResourceLocation.parse(normalizedId);
+                this.item = BuiltInRegistries.ITEM.get(loc);
+                
+                if (this.item == Items.AIR && !originalId.equals("minecraft:air")) {
+                    CobblemonEconomy.LOGGER.error("Invalid item ID: {}", originalId);
+                    this.item = Items.BARRIER;
                 }
+            }
 
-                this.name = definition.name;
-                this.price = definition.price;
+            // Fallback for name if not provided in config
+            if (this.name == null || this.name.isEmpty()) {
+                this.name = Component.translatable(this.item.getDescriptionId()).getString();
+            }
+
+            this.templateStack = new ItemStack(this.item);
+
+            // 2. Process and Apply Components
+            if (this.components != null && !this.components.isEmpty()) {
+                Map<String, JsonElement> jsonComponents = new HashMap<>();
+                for (var entry : this.components.entrySet()) {
+                    try {
+                        jsonComponents.put(entry.getKey(), JsonParser.parseString(entry.getValue()));
+                    } catch (Exception e) {
+                        CobblemonEconomy.LOGGER.error("Failed to parse JSON for component {}: {}", entry.getKey(), entry.getValue());
+                    }
+                }
+                applyComponents(this.templateStack, jsonComponents, lookupProvider);
             }
         }
-    }
+
+            private void applyComponents(ItemStack stack, Map<String, JsonElement> componentDataMap, HolderLookup.Provider lookupProvider) {
+                for (Map.Entry<String, JsonElement> entry : componentDataMap.entrySet()) {
+                    String componentId = entry.getKey();
+                    JsonElement data = entry.getValue();
+
+                    // Special Handling: custom_data (SNBT)
+                    if (componentId.equals("minecraft:custom_data")) {
+                        try {
+                            if (data.isJsonPrimitive() && data.getAsJsonPrimitive().isString()) {
+                                CompoundTag tag = TagParser.parseTag(data.getAsString());
+                                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+                            }
+                        } catch (Exception e) {
+                            CobblemonEconomy.LOGGER.error("Failed to parse custom_data SNBT: {}", data, e);
+                        }
+                        continue;
+                    }
+
+                    // Standard Components: Look up type from registry
+                    DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(ResourceLocation.parse(componentId));
+
+                    if (componentType != null) {
+                        applyComponentHelper(stack, componentType, data, lookupProvider);
+                    } else {
+                        CobblemonEconomy.LOGGER.warn("Unknown component type: {}", componentId);
+                    }
+                }
+            }
+
+            private <T> void applyComponentHelper(ItemStack stack, DataComponentType<T> type, JsonElement json, HolderLookup.Provider lookupProvider) {
+                // The Fix: Create RegistryOps so the Codec can look up Enchantments, etc.
+                RegistryOps<JsonElement> ops = lookupProvider.createSerializationContext(JsonOps.INSTANCE);
+
+                type.codecOrThrow().parse(ops, json)
+                        .resultOrPartial(error -> CobblemonEconomy.LOGGER.error("Failed to parse component {}: {}", type, error))
+                        .ifPresent(value -> stack.set(type, value));
+            }
+        }
 
     private static String normalizeItemId(String itemId) {
         if (itemId == null || itemId.isEmpty()) {
@@ -112,42 +159,6 @@ public class ShopGui {
                 .replace('\u201D', '"')
                 .replace('\u201E', '"')
                 .replace('\u201F', '"');
-    }
-
-    private static ItemStack parseItemStack(String itemId, int count) {
-        try {
-            var registries = CobblemonEconomy.getGameServer().registryAccess();
-            Object commandContext = buildCommandContext(registries);
-            Class<?> argTypeClass = tryClass(
-                    "net.minecraft.commands.arguments.item.ItemArgument",
-                    "net.minecraft.command.argument.ItemStackArgumentType",
-                    "net.minecraft.class_2282"
-            );
-            java.lang.reflect.Method itemMethod = tryFactoryMethod(
-                    argTypeClass,
-                    new String[] {"item", "itemStack", "method_9774", "method_9775"},
-                    commandContext,
-                    registries
-            );
-            Object argTypeInstance = invokeFactory(itemMethod, commandContext, registries);
-
-            java.lang.reflect.Method parseMethod = tryMethod(argTypeClass, new String[] {"parse", "method_9776"}, com.mojang.brigadier.StringReader.class);
-            Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(itemId));
-
-            Class<?> argumentClass = tryClass(
-                    "net.minecraft.commands.arguments.item.ItemInput",
-                    "net.minecraft.command.argument.ItemStackArgument",
-                    "net.minecraft.class_2287"
-            );
-            java.lang.reflect.Method createStackMethod = tryStackMethod(argumentClass, new String[] {"createItemStack", "createStack", "method_9781"});
-            if (createStackMethod.getParameterCount() == 2) {
-                return (ItemStack) createStackMethod.invoke(argumentInstance, count, false);
-            }
-            return (ItemStack) createStackMethod.invoke(argumentInstance, count);
-        } catch (Exception e) {
-            CobblemonEconomy.LOGGER.error("Failed to parse item stack: " + itemId, e);
-            return null;
-        }
     }
 
     private static Class<?> tryClass(String... classNames) throws ClassNotFoundException {
@@ -292,13 +303,13 @@ public class ShopGui {
         final String shopId;
         final List<ResolvedItem> resolvedItems;
 
-        ResolvedShopSession(String shopId, EconomyConfig.ShopDefinition shop) {
+        ResolvedShopSession(String shopId, EconomyConfig.ShopDefinition shop, HolderLookup.Provider lookupProvider) {
             this.shopId = shopId;
             this.resolvedItems = new ArrayList<>();
             if (shop.items != null) {
                 for (EconomyConfig.ShopItemDefinition itemDef : shop.items) {
                     if (itemDef != null && itemDef.id != null) {
-                        this.resolvedItems.add(new ResolvedItem(itemDef));
+                        this.resolvedItems.add(new ResolvedItem(itemDef, lookupProvider));
                     } else {
                         CobblemonEconomy.LOGGER.warn("Shop '{}' contains a null item or an item with missing ID!", shopId);
                     }
@@ -317,7 +328,7 @@ public class ShopGui {
         if (shop == null) return;
 
         // Create a new resolved session for this player open
-        ResolvedShopSession session = new ResolvedShopSession(shopId, shop);
+        ResolvedShopSession session = new ResolvedShopSession(shopId, shop, player.registryAccess());
         ACTIVE_SESSIONS.put(player.getUUID(), session);
         
         open(player, shopId, 0);
@@ -681,6 +692,9 @@ public class ShopGui {
             } else {
                 stackToGive = resolved.templateStack.copy();
                 stackToGive.setCount(resolved.quantity);
+                CobblemonEconomy.LOGGER.info("Creating item to give: " + resolved.originalId);
+                CobblemonEconomy.LOGGER.info("Template components: " + resolved.templateStack.getComponents());
+                CobblemonEconomy.LOGGER.info("Copy components: " + stackToGive.getComponents());
 
                 // Apply NBT (CustomData) if present in definition (1.20.5+ way)
                 if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
@@ -702,7 +716,7 @@ public class ShopGui {
             logTransaction(player, resolved, isPco, false, resolved.quantity, price);
 
             // Re-resolve the item for the next purchase
-            resolved.resolve();
+            resolved.resolve(player.registryAccess());
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
@@ -754,7 +768,7 @@ public class ShopGui {
                 logTransaction(player, resolved, isPco, true, amountToSell, totalPrice);
                 
                 // Re-resolve the item for the next sale
-                resolved.resolve();
+                resolved.resolve(player.registryAccess());
             }
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.no_item_to_sell").withStyle(ChatFormatting.RED));
