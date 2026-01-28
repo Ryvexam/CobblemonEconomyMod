@@ -70,6 +70,7 @@ public class CobblemonEconomy implements ModInitializer {
         
         FabricDefaultAttributeRegistry.register(SHOPKEEPER, ShopkeeperEntity.createAttributes());
         com.cobblemon.economy.networking.NetworkHandler.register();
+        com.cobblemon.economy.networking.VersionHandshake.registerServer();
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(content -> {
             content.accept(SHOPKEEPER_SPAWN_EGG);

@@ -45,6 +45,8 @@ public class EconomyConfig {
         public String nbt;
         public List<String> dropTable;
         public String lootTable; // Minecraft loot table resource location (e.g., "minecraft:chests/simple_dungeon")
+        public Integer buyLimit;
+        public Integer buyCooldownMinutes;
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
@@ -53,6 +55,8 @@ public class EconomyConfig {
             this.nbt = null;
             this.dropTable = null;
             this.lootTable = null;
+            this.buyLimit = null;
+            this.buyCooldownMinutes = null;
         }
     }
 
@@ -228,8 +232,15 @@ public class EconomyConfig {
             battleRewards.title = "⚔️ BATTLE REWARDS ⚔️";
             battleRewards.currency = "PCO";
             battleRewards.skin = "shopkeeper";
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500));
+            ShopItemDefinition rareCandy = new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50);
+            rareCandy.buyLimit = 3;
+            rareCandy.buyCooldownMinutes = 1200;
+            battleRewards.items.add(rareCandy);
+
+            ShopItemDefinition masterBall = new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500);
+            masterBall.buyLimit = 1;
+            masterBall.buyCooldownMinutes = 1440;
+            battleRewards.items.add(masterBall);
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_band", "Choice Band", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_specs", "Choice Specs", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_scarf", "Choice Scarf", 150));
@@ -237,7 +248,10 @@ public class EconomyConfig {
             battleRewards.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Assault Vest", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Focus Sash", 100));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000));
+            ShopItemDefinition abilityPatch = new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000);
+            abilityPatch.buyLimit = 1;
+            abilityPatch.buyCooldownMinutes = 720;
+            battleRewards.items.add(abilityPatch);
             config.shops.put("battle_rewards", battleRewards);
 
             // 6. Berry Gardener
@@ -271,6 +285,8 @@ public class EconomyConfig {
             blackMarket.currency = "PCO";
             blackMarket.skin = "shopkeeper";
             ShopItemDefinition lootBox = new ShopItemDefinition("minecraft:black_shulker_box", "Suspicious Crate", 100);
+            lootBox.buyLimit = 3;
+            lootBox.buyCooldownMinutes = 1200;
             lootBox.dropTable = new ArrayList<>();
             lootBox.dropTable.add("cobblemon:master_ball");
             lootBox.dropTable.add("cobblemon:rare_candy");

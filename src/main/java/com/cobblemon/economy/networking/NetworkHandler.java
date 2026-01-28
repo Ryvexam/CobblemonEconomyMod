@@ -11,6 +11,7 @@ import net.fabricmc.loader.api.FabricLoader;
 public class NetworkHandler {
     public static void register() {
         PayloadTypeRegistry.playC2S().register(RequestSkinPayload.TYPE, RequestSkinPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(VersionCheckPayload.TYPE, VersionCheckPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ProvideSkinPayload.TYPE, ProvideSkinPayload.CODEC);
 
         // Server-side handler: Receive Request -> Send Data
