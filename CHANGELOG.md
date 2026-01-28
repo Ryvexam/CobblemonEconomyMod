@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Default shops:** Added limited items for Battle Rewards/Black Market and removed emoji titles.
 - **Item parsing:** More robust parsing for component-based item IDs (datapack/mod items).
+- **Milestones config:** Capture milestones now live in `milestone.json`.
 
 ### Fixed
 - **Name cleanup:** Clears persisted default shopkeeper names from older versions.
