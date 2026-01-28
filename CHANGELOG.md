@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [0.0.12] - 2026-01-27
 
+## [0.0.13] - 2026-01-28
+
+### Added
+- **Version enforcement:** Clients must match the server mod version or get disconnected.
+- **Purchase limits:** Per-item buy limits with optional cooldowns (minutes) and UI display of remaining quota.
+- **Capture reward config:** New `captureReward` setting, defaulting to `battleVictoryReward` if missing.
+
+### Changed
+- **Default shops:** Added limited items for Battle Rewards/Black Market and removed emoji titles.
+- **Item parsing:** More robust parsing for component-based item IDs (datapack/mod items).
+
+### Fixed
+- **Name cleanup:** Clears persisted default shopkeeper names from older versions.
+
 ### Added
 - **Audio Feedback:**
   - Buying and selling items now plays a satisfying "Experience Orb Pickup" sound effect.
