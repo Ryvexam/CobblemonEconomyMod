@@ -104,7 +104,14 @@ Item limit only:
 
 Item with components (booster example):
 ```json
-{ "id": "academy:booster_pack[academy:booster_pack=\"base\"]", "name": "Booster Pack (Base)", "price": 100 }
+{
+  "id": "academy:booster_pack",
+  "name": "Oui",
+  "price": 200,
+  "components": {
+    "academy:booster_pack": "\"base\""
+  }
+}
 ```
 
 ## Skins

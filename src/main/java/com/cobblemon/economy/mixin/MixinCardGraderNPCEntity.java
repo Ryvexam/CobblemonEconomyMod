@@ -46,6 +46,8 @@ public abstract class MixinCardGraderNPCEntity {
         if (!(user instanceof ServerPlayer player) || CHARGED.get()) return;
         CHARGED.set(true);
 
+        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+
         long cost = getGradingCost();
 
         if (cost <= 0) return;
