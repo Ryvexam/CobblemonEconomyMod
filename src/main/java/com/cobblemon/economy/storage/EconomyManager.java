@@ -45,13 +45,100 @@ public class EconomyManager {
                           "count INTEGER NOT NULL," +
                           "PRIMARY KEY (uuid, shop_id, item_id)" +
                           ");";
+        String captureCountSql = "CREATE TABLE IF NOT EXISTS capture_counts (" +
+                                 "uuid TEXT PRIMARY KEY," +
+                                 "count INTEGER NOT NULL" +
+                                 ");";
+        String captureMilestonesSql = "CREATE TABLE IF NOT EXISTS capture_milestones (" +
+                                      "uuid TEXT NOT NULL," +
+                                      "milestone INTEGER NOT NULL," +
+                                      "PRIMARY KEY (uuid, milestone)" +
+                                      ");";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             stmt.execute(limitSql);
+            stmt.execute(captureCountSql);
+            stmt.execute(captureMilestonesSql);
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to initialize SQLite database", e);
         }
+    }
+
+    public int incrementUniqueCapture(UUID uuid) {
+        String selectSql = "SELECT count FROM capture_counts WHERE uuid = ?";
+        String insertSql = "INSERT INTO capture_counts(uuid, count) VALUES(?, ?)";
+        String updateSql = "UPDATE capture_counts SET count = ? WHERE uuid = ?";
+
+        int current = 0;
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            ResultSet rs = selectStmt.executeQuery();
+            boolean found = rs.next();
+            if (found) {
+                current = rs.getInt("count");
+            }
+            int newCount = current + 1;
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setInt(2, newCount);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setInt(1, newCount);
+                    updateStmt.setString(2, uuid.toString());
+                    updateStmt.executeUpdate();
+                }
+            }
+            return newCount;
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to update capture count for " + uuid, e);
+        }
+        return current;
+    }
+
+    public void setCaptureCount(UUID uuid, int count) {
+        String selectSql = "SELECT count FROM capture_counts WHERE uuid = ?";
+        String insertSql = "INSERT INTO capture_counts(uuid, count) VALUES(?, ?)";
+        String updateSql = "UPDATE capture_counts SET count = ? WHERE uuid = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            ResultSet rs = selectStmt.executeQuery();
+            boolean found = rs.next();
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setInt(2, count);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setInt(1, count);
+                    updateStmt.setString(2, uuid.toString());
+                    updateStmt.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to set capture count for " + uuid, e);
+        }
+    }
+
+    public boolean claimCaptureMilestone(UUID uuid, int milestone) {
+        String sql = "INSERT OR IGNORE INTO capture_milestones(uuid, milestone) VALUES(?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setInt(2, milestone);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to claim capture milestone for " + uuid, e);
+        }
+        return false;
     }
 
     public static class PurchaseLimitStatus {

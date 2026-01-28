@@ -41,6 +41,9 @@ Global settings:
 - `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
 - `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`
 
+Milestones file:
+- `world/config/cobblemon-economy/milestone.json`
+
 Shop fields:
 - `title`, `currency`, `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`
 
@@ -55,6 +58,11 @@ Item fields:
 { "id": "minecraft:chest", "name": "Mystery Box", "price": 500, "dropTable": ["minecraft:diamond", "cobblemon:rare_candy"] }
 { "id": "minecraft:chest", "name": "Dungeon Loot", "price": 1000, "lootTable": "minecraft:chests/simple_dungeon" }
 { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
+
+Capture milestones example (`milestone.json`):
+```json
+{ "10": 300, "50": 700, "100": 1500, "200": 3000, "300": 6000 }
+```
 ```
 
 ## Support

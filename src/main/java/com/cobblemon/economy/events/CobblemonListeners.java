@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceLocation;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class CobblemonListeners {
     private static final Map<String, Boolean> preChangeKnowledge = new ConcurrentHashMap<>();
@@ -59,6 +61,15 @@ public class CobblemonListeners {
 
                 ServerPlayer player = CobblemonEconomy.getGameServer().getPlayerList().getPlayer(event.getPlayerUUID());
                 if (player == null) return kotlin.Unit.INSTANCE;
+
+                int uniqueCount = getUniqueCaptureCount(player);
+                if (uniqueCount >= 0) {
+                    CobblemonEconomy.getEconomyManager().setCaptureCount(player.getUUID(), uniqueCount);
+                } else {
+                    uniqueCount = CobblemonEconomy.getEconomyManager().incrementUniqueCapture(player.getUUID());
+                }
+
+                handleCaptureMilestones(player, uniqueCount);
  
                 // Check if this species is a legendary, mythical or paradox to avoid double rewards
                 var species = com.cobblemon.mod.common.api.pokemon.PokemonSpecies.INSTANCE.getByIdentifier(speciesRecord.getId());
@@ -222,5 +233,103 @@ public class CobblemonListeners {
         });
 
         CobblemonEconomy.LOGGER.info("Events registered for Cobblemon 1.7.1 (Pokedex Change Logic)");
+    }
+
+    private static void handleCaptureMilestones(ServerPlayer player, int uniqueCount) {
+        if (uniqueCount <= 0) {
+            return;
+        }
+        Map<String, BigDecimal> milestones = CobblemonEconomy.getConfig().captureMilestones;
+        if (milestones == null || milestones.isEmpty()) {
+            return;
+        }
+
+        List<Integer> ordered = new ArrayList<>();
+        for (String key : milestones.keySet()) {
+            try {
+                ordered.add(Integer.parseInt(key));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        ordered.sort(Comparator.naturalOrder());
+
+        for (Integer milestone : ordered) {
+            if (milestone == null || milestone <= 0) {
+                continue;
+            }
+            if (uniqueCount < milestone) {
+                continue;
+            }
+            BigDecimal reward = milestones.get(String.valueOf(milestone));
+            if (reward == null || reward.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            boolean claimed = CobblemonEconomy.getEconomyManager().claimCaptureMilestone(player.getUUID(), milestone);
+            if (!claimed) {
+                continue;
+            }
+            CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+            String formattedReward = reward.stripTrailingZeros().toPlainString();
+            player.sendSystemMessage(Component.translatable(
+                    "cobblemon-economy.event.milestone",
+                    milestone,
+                    formattedReward
+            ).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        }
+    }
+
+    private static int getUniqueCaptureCount(ServerPlayer player) {
+        try {
+            Object pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
+            Object records = tryInvoke(pokedex, new String[] {"getSpeciesRecords", "getAllSpeciesRecords", "getEntries", "getDexRecords"});
+            if (records == null) {
+                return -1;
+            }
+
+            int count = 0;
+            if (records instanceof Map<?, ?> map) {
+                for (Object record : map.values()) {
+                    if (isCaughtRecord(record)) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+            if (records instanceof Iterable<?> iterable) {
+                for (Object record : iterable) {
+                    if (isCaughtRecord(record)) {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to compute unique capture count", e);
+        }
+        return -1;
+    }
+
+    private static boolean isCaughtRecord(Object record) {
+        if (record == null) {
+            return false;
+        }
+        Object speciesRecord = tryInvoke(record, new String[] {"getSpeciesDexRecord"});
+        Object target = speciesRecord != null ? speciesRecord : record;
+        Object knowledge = tryInvoke(target, new String[] {"getKnowledge", "getHighestKnowledge"});
+        return knowledge == PokedexEntryProgress.CAUGHT;
+    }
+
+    private static Object tryInvoke(Object target, String[] methodNames, Object... args) {
+        for (String name : methodNames) {
+            try {
+                Class<?>[] params = new Class<?>[args.length];
+                for (int i = 0; i < args.length; i++) {
+                    params[i] = args[i].getClass();
+                }
+                return target.getClass().getMethod(name, params).invoke(target, args);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
     }
 }

@@ -35,6 +35,7 @@ Admin (permission level 2):
 
 ## Configuration
 Config path: `world/config/cobblemon-economy/config.json`
+Milestones path: `world/config/cobblemon-economy/milestone.json`
 
 Global settings:
 - `startingBalance`
@@ -92,6 +93,7 @@ Example shop:
 
 ## Storage
 - Config: `world/config/cobblemon-economy/config.json`
+- Milestones: `world/config/cobblemon-economy/milestone.json`
 - Database: `world/config/cobblemon-economy/economy.db`
 - Transactions: `world/config/cobblemon-economy/transactions.log`
 - Skins: `world/config/cobblemon-economy/skins/`

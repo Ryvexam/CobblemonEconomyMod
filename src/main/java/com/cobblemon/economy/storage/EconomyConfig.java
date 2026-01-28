@@ -3,6 +3,7 @@ package com.cobblemon.economy.storage;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
@@ -26,6 +27,8 @@ public class EconomyConfig {
     public BigDecimal shinyMultiplier = new BigDecimal(5);
     public BigDecimal legendaryMultiplier = new BigDecimal(10);
     public BigDecimal paradoxMultiplier = new BigDecimal(3);
+
+    public transient Map<String, BigDecimal> captureMilestones = new HashMap<>();
 
     public Map<String, ShopDefinition> shops = new HashMap<>();
 
@@ -68,6 +71,7 @@ public class EconomyConfig {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         EconomyConfig config = null;
         boolean isNewConfig = !configFile.exists();
+        File milestoneFile = new File(configFile.getParentFile(), "milestone.json");
 
         if (configFile.exists()) {
             try (FileReader reader = new FileReader(configFile)) {
@@ -84,6 +88,8 @@ public class EconomyConfig {
         if (config.shops == null) {
             config.shops = new HashMap<>();
         }
+
+        config.captureMilestones = loadMilestones(gson, milestoneFile);
 
         if (config.captureReward == null) {
             config.captureReward = config.battleVictoryReward;
@@ -316,7 +322,52 @@ public class EconomyConfig {
                 CobblemonEconomy.LOGGER.error("Failed to save updated config", e);
             }
         }
-        
+
         return config;
+    }
+
+    private static Map<String, BigDecimal> loadMilestones(Gson gson, File milestoneFile) {
+        Map<String, BigDecimal> milestones = new HashMap<>();
+        boolean shouldSave = false;
+        if (milestoneFile.exists()) {
+            try (FileReader reader = new FileReader(milestoneFile)) {
+                Map<String, BigDecimal> loaded = gson.fromJson(reader, new TypeToken<Map<String, BigDecimal>>() {}.getType());
+                if (loaded != null) {
+                    for (Map.Entry<String, BigDecimal> entry : loaded.entrySet()) {
+                        if (entry.getKey() != null && entry.getValue() != null) {
+                            milestones.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                CobblemonEconomy.LOGGER.error("Failed to load milestone config", e);
+                shouldSave = true;
+            }
+        } else {
+            shouldSave = true;
+        }
+
+        if (milestones.isEmpty()) {
+            milestones.put("10", new BigDecimal(300));
+            milestones.put("50", new BigDecimal(700));
+            milestones.put("100", new BigDecimal(1500));
+            milestones.put("200", new BigDecimal(3000));
+            milestones.put("300", new BigDecimal(6000));
+            shouldSave = true;
+        }
+
+        if (shouldSave) {
+            saveMilestones(gson, milestoneFile, milestones);
+        }
+
+        return milestones;
+    }
+
+    private static void saveMilestones(Gson gson, File milestoneFile, Map<String, BigDecimal> milestones) {
+        try (FileWriter writer = new FileWriter(milestoneFile)) {
+            gson.toJson(milestones, writer);
+        } catch (IOException e) {
+            CobblemonEconomy.LOGGER.error("Failed to save milestone config", e);
+        }
     }
 }
