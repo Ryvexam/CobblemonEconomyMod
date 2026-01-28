@@ -21,6 +21,7 @@
   "cobblemon-economy.shop.limit_remaining": "✖ Vous pouvez encore acheter %s.",
   "cobblemon-economy.shop.limit_resets_in": "Reinitialisation dans %s.",
   "cobblemon-economy.shop.limit_status": "Limite : %s/%s",
+  "cobblemon-economy.shop.inventory_full": "✖ Votre inventaire est plein !",
 
   "cobblemon-economy.command.help.title": "--- Cobblemon Economy ---",
   "cobblemon-economy.command.help.bal": "/bal - Voir son argent",
