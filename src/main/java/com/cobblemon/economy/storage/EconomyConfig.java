@@ -96,7 +96,7 @@ public class EconomyConfig {
         if (isNewConfig) {
             // 1. General Shop
             ShopDefinition defaultPoke = new ShopDefinition();
-            defaultPoke.title = "🛒 GENERAL SHOP 🛒";
+            defaultPoke.title = "GENERAL SHOP";
             defaultPoke.currency = "POKE";
             defaultPoke.skin = "shopkeeper";
             defaultPoke.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
@@ -109,7 +109,7 @@ public class EconomyConfig {
 
             // 2. Apothecary (Buy Shop)
             ShopDefinition apothecary = new ShopDefinition();
-            apothecary.title = "💊 APOTHECARY 💊";
+            apothecary.title = "APOTHECARY";
             apothecary.currency = "POKE";
             apothecary.skin = "shopkeeper";
             apothecary.linkedShop = "apothecary_sell"; // Link to sell shop
@@ -132,7 +132,7 @@ public class EconomyConfig {
 
             // 2b. Apothecary Sell Shop (Linked to Apothecary)
             ShopDefinition apothecary_sell = new ShopDefinition();
-            apothecary_sell.title = "💊 APOTHECARY - SELL 💊";
+            apothecary_sell.title = "APOTHECARY - SELL";
             apothecary_sell.currency = "POKE";
             apothecary_sell.isSellShop = true;
             apothecary_sell.skin = "shopkeeper";
@@ -149,7 +149,7 @@ public class EconomyConfig {
 
             // 3. Ball Emporium
             ShopDefinition ballShop = new ShopDefinition();
-            ballShop.title = "⚪ BALL EMPORIUM ⚪";
+            ballShop.title = "BALL EMPORIUM";
             ballShop.currency = "POKE";
             ballShop.skin = "shopkeeper";
             ballShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
@@ -178,7 +178,7 @@ public class EconomyConfig {
 
             // 4. Jeweler (Sell)
             ShopDefinition jeweler = new ShopDefinition();
-            jeweler.title = "💎 JEWELER 💎";
+            jeweler.title = "JEWELER";
             jeweler.currency = "POKE";
             jeweler.isSellShop = true;
             jeweler.skin = "shopkeeper";
@@ -209,7 +209,7 @@ public class EconomyConfig {
 
             // 4b. Jeweler Buy Shop (Linked to Jeweler)
             ShopDefinition jeweler_buy = new ShopDefinition();
-            jeweler_buy.title = "💎 JEWELER - BUY 💎";
+            jeweler_buy.title = "JEWELER - BUY";
             jeweler_buy.currency = "POKE";
             jeweler_buy.skin = "shopkeeper";
             jeweler_buy.linkedShop = "jeweler"; // Link back to sell shop
@@ -229,7 +229,7 @@ public class EconomyConfig {
 
             // 5. Battle Rewards
             ShopDefinition battleRewards = new ShopDefinition();
-            battleRewards.title = "⚔️ BATTLE REWARDS ⚔️";
+            battleRewards.title = "BATTLE REWARDS";
             battleRewards.currency = "PCO";
             battleRewards.skin = "shopkeeper";
             ShopItemDefinition rareCandy = new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50);
@@ -256,7 +256,7 @@ public class EconomyConfig {
 
             // 6. Berry Gardener
             ShopDefinition berryShop = new ShopDefinition();
-            berryShop.title = "🍎 BERRY GARDENER 🍎";
+            berryShop.title = "BERRY GARDENER";
             berryShop.currency = "POKE";
             berryShop.skin = "shopkeeper";
             berryShop.items.add(new ShopItemDefinition("cobblemon:oran_berry", "Oran Berry", 50));
@@ -270,7 +270,7 @@ public class EconomyConfig {
 
             // 7. Surprise Shop
             ShopDefinition surpriseShop = new ShopDefinition();
-            surpriseShop.title = "🎁 SURPRISE SHOP 🎁";
+            surpriseShop.title = "SURPRISE SHOP";
             surpriseShop.currency = "POKE";
             surpriseShop.skin = "shopkeeper";
             surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
@@ -281,7 +281,7 @@ public class EconomyConfig {
 
             // 8. Black Market
             ShopDefinition blackMarket = new ShopDefinition();
-            blackMarket.title = "☠ BLACK MARKET ☠";
+            blackMarket.title = "BLACK MARKET";
             blackMarket.currency = "PCO";
             blackMarket.skin = "shopkeeper";
             ShopItemDefinition lootBox = new ShopItemDefinition("minecraft:black_shulker_box", "Suspicious Crate", 100);

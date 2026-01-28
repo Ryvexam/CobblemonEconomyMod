@@ -24,3 +24,4 @@ Thumbs.db
 
 # Gradle wrapper (optional, but usually kept)
 #!gradle/wrapper/gradle-wrapper.jar
+.factorypath
