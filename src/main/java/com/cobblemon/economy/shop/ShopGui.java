@@ -122,14 +122,10 @@ public class ShopGui {
                     "net.minecraft.command.argument.ItemStackArgumentType",
                     "net.minecraft.class_2282"
             );
-            Class<?> registryAccessClass = tryClass(
-                    "net.minecraft.commands.CommandBuildContext",
-                    "net.minecraft.command.CommandRegistryAccess",
-                    "net.minecraft.class_7157"
-            );
-
-            java.lang.reflect.Method itemMethod = tryMethod(argTypeClass, new String[] {"item", "itemStack", "method_9774"}, registryAccessClass);
-            Object argTypeInstance = itemMethod.invoke(null, registries);
+            java.lang.reflect.Method itemMethod = tryFactoryMethod(argTypeClass, new String[] {"item", "itemStack", "method_9774", "method_9775"}, registries);
+            Object argTypeInstance = itemMethod.getParameterCount() == 0
+                    ? itemMethod.invoke(null)
+                    : itemMethod.invoke(null, registries);
 
             java.lang.reflect.Method parseMethod = tryMethod(argTypeClass, new String[] {"parse", "method_9776"}, com.mojang.brigadier.StringReader.class);
             Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(itemId));
@@ -139,8 +135,11 @@ public class ShopGui {
                     "net.minecraft.command.argument.ItemStackArgument",
                     "net.minecraft.class_2287"
             );
-            java.lang.reflect.Method createStackMethod = tryMethod(argumentClass, new String[] {"createItemStack", "createStack", "method_9781"}, int.class, boolean.class);
-            return (ItemStack) createStackMethod.invoke(argumentInstance, count, false);
+            java.lang.reflect.Method createStackMethod = tryStackMethod(argumentClass, new String[] {"createItemStack", "createStack", "method_9781"});
+            if (createStackMethod.getParameterCount() == 2) {
+                return (ItemStack) createStackMethod.invoke(argumentInstance, count, false);
+            }
+            return (ItemStack) createStackMethod.invoke(argumentInstance, count);
         } catch (Exception e) {
             CobblemonEconomy.LOGGER.error("Failed to parse item stack: " + itemId, e);
             return null;
@@ -169,6 +168,45 @@ public class ShopGui {
             }
         }
         throw lastError;
+    }
+
+    private static java.lang.reflect.Method tryFactoryMethod(Class<?> target, String[] methodNames, Object registryAccess) throws NoSuchMethodException {
+        for (String name : methodNames) {
+            for (java.lang.reflect.Method method : target.getMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                if (method.getParameterCount() == 0) {
+                    return method;
+                }
+                if (method.getParameterCount() == 1 && method.getParameterTypes()[0].isAssignableFrom(registryAccess.getClass())) {
+                    return method;
+                }
+            }
+        }
+        throw new NoSuchMethodException("No factory method found for " + target.getName());
+    }
+
+    private static java.lang.reflect.Method tryStackMethod(Class<?> target, String[] methodNames) throws NoSuchMethodException {
+        for (String name : methodNames) {
+            for (java.lang.reflect.Method method : target.getMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                if (method.getParameterCount() == 2
+                        && method.getParameterTypes()[0] == int.class
+                        && method.getParameterTypes()[1] == boolean.class) {
+                    return method;
+                }
+                if (method.getParameterCount() == 1 && method.getParameterTypes()[0] == int.class) {
+                    return method;
+                }
+            }
+        }
+        throw new NoSuchMethodException("No stack builder method found for " + target.getName());
     }
 
     private static class ResolvedShopSession {
