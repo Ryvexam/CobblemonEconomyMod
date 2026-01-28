@@ -19,6 +19,7 @@ public class EconomyConfig {
     public BigDecimal startingBalance = new BigDecimal(1000);
     public BigDecimal startingPco = new BigDecimal(0);
     public BigDecimal battleVictoryReward = new BigDecimal(100);
+    public BigDecimal captureReward = null;
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
 
@@ -79,6 +80,10 @@ public class EconomyConfig {
 
         if (config.shops == null) {
             config.shops = new HashMap<>();
+        }
+
+        if (config.captureReward == null) {
+            config.captureReward = config.battleVictoryReward;
         }
 
         // --- Validate and Clean Config ---

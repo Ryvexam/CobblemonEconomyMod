@@ -132,7 +132,8 @@ public class CobblemonListeners {
                 multiplier = currentPokemonMult;
             }
 
-            BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward.multiply(multiplier);
+            BigDecimal baseReward = CobblemonEconomy.getConfig().captureReward;
+            BigDecimal reward = baseReward.multiply(multiplier);
             
             if (reward.compareTo(BigDecimal.ZERO) > 0) {
                 CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
