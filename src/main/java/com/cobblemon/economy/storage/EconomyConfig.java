@@ -45,6 +45,7 @@ public class EconomyConfig {
         public String nbt;
         public List<String> dropTable;
         public String lootTable; // Minecraft loot table resource location (e.g., "minecraft:chests/simple_dungeon")
+        public Map<String, String> components;
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
@@ -53,8 +54,10 @@ public class EconomyConfig {
             this.nbt = null;
             this.dropTable = null;
             this.lootTable = null;
+            this.components = null;
         }
     }
+
 
     public static EconomyConfig load(File configFile) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
