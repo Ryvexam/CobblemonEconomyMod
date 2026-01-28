@@ -108,6 +108,12 @@ public class EconomyConfig {
         boolean modified = false;
 
         if (isNewConfig) {
+            config.captureMilestones.put("10", new BigDecimal(300));
+            config.captureMilestones.put("50", new BigDecimal(700));
+            config.captureMilestones.put("100", new BigDecimal(1500));
+            config.captureMilestones.put("200", new BigDecimal(3000));
+            config.captureMilestones.put("300", new BigDecimal(6000));
+
             // 1. General Shop
             ShopDefinition defaultPoke = new ShopDefinition();
             defaultPoke.title = "GENERAL SHOP";
