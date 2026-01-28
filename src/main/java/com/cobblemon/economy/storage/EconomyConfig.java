@@ -27,6 +27,8 @@ public class EconomyConfig {
     public BigDecimal legendaryMultiplier = new BigDecimal(10);
     public BigDecimal paradoxMultiplier = new BigDecimal(3);
 
+    public Map<String, BigDecimal> captureMilestones = new HashMap<>();
+
     public Map<String, ShopDefinition> shops = new HashMap<>();
 
     public static class ShopDefinition {
@@ -83,6 +85,10 @@ public class EconomyConfig {
 
         if (config.shops == null) {
             config.shops = new HashMap<>();
+        }
+
+        if (config.captureMilestones == null) {
+            config.captureMilestones = new HashMap<>();
         }
 
         if (config.captureReward == null) {

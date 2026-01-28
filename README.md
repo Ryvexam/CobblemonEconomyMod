@@ -46,6 +46,7 @@ Global settings:
 - `shinyMultiplier`
 - `legendaryMultiplier`
 - `paradoxMultiplier`
+- `captureMilestones` (map of unique-capture counts to rewards)
 
 Shop definition fields:
 - `title`
@@ -82,7 +83,8 @@ Example shop:
         { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
       ]
     }
-  }
+  },
+  "captureMilestones": { "10": 1000, "50": 5000, "100": 15000, "200": 40000, "300": 80000 }
 }
 ```
 
