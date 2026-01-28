@@ -247,6 +247,7 @@ public class EconomyConfig {
             battleRewards.items.add(new ShopItemDefinition("cobblemon:life_orb", "Life Orb", 200));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Assault Vest", 150));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Focus Sash", 100));
+            battleRewards.items.add(new ShopItemDefinition("academy:booster_pack[academy:booster_pack=\"base\"]", "Booster Pack (Base)", 100));
             battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
             ShopItemDefinition abilityPatch = new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000);
             abilityPatch.buyLimit = 1;
