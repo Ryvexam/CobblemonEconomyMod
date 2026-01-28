@@ -53,6 +53,7 @@ public class ShopGui {
 
         void resolve() {
             Random rand = new Random();
+            String normalizedId = normalizeItemId(originalId);
             if (originalId.contains(":*")) {
                 String namespace = originalId.split(":")[0];
                 List<Item> candidates = BuiltInRegistries.ITEM.stream()
@@ -76,7 +77,7 @@ public class ShopGui {
                 // Try to parse using ItemStringReader to support components [foo=bar]
                 try {
                     // Check if ID contains '[' indicating component syntax
-                    if (originalId.contains("[")) {
+                    if (normalizedId.contains("[")) {
                         var registries = CobblemonEconomy.getGameServer().registryAccess();
                         
                         // Use Reflection with fallback for Intermediary names (Production environment)
@@ -108,7 +109,7 @@ public class ShopGui {
                         } catch (NoSuchMethodException e) {
                             parseMethod = argTypeClass.getMethod("method_9776", com.mojang.brigadier.StringReader.class); // Intermediary
                         }
-                        Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(originalId));
+                        Object argumentInstance = parseMethod.invoke(argTypeInstance, new com.mojang.brigadier.StringReader(normalizedId));
                         
                         Class<?> argumentClass;
                         try {
@@ -128,12 +129,12 @@ public class ShopGui {
                         this.item = this.templateStack.getItem();
                     } else {
                         // Standard lookup
-                        this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId));
+                        this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(normalizedId));
                         this.templateStack = new ItemStack(this.item);
                     }
                 } catch (Exception e) {
                     CobblemonEconomy.LOGGER.error("Failed to parse item ID: " + originalId, e);
-                    this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(originalId.split("\\[")[0])); // Fallback to base item
+                    this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(normalizedId.split("\\[")[0])); // Fallback to base item
                     this.templateStack = new ItemStack(this.item);
                 }
 
@@ -141,6 +142,19 @@ public class ShopGui {
                 this.price = definition.price;
             }
         }
+    }
+
+    private static String normalizeItemId(String itemId) {
+        if (itemId == null || itemId.isEmpty()) {
+            return itemId;
+        }
+        return itemId
+                .replace('\u00AB', '"')
+                .replace('\u00BB', '"')
+                .replace('\u201C', '"')
+                .replace('\u201D', '"')
+                .replace('\u201E', '"')
+                .replace('\u201F', '"');
     }
 
     private static class ResolvedShopSession {
