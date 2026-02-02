@@ -7,11 +7,13 @@ Cobblemon Economy is a server-focused economy and shop system for Cobblemon on F
 - NPC shopkeepers with GUI buy/sell shops
 - Item definitions support component syntax (enchantments, datapack items)
 - Loot crates via dropTable or Minecraft loot tables
+- **Command execution items** - sell commands instead of items (e.g., crate keys, buffs, shoutouts)
 - Purchase limits per item with optional cooldowns
 - Auto-downloaded shopkeeper skins from server
 - Per-world config and SQLite storage
 - Capture, discovery, and battle rewards with multipliers
-- Optional YAWP and Star Academy integrations
+- Fossil revival rewards for shiny/radiant/legendary/paradox Pokémon
+- Optional YAWP, Star Academy, and Placeholder API integrations
 
 ## Setup
 1. Drop the jar into `mods/`.
@@ -34,11 +36,26 @@ Admin:
 - `/balance <player> <add|remove|set> <amount>`
 - `/pco <player> <add|remove|set> <amount>`
 
+## Placeholders (Placeholder API)
+If `placeholder-api` is installed, Cobblemon Economy exposes balance placeholders for tablists/scoreboards.
+Use the placeholder format required by your tablist plugin (often `%namespace:placeholder%` or `{namespace:placeholder}`).
+
+Available placeholders (recommended namespace: `cobeco`):
+- `cobeco:balance`
+- `cobeco:balance_symbol`
+- `cobeco:pco`
+- `cobeco:pco_symbol`
+
+Alternate namespaces also registered for compatibility:
+- `cobblemon_economy:*`
+- `cobblemon-economy:*`
+
 ## Config overview
 Global settings:
 - `startingBalance`, `startingPco`
 - `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
 - `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`
+- `enableProfiling`, `profilingThresholdMs`
 
 Milestones file:
 - `world/config/cobblemon-economy/milestone.json`
@@ -52,7 +69,10 @@ Shop fields:
 - `title`, `currency`, `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`
 
 Item fields:
-- `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `buyLimit`, `buyCooldownMinutes`
+- `type` - `"item"` (default) or `"command"` for command execution
+- `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `components`, `buyLimit`, `buyCooldownMinutes`
+- `command` - Command to execute for `type: "command"` (use `%player%` placeholder)
+- `displayItem` - Custom display for command items (`material`, `displayname`, `enchantEffect`)
 
 Item limit rules:
 - Missing `buyLimit` or `buyLimit <= 0`: unlimited.
@@ -83,6 +103,22 @@ Item with components (booster example):
   "price": 200,
   "components": {
     "academy:booster_pack": "\"base\""
+  }
+}
+```
+
+**Command execution item** (executes command on purchase):
+```json
+{
+  "type": "command",
+  "command": "crate key give vote 1 %player%",
+  "price": 100,
+  "buyLimit": 1,
+  "buyCooldownMinutes": 1440,
+  "displayItem": {
+    "material": "supplementaries:key",
+    "displayname": "Vote Crate Key",
+    "enchantEffect": true
   }
 }
 ```

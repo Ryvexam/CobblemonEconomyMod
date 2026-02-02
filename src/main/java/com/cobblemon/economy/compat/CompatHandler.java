@@ -15,6 +15,12 @@ public class CompatHandler {
                 System.err.println("[CobblemonEconomy] Failed to register YAWP integration: " + e.getMessage());
             }
         }
+
+        try {
+            com.cobblemon.economy.compat.placeholder.PlaceholderApiIntegration.register();
+        } catch (Exception e) {
+            System.err.println("[CobblemonEconomy] Failed to register Placeholder API integration: " + e.getMessage());
+        }
     }
 
     /**

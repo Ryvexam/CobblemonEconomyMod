@@ -2,6 +2,7 @@ package com.cobblemon.economy.storage;
 
 import com.cobblemon.economy.api.EconomyEvents;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.util.PerformanceProfiler;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -84,6 +85,7 @@ public class EconomyManager {
     }
 
     public int incrementUniqueCapture(UUID uuid) {
+        long profileStart = PerformanceProfiler.start();
         String selectSql = "SELECT count FROM capture_counts WHERE uuid = ?";
         String insertSql = "INSERT INTO capture_counts(uuid, count) VALUES(?, ?)";
         String updateSql = "UPDATE capture_counts SET count = ? WHERE uuid = ?";
@@ -111,10 +113,12 @@ public class EconomyManager {
                     updateStmt.executeUpdate();
                 }
             }
+            PerformanceProfiler.end("db_increment_capture", profileStart, PerformanceProfiler.format("uuid", uuid));
             return newCount;
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to update capture count for " + uuid, e);
         }
+        PerformanceProfiler.end("db_increment_capture", profileStart, PerformanceProfiler.format("uuid", uuid));
         return current;
     }
 
@@ -172,6 +176,7 @@ public class EconomyManager {
     }
 
     public PurchaseLimitStatus getPurchaseLimitStatus(UUID uuid, String shopId, String itemId, Integer limit, Integer cooldownMinutes) {
+        long profileStart = PerformanceProfiler.start();
         if (limit == null || limit <= 0) {
             return new PurchaseLimitStatus(false, -1, 0);
         }
@@ -228,10 +233,16 @@ public class EconomyManager {
 
         long resetAt = windowMs > 0 ? windowStart + windowMs : 0;
         int remaining = Math.max(0, limit - count);
-        return new PurchaseLimitStatus(true, remaining, resetAt);
+        PurchaseLimitStatus status = new PurchaseLimitStatus(true, remaining, resetAt);
+        PerformanceProfiler.end("db_purchase_limit_status", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("item", itemId));
+        return status;
     }
 
     public boolean consumePurchaseLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
+        long profileStart = PerformanceProfiler.start();
         if (limit == null || limit <= 0) {
             return true;
         }
@@ -264,6 +275,12 @@ public class EconomyManager {
             }
 
             if (count + quantity > limit) {
+                PerformanceProfiler.end("db_purchase_limit_consume", profileStart,
+                    PerformanceProfiler.format("uuid", uuid) +
+                        ", " + PerformanceProfiler.format("shop", shopId) +
+                        ", " + PerformanceProfiler.format("item", itemId) +
+                        ", " + PerformanceProfiler.format("qty", quantity) +
+                        ", " + PerformanceProfiler.format("result", "denied"));
                 return false;
             }
 
@@ -288,11 +305,23 @@ public class EconomyManager {
                 }
             }
 
+            PerformanceProfiler.end("db_purchase_limit_consume", profileStart,
+                PerformanceProfiler.format("uuid", uuid) +
+                    ", " + PerformanceProfiler.format("shop", shopId) +
+                    ", " + PerformanceProfiler.format("item", itemId) +
+                    ", " + PerformanceProfiler.format("qty", quantity) +
+                    ", " + PerformanceProfiler.format("result", "ok"));
             return true;
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to update purchase limit for " + uuid, e);
         }
 
+        PerformanceProfiler.end("db_purchase_limit_consume", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("item", itemId) +
+                ", " + PerformanceProfiler.format("qty", quantity) +
+                ", " + PerformanceProfiler.format("result", "error"));
         return false;
     }
 
@@ -348,17 +377,25 @@ public class EconomyManager {
     }
 
     private BigDecimal getCurrency(UUID uuid, String column, BigDecimal defaultValue) {
+        long profileStart = PerformanceProfiler.start();
         String sql = "SELECT " + column + " FROM balances WHERE uuid = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, uuid.toString());
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
+                PerformanceProfiler.end("db_get_currency", profileStart,
+                    PerformanceProfiler.format("uuid", uuid) +
+                        ", " + PerformanceProfiler.format("column", column));
                 return new BigDecimal(rs.getString(column));
             }
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to get " + column + " for " + uuid, e);
         }
+        PerformanceProfiler.end("db_get_currency", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("column", column) +
+                ", " + PerformanceProfiler.format("result", "default"));
         return defaultValue;
     }
 
@@ -381,6 +418,7 @@ public class EconomyManager {
     }
 
     private void updateCurrency(UUID uuid, String column, BigDecimal amount) {
+        long profileStart = PerformanceProfiler.start();
         ensurePlayerExists(uuid);
         String sql = "UPDATE balances SET " + column + " = ? WHERE uuid = ?";
         try (Connection conn = connect();
@@ -392,6 +430,9 @@ public class EconomyManager {
         } catch (SQLException e) {
             CobblemonEconomy.LOGGER.error("Failed to update " + column + " for " + uuid, e);
         }
+        PerformanceProfiler.end("db_update_currency", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("column", column));
     }
 
     public void addBalance(UUID uuid, BigDecimal amount) {

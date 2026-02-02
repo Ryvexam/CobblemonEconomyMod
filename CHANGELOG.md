@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.15] - 2026-02-01
+
+### Added
+- **Command Execution Items:** New item type that executes commands instead of giving items.
+  - Use `type: "command"` in shop item definitions.
+  - `command` field supports `%player%` placeholder (replaced with buyer's username).
+  - Commands execute with OP permission level 4.
+  - `displayItem` configuration for custom visual appearance:
+    - `material` - Item ID to display (e.g., "supplementaries:key")
+    - `displayname` - Custom name shown in shop GUI
+    - `enchantEffect` - Boolean to add enchantment glint
+  - Supports all existing features: buy limits, cooldowns, both currencies.
+  - Cannot be sold back to shops (virtual items).
+
+### Changed
+- **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.
+- **Config Format:** Generated configs now show `type` field for all items, making the format self-documenting.
+
+### Fixed
+- **Capture Rewards for Shiny/Radiant:** Fixed potential issue where capture multipliers could be null in malformed configs.
+  - Added validation to ensure `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are never null.
+  - Added debug logging to help diagnose capture reward issues.
+  - Added null check for species labels to prevent NPE.
+
+## [0.0.16] - 2026-02-01
+
+### Added
+- **Fossil Revival Rewards:** Shiny, radiant, legendary, and paradox Pokémon revived from fossils now give rewards!
+  - Uses same reward system as captures (base reward × multipliers).
+  - Special messages for shiny/radiant/legendary/paradox fossil revivals.
+  - Added new translation keys for fossil events in both English and French.
+
+## [0.0.14] - 2026-01-31
+
+### Added
+- **Placeholder API integration:** Exposes player balance and PCO placeholders for tablists/scoreboards (multiple namespaces for compatibility).
+- **Performance profiling:** Optional timing logs for shop rendering, purchases, and database operations.
+
 ## [0.0.13] - 2026-01-28
 
 ### Added
