@@ -25,8 +25,12 @@ public class EconomyConfig {
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
 
     public BigDecimal shinyMultiplier = new BigDecimal(5);
+    public BigDecimal radiantMultiplier = new BigDecimal(6);
     public BigDecimal legendaryMultiplier = new BigDecimal(10);
     public BigDecimal paradoxMultiplier = new BigDecimal(3);
+
+    public boolean enableProfiling = false;
+    public int profilingThresholdMs = 5;
 
     public transient Map<String, BigDecimal> captureMilestones = new HashMap<>();
 
@@ -42,7 +46,14 @@ public class EconomyConfig {
         public List<ShopItemDefinition> items = new ArrayList<>();
     }
 
+    public static class DisplayItemDefinition {
+        public String material;
+        public String displayname;
+        public Boolean enchantEffect = false;
+    }
+
     public static class ShopItemDefinition {
+        public String type = "item"; // "item" or "command"
         public String id;
         public String name;
         public int price;
@@ -52,6 +63,8 @@ public class EconomyConfig {
         public Map<String, String> components;
         public Integer buyLimit;
         public Integer buyCooldownMinutes;
+        public String command; // Command to execute when type is "command"
+        public DisplayItemDefinition displayItem; // Custom display item when type is "command"
 
         public ShopItemDefinition(String id, String name, int price) {
             this.id = id;
@@ -63,9 +76,16 @@ public class EconomyConfig {
             this.components = null;
             this.buyLimit = null;
             this.buyCooldownMinutes = null;
+            this.command = null;
+            this.displayItem = null;
         }
     }
 
+    private static ShopItemDefinition createItem(String id, String name, int price) {
+        ShopItemDefinition def = new ShopItemDefinition(id, name, price);
+        def.type = "item";
+        return def;
+    }
 
     public static EconomyConfig load(File configFile) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -94,6 +114,24 @@ public class EconomyConfig {
         if (config.captureReward == null) {
             config.captureReward = config.battleVictoryReward;
         }
+        
+        // Validate multipliers are not null (can happen with malformed configs)
+        if (config.shinyMultiplier == null) {
+            config.shinyMultiplier = new BigDecimal(5);
+        }
+        if (config.radiantMultiplier == null) {
+            config.radiantMultiplier = new BigDecimal(6);
+        }
+        if (config.legendaryMultiplier == null) {
+            config.legendaryMultiplier = new BigDecimal(10);
+        }
+        if (config.paradoxMultiplier == null) {
+            config.paradoxMultiplier = new BigDecimal(3);
+        }
+
+        if (config.profilingThresholdMs <= 0) {
+            config.profilingThresholdMs = 5;
+        }
 
         // --- Validate and Clean Config ---
         for (Map.Entry<String, ShopDefinition> entry : config.shops.entrySet()) {
@@ -113,12 +151,12 @@ public class EconomyConfig {
             defaultPoke.title = "GENERAL SHOP";
             defaultPoke.currency = "POKE";
             defaultPoke.skin = "shopkeeper";
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 600));
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 1200));
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
-            defaultPoke.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 2000));
+            defaultPoke.items.add(createItem("cobblemon:poke_ball", "Poké Ball", 200));
+            defaultPoke.items.add(createItem("cobblemon:great_ball", "Great Ball", 600));
+            defaultPoke.items.add(createItem("cobblemon:ultra_ball", "Ultra Ball", 1200));
+            defaultPoke.items.add(createItem("cobblemon:potion", "Potion", 200));
+            defaultPoke.items.add(createItem("cobblemon:super_potion", "Super Potion", 700));
+            defaultPoke.items.add(createItem("cobblemon:revive", "Revive", 2000));
             config.shops.put("default_poke", defaultPoke);
 
             // 2. Apothecary (Buy Shop)
@@ -128,20 +166,20 @@ public class EconomyConfig {
             apothecary.skin = "shopkeeper";
             apothecary.linkedShop = "apothecary_sell"; // Link to sell shop
             apothecary.linkedShopIcon = "cobblemon:potion"; // Custom icon for the linked shop button
-            apothecary.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 700));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 1500));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:max_potion", "Max Potion", 2500));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:full_restore", "Full Restore", 3000));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 2000));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:max_revive", "Max Revive", 4000));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:antidote", "Antidote", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:paralyze_heal", "Parlyz Heal", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:awakening", "Awakening", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:burn_heal", "Burn Heal", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:ice_heal", "Ice Heal", 200));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:full_heal", "Full Heal", 400));
-            apothecary.items.add(new ShopItemDefinition("cobblemon:escape_rope", "Escape Rope", 300));
+            apothecary.items.add(createItem("cobblemon:potion", "Potion", 200));
+            apothecary.items.add(createItem("cobblemon:super_potion", "Super Potion", 700));
+            apothecary.items.add(createItem("cobblemon:hyper_potion", "Hyper Potion", 1500));
+            apothecary.items.add(createItem("cobblemon:max_potion", "Max Potion", 2500));
+            apothecary.items.add(createItem("cobblemon:full_restore", "Full Restore", 3000));
+            apothecary.items.add(createItem("cobblemon:revive", "Revive", 2000));
+            apothecary.items.add(createItem("cobblemon:max_revive", "Max Revive", 4000));
+            apothecary.items.add(createItem("cobblemon:antidote", "Antidote", 200));
+            apothecary.items.add(createItem("cobblemon:paralyze_heal", "Parlyz Heal", 200));
+            apothecary.items.add(createItem("cobblemon:awakening", "Awakening", 200));
+            apothecary.items.add(createItem("cobblemon:burn_heal", "Burn Heal", 200));
+            apothecary.items.add(createItem("cobblemon:ice_heal", "Ice Heal", 200));
+            apothecary.items.add(createItem("cobblemon:full_heal", "Full Heal", 400));
+            apothecary.items.add(createItem("cobblemon:escape_rope", "Escape Rope", 300));
             config.shops.put("apothecary", apothecary);
 
             // 2b. Apothecary Sell Shop (Linked to Apothecary)
@@ -152,13 +190,13 @@ public class EconomyConfig {
             apothecary_sell.skin = "shopkeeper";
             apothecary_sell.linkedShop = "apothecary"; // Link back to buy shop
             apothecary_sell.linkedShopIcon = "cobblemon:super_potion"; // Custom icon for the linked shop button
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:potion", "Potion", 100));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:super_potion", "Super Potion", 350));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:hyper_potion", "Hyper Potion", 750));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:max_potion", "Max Potion", 1250));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:full_restore", "Full Restore", 1500));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:revive", "Revive", 1000));
-            apothecary_sell.items.add(new ShopItemDefinition("cobblemon:max_revive", "Max Revive", 2000));
+            apothecary_sell.items.add(createItem("cobblemon:potion", "Potion", 100));
+            apothecary_sell.items.add(createItem("cobblemon:super_potion", "Super Potion", 350));
+            apothecary_sell.items.add(createItem("cobblemon:hyper_potion", "Hyper Potion", 750));
+            apothecary_sell.items.add(createItem("cobblemon:max_potion", "Max Potion", 1250));
+            apothecary_sell.items.add(createItem("cobblemon:full_restore", "Full Restore", 1500));
+            apothecary_sell.items.add(createItem("cobblemon:revive", "Revive", 1000));
+            apothecary_sell.items.add(createItem("cobblemon:max_revive", "Max Revive", 2000));
             config.shops.put("apothecary_sell", apothecary_sell);
 
             // 3. Ball Emporium
@@ -166,28 +204,28 @@ public class EconomyConfig {
             ballShop.title = "BALL EMPORIUM";
             ballShop.currency = "POKE";
             ballShop.skin = "shopkeeper";
-            ballShop.items.add(new ShopItemDefinition("cobblemon:poke_ball", "Poké Ball", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:great_ball", "Great Ball", 600));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ultra_ball", "Ultra Ball", 1200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:premier_ball", "Premier Ball", 200));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:heal_ball", "Heal Ball", 300));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:net_ball", "Net Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:nest_ball", "Nest Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dive_ball", "Dive Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:dusk_ball", "Dusk Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:timer_ball", "Timer Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:quick_ball", "Quick Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:repeat_ball", "Repeat Ball", 1000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:luxury_ball", "Luxury Ball", 3000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_poke_ball", "Ancient Poké Ball", 500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_great_ball", "Ancient Great Ball", 800));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_ultra_ball", "Ancient Ultra Ball", 1500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_heavy_ball", "Ancient Heavy Ball", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_leaden_ball", "Ancient Leaden Ball", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_gigaton_ball", "Ancient Gigaton Ball", 4000));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_feather_ball", "Ancient Feather Ball", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_wing_ball", "Ancient Wing Ball", 3500));
-            ballShop.items.add(new ShopItemDefinition("cobblemon:ancient_jet_ball", "Ancient Jet Ball", 4000));
+            ballShop.items.add(createItem("cobblemon:poke_ball", "Poké Ball", 200));
+            ballShop.items.add(createItem("cobblemon:great_ball", "Great Ball", 600));
+            ballShop.items.add(createItem("cobblemon:ultra_ball", "Ultra Ball", 1200));
+            ballShop.items.add(createItem("cobblemon:premier_ball", "Premier Ball", 200));
+            ballShop.items.add(createItem("cobblemon:heal_ball", "Heal Ball", 300));
+            ballShop.items.add(createItem("cobblemon:net_ball", "Net Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:nest_ball", "Nest Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:dive_ball", "Dive Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:dusk_ball", "Dusk Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:timer_ball", "Timer Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:quick_ball", "Quick Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:repeat_ball", "Repeat Ball", 1000));
+            ballShop.items.add(createItem("cobblemon:luxury_ball", "Luxury Ball", 3000));
+            ballShop.items.add(createItem("cobblemon:ancient_poke_ball", "Ancient Poké Ball", 500));
+            ballShop.items.add(createItem("cobblemon:ancient_great_ball", "Ancient Great Ball", 800));
+            ballShop.items.add(createItem("cobblemon:ancient_ultra_ball", "Ancient Ultra Ball", 1500));
+            ballShop.items.add(createItem("cobblemon:ancient_heavy_ball", "Ancient Heavy Ball", 3500));
+            ballShop.items.add(createItem("cobblemon:ancient_leaden_ball", "Ancient Leaden Ball", 3500));
+            ballShop.items.add(createItem("cobblemon:ancient_gigaton_ball", "Ancient Gigaton Ball", 4000));
+            ballShop.items.add(createItem("cobblemon:ancient_feather_ball", "Ancient Feather Ball", 3500));
+            ballShop.items.add(createItem("cobblemon:ancient_wing_ball", "Ancient Wing Ball", 3500));
+            ballShop.items.add(createItem("cobblemon:ancient_jet_ball", "Ancient Jet Ball", 4000));
             config.shops.put("ball_emporium", ballShop);
 
             // 4. Jeweler (Sell)
@@ -197,28 +235,28 @@ public class EconomyConfig {
             jeweler.isSellShop = true;
             jeweler.skin = "shopkeeper";
             jeweler.linkedShop = "jeweler_buy"; // Link to buy shop
-            jeweler.items.add(new ShopItemDefinition("minecraft:coal", "Coal", 2));
-            jeweler.items.add(new ShopItemDefinition("minecraft:iron_ingot", "Iron Ingot", 10));
-            jeweler.items.add(new ShopItemDefinition("minecraft:copper_ingot", "Copper Ingot", 5));
-            jeweler.items.add(new ShopItemDefinition("minecraft:gold_ingot", "Gold Ingot", 25));
-            jeweler.items.add(new ShopItemDefinition("minecraft:lapis_lazuli", "Lapis Lazuli", 15));
-            jeweler.items.add(new ShopItemDefinition("minecraft:redstone", "Redstone", 5));
-            jeweler.items.add(new ShopItemDefinition("minecraft:diamond", "Diamond", 150));
-            jeweler.items.add(new ShopItemDefinition("minecraft:emerald", "Emerald", 100));
-            jeweler.items.add(new ShopItemDefinition("minecraft:amethyst_shard", "Amethyst Shard", 20));
-            jeweler.items.add(new ShopItemDefinition("minecraft:netherite_scrap", "Netherite Scrap", 500));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:fire_stone", "Fire Stone", 500));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:water_stone", "Water Stone", 500));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:thunder_stone", "Thunder Stone", 500));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:leaf_stone", "Leaf Stone", 500));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:moon_stone", "Moon Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:sun_stone", "Sun Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:shiny_stone", "Shiny Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:dusk_stone", "Dusk Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:dawn_stone", "Dawn Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:ice_stone", "Ice Stone", 750));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 300));
-            jeweler.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 200));
+            jeweler.items.add(createItem("minecraft:coal", "Coal", 2));
+            jeweler.items.add(createItem("minecraft:iron_ingot", "Iron Ingot", 10));
+            jeweler.items.add(createItem("minecraft:copper_ingot", "Copper Ingot", 5));
+            jeweler.items.add(createItem("minecraft:gold_ingot", "Gold Ingot", 25));
+            jeweler.items.add(createItem("minecraft:lapis_lazuli", "Lapis Lazuli", 15));
+            jeweler.items.add(createItem("minecraft:redstone", "Redstone", 5));
+            jeweler.items.add(createItem("minecraft:diamond", "Diamond", 150));
+            jeweler.items.add(createItem("minecraft:emerald", "Emerald", 100));
+            jeweler.items.add(createItem("minecraft:amethyst_shard", "Amethyst Shard", 20));
+            jeweler.items.add(createItem("minecraft:netherite_scrap", "Netherite Scrap", 500));
+            jeweler.items.add(createItem("cobblemon:fire_stone", "Fire Stone", 500));
+            jeweler.items.add(createItem("cobblemon:water_stone", "Water Stone", 500));
+            jeweler.items.add(createItem("cobblemon:thunder_stone", "Thunder Stone", 500));
+            jeweler.items.add(createItem("cobblemon:leaf_stone", "Leaf Stone", 500));
+            jeweler.items.add(createItem("cobblemon:moon_stone", "Moon Stone", 750));
+            jeweler.items.add(createItem("cobblemon:sun_stone", "Sun Stone", 750));
+            jeweler.items.add(createItem("cobblemon:shiny_stone", "Shiny Stone", 750));
+            jeweler.items.add(createItem("cobblemon:dusk_stone", "Dusk Stone", 750));
+            jeweler.items.add(createItem("cobblemon:dawn_stone", "Dawn Stone", 750));
+            jeweler.items.add(createItem("cobblemon:ice_stone", "Ice Stone", 750));
+            jeweler.items.add(createItem("cobblemon:oval_stone", "Oval Stone", 300));
+            jeweler.items.add(createItem("cobblemon:everstone", "Everstone", 200));
             config.shops.put("jeweler", jeweler);
 
             // 4b. Jeweler Buy Shop (Linked to Jeweler)
@@ -227,18 +265,18 @@ public class EconomyConfig {
             jeweler_buy.currency = "POKE";
             jeweler_buy.skin = "shopkeeper";
             jeweler_buy.linkedShop = "jeweler"; // Link back to sell shop
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:fire_stone", "Fire Stone", 1000));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:water_stone", "Water Stone", 1000));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:thunder_stone", "Thunder Stone", 1000));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:leaf_stone", "Leaf Stone", 1000));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:moon_stone", "Moon Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:sun_stone", "Sun Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:shiny_stone", "Shiny Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:dusk_stone", "Dusk Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:dawn_stone", "Dawn Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:ice_stone", "Ice Stone", 1500));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:oval_stone", "Oval Stone", 600));
-            jeweler_buy.items.add(new ShopItemDefinition("cobblemon:everstone", "Everstone", 400));
+            jeweler_buy.items.add(createItem("cobblemon:fire_stone", "Fire Stone", 1000));
+            jeweler_buy.items.add(createItem("cobblemon:water_stone", "Water Stone", 1000));
+            jeweler_buy.items.add(createItem("cobblemon:thunder_stone", "Thunder Stone", 1000));
+            jeweler_buy.items.add(createItem("cobblemon:leaf_stone", "Leaf Stone", 1000));
+            jeweler_buy.items.add(createItem("cobblemon:moon_stone", "Moon Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:sun_stone", "Sun Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:shiny_stone", "Shiny Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:dusk_stone", "Dusk Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:dawn_stone", "Dawn Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:ice_stone", "Ice Stone", 1500));
+            jeweler_buy.items.add(createItem("cobblemon:oval_stone", "Oval Stone", 600));
+            jeweler_buy.items.add(createItem("cobblemon:everstone", "Everstone", 400));
             config.shops.put("jeweler_buy", jeweler_buy);
 
             // 5. Battle Rewards
@@ -247,26 +285,30 @@ public class EconomyConfig {
             battleRewards.currency = "PCO";
             battleRewards.skin = "shopkeeper";
             ShopItemDefinition rareCandy = new ShopItemDefinition("cobblemon:rare_candy", "Rare Candy", 50);
+            rareCandy.type = "item";
             rareCandy.buyLimit = 3;
             rareCandy.buyCooldownMinutes = 1200;
             battleRewards.items.add(rareCandy);
 
             ShopItemDefinition masterBall = new ShopItemDefinition("cobblemon:master_ball", "Master Ball", 500);
+            masterBall.type = "item";
             masterBall.buyLimit = 1;
             masterBall.buyCooldownMinutes = 1440;
             battleRewards.items.add(masterBall);
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_band", "Choice Band", 150));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_specs", "Choice Specs", 150));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:choice_scarf", "Choice Scarf", 150));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:life_orb", "Life Orb", 200));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:assault_vest", "Assault Vest", 150));
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:focus_sash", "Focus Sash", 100));
+            battleRewards.items.add(createItem("cobblemon:choice_band", "Choice Band", 150));
+            battleRewards.items.add(createItem("cobblemon:choice_specs", "Choice Specs", 150));
+            battleRewards.items.add(createItem("cobblemon:choice_scarf", "Choice Scarf", 150));
+            battleRewards.items.add(createItem("cobblemon:life_orb", "Life Orb", 200));
+            battleRewards.items.add(createItem("cobblemon:assault_vest", "Assault Vest", 150));
+            battleRewards.items.add(createItem("cobblemon:focus_sash", "Focus Sash", 100));
             ShopItemDefinition boosterPack = new ShopItemDefinition("academy:booster_pack", "Oui", 200);
+            boosterPack.type = "item";
             boosterPack.components = new HashMap<>();
             boosterPack.components.put("academy:booster_pack", "\"base\"");
             battleRewards.items.add(boosterPack);
-            battleRewards.items.add(new ShopItemDefinition("cobblemon:ability_capsule", "Ability Capsule", 250));
+            battleRewards.items.add(createItem("cobblemon:ability_capsule", "Ability Capsule", 250));
             ShopItemDefinition abilityPatch = new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000);
+            abilityPatch.type = "item";
             abilityPatch.buyLimit = 1;
             abilityPatch.buyCooldownMinutes = 720;
             battleRewards.items.add(abilityPatch);
@@ -277,13 +319,13 @@ public class EconomyConfig {
             berryShop.title = "BERRY GARDENER";
             berryShop.currency = "POKE";
             berryShop.skin = "shopkeeper";
-            berryShop.items.add(new ShopItemDefinition("cobblemon:oran_berry", "Oran Berry", 50));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:sitrus_berry", "Sitrus Berry", 150));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:lum_berry", "Lum Berry", 200));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:leppa_berry", "Leppa Berry", 300));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:cheri_berry", "Cheri Berry", 100));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:pecha_berry", "Pecha Berry", 100));
-            berryShop.items.add(new ShopItemDefinition("cobblemon:rawst_berry", "Rawst Berry", 100));
+            berryShop.items.add(createItem("cobblemon:oran_berry", "Oran Berry", 50));
+            berryShop.items.add(createItem("cobblemon:sitrus_berry", "Sitrus Berry", 150));
+            berryShop.items.add(createItem("cobblemon:lum_berry", "Lum Berry", 200));
+            berryShop.items.add(createItem("cobblemon:leppa_berry", "Leppa Berry", 300));
+            berryShop.items.add(createItem("cobblemon:cheri_berry", "Cheri Berry", 100));
+            berryShop.items.add(createItem("cobblemon:pecha_berry", "Pecha Berry", 100));
+            berryShop.items.add(createItem("cobblemon:rawst_berry", "Rawst Berry", 100));
             config.shops.put("berry_gardener", berryShop);
 
             // 7. Surprise Shop
@@ -291,10 +333,10 @@ public class EconomyConfig {
             surpriseShop.title = "SURPRISE SHOP";
             surpriseShop.currency = "POKE";
             surpriseShop.skin = "shopkeeper";
-            surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
-            surpriseShop.items.add(new ShopItemDefinition("minecraft:*", "Random Minecraft Item", 500));
-            surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
-            surpriseShop.items.add(new ShopItemDefinition("cobblemon:*", "Random Cobblemon Item", 1000));
+            surpriseShop.items.add(createItem("minecraft:*", "Random Minecraft Item", 500));
+            surpriseShop.items.add(createItem("minecraft:*", "Random Minecraft Item", 500));
+            surpriseShop.items.add(createItem("cobblemon:*", "Random Cobblemon Item", 1000));
+            surpriseShop.items.add(createItem("cobblemon:*", "Random Cobblemon Item", 1000));
             config.shops.put("surprise_shop", surpriseShop);
 
             // 8. Black Market
@@ -303,6 +345,7 @@ public class EconomyConfig {
             blackMarket.currency = "PCO";
             blackMarket.skin = "shopkeeper";
             ShopItemDefinition lootBox = new ShopItemDefinition("minecraft:black_shulker_box", "Suspicious Crate", 100);
+            lootBox.type = "item";
             lootBox.buyLimit = 3;
             lootBox.buyCooldownMinutes = 1200;
             lootBox.dropTable = new ArrayList<>();
@@ -313,6 +356,26 @@ public class EconomyConfig {
             lootBox.dropTable.add("minecraft:diamond_block");
             blackMarket.items.add(lootBox);
             config.shops.put("black_market", blackMarket);
+
+            // 9. Example: Command Shop (commented out by default)
+            // This demonstrates how to create items that execute commands instead of giving items
+            /*
+            ShopDefinition commandShop = new ShopDefinition();
+            commandShop.title = "COMMAND SHOP";
+            commandShop.currency = "PCO";
+            commandShop.skin = "shopkeeper";
+            ShopItemDefinition voteKey = new ShopItemDefinition("minecraft:air", "Vote Key", 50);
+            voteKey.type = "command";
+            voteKey.command = "crate key give vote 1 %player%";
+            voteKey.displayItem = new DisplayItemDefinition();
+            voteKey.displayItem.material = "supplementaries:key";
+            voteKey.displayItem.displayname = "Vote Key";
+            voteKey.displayItem.enchantEffect = true;
+            voteKey.buyLimit = 1;
+            voteKey.buyCooldownMinutes = 1440;
+            commandShop.items.add(voteKey);
+            config.shops.put("command_shop", commandShop);
+            */
 
             modified = true;
         }

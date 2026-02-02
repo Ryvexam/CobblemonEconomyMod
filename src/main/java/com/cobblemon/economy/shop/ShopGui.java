@@ -37,6 +37,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
 import com.cobblemon.economy.storage.EconomyManager;
+import com.cobblemon.economy.util.PerformanceProfiler;
 
 public class ShopGui {
     private static final int ITEMS_PER_PAGE = 36; // Slots 9 to 44
@@ -51,18 +52,26 @@ public class ShopGui {
         final String originalId;
         final Map<String, String> components;
         final EconomyConfig.ShopItemDefinition definition;
+        final boolean isCommand;
 
         ResolvedItem(EconomyConfig.ShopItemDefinition def, HolderLookup.Provider lookupProvider) {
             this.definition = def;
             this.originalId = def.id;
             this.components = def.components;
             this.price = def.price;
-            this.name = def.name; 
+            this.name = def.name;
+            this.isCommand = "command".equals(def.type);
             resolve(lookupProvider);
         }
 
         public void resolve(HolderLookup.Provider lookupProvider) {
             Random rand = new Random();
+
+            // Handle command type items with custom display
+            if (isCommand) {
+                resolveCommandItem(lookupProvider);
+                return;
+            }
 
             // 1. Resolve the Item ID
             String normalizedId = normalizeItemId(originalId);
@@ -105,6 +114,34 @@ public class ShopGui {
                     }
                 }
                 applyComponents(this.templateStack, jsonComponents, lookupProvider);
+            }
+        }
+
+        private void resolveCommandItem(HolderLookup.Provider lookupProvider) {
+            // For command items, use displayItem config or fallback to default
+            if (definition.displayItem != null && definition.displayItem.material != null) {
+                ResourceLocation loc = ResourceLocation.parse(definition.displayItem.material);
+                this.item = BuiltInRegistries.ITEM.get(loc);
+                if (this.item == Items.AIR) {
+                    CobblemonEconomy.LOGGER.error("Invalid display item material: {}", definition.displayItem.material);
+                    this.item = Items.COMMAND_BLOCK;
+                }
+            } else {
+                this.item = Items.COMMAND_BLOCK; // Default icon for command items
+            }
+
+            // Use display name from config if available
+            if (definition.displayItem != null && definition.displayItem.displayname != null) {
+                this.name = definition.displayItem.displayname;
+            } else if (this.name == null || this.name.isEmpty()) {
+                this.name = "Command";
+            }
+
+            this.templateStack = new ItemStack(this.item);
+
+            // Apply enchantment effect if requested
+            if (definition.displayItem != null && Boolean.TRUE.equals(definition.displayItem.enchantEffect)) {
+                this.templateStack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
             }
         }
 
@@ -320,6 +357,7 @@ public class ShopGui {
     }
 
     public static void open(ServerPlayer player, String shopId) {
+        long profileStart = PerformanceProfiler.start();
         CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
         EconomyConfig.ShopDefinition shop = CobblemonEconomy.getConfig().shops.get(shopId);
         if (shop == null) {
@@ -332,9 +370,14 @@ public class ShopGui {
         ACTIVE_SESSIONS.put(player.getUUID(), session);
         
         open(player, shopId, 0);
+        PerformanceProfiler.end("shop_open_prepare", profileStart,
+            PerformanceProfiler.format("player", player.getGameProfile().getName()) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("items", session.resolvedItems.size()));
     }
 
     public static void open(ServerPlayer player, String shopId, int page) {
+        long profileStart = PerformanceProfiler.start();
         ResolvedShopSession session = ACTIVE_SESSIONS.get(player.getUUID());
         if (session == null || !session.shopId.equals(shopId)) {
             open(player, shopId);
@@ -539,9 +582,15 @@ public class ShopGui {
         }
 
         gui.open();
+        PerformanceProfiler.end("shop_open_render", profileStart,
+            PerformanceProfiler.format("player", player.getGameProfile().getName()) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("page", currentPage + 1) +
+                ", " + PerformanceProfiler.format("items", totalItems));
     }
 
     private static void handlePurchase(ServerPlayer player, ResolvedItem resolved, boolean isPco, String shopId) {
+        long profileStart = PerformanceProfiler.start();
         EconomyManager economyManager = CobblemonEconomy.getEconomyManager();
         EconomyConfig.ShopItemDefinition definition = resolved.definition;
 
@@ -614,6 +663,37 @@ public class ShopGui {
                     return;
                 }
             }
+
+            // Handle command type items
+            if (resolved.isCommand) {
+                if (definition.command != null && !definition.command.isEmpty()) {
+                    for (int i = 0; i < resolved.quantity; i++) {
+                        String cmd = definition.command.replace("%player%", player.getGameProfile().getName());
+                        // Execute command as OP using server command source
+                        player.server.getCommands().performPrefixedCommand(
+                            player.server.createCommandSourceStack()
+                                .withPermission(4) // OP permission level
+                                .withSuppressedOutput(),
+                            cmd
+                        );
+                    }
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
+                    player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
+                    logTransaction(player, resolved, isPco, false, resolved.quantity, price);
+                    resolved.resolve(player.registryAccess());
+                    return;
+                } else {
+                    player.sendSystemMessage(Component.literal("No command configured for this item").withStyle(ChatFormatting.RED));
+                    // Refund
+                    if (isPco) {
+                        economyManager.addPco(player.getUUID(), price);
+                    } else {
+                        economyManager.addBalance(player.getUUID(), price);
+                    }
+                    return;
+                }
+            }
+
             ItemStack stackToGive;
 
             // Check for Minecraft Loot Table (native loot table system)
@@ -735,6 +815,13 @@ public class ShopGui {
         } else {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.insufficient_balance").withStyle(ChatFormatting.RED));
         }
+
+        PerformanceProfiler.end("shop_purchase", profileStart,
+            PerformanceProfiler.format("player", player.getGameProfile().getName()) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("item", resolved.originalId) +
+                ", " + PerformanceProfiler.format("qty", resolved.quantity) +
+                ", " + PerformanceProfiler.format("currency", isPco ? "PCO" : "POKE"));
     }
 
     private static String formatDuration(long millis) {
@@ -751,6 +838,13 @@ public class ShopGui {
     }
 
     private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll) {
+        long profileStart = PerformanceProfiler.start();
+        // Command items cannot be sold
+        if (resolved.isCommand) {
+            player.sendSystemMessage(Component.literal("This item cannot be sold").withStyle(ChatFormatting.RED));
+            return;
+        }
+
         int totalCount = 0;
 
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
@@ -795,6 +889,13 @@ public class ShopGui {
         
         // Re-resolve the item for the next sale
         resolved.resolve(player.registryAccess());
+
+        PerformanceProfiler.end("shop_sell", profileStart,
+            PerformanceProfiler.format("player", player.getGameProfile().getName()) +
+                ", " + PerformanceProfiler.format("item", resolved.originalId) +
+                ", " + PerformanceProfiler.format("qty", amountToSell) +
+                ", " + PerformanceProfiler.format("currency", isPco ? "PCO" : "POKE") +
+                ", " + PerformanceProfiler.format("sell_all", sellAll));
     }
 
     private static boolean removeItem(ServerPlayer player, ItemStack toRemove) {
