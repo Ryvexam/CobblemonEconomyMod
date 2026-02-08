@@ -3,6 +3,7 @@ package com.cobblemon.economy.storage;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -14,13 +15,18 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class EconomyConfig {
+    @SerializedName(value = "main_currency", alternate = {"mainCurrency"})
+    public String mainCurrency = "cobeco";
     public BigDecimal startingBalance = new BigDecimal(1000);
     public BigDecimal startingPco = new BigDecimal(0);
     public BigDecimal battleVictoryReward = new BigDecimal(100);
     public BigDecimal raidDenVictoryReward = null;
+    public BigDecimal cobbleDollarsToPokedollarsRate = BigDecimal.ONE;
+    public BigDecimal impactorToPokedollarsRate = BigDecimal.ONE;
     public BigDecimal captureReward = null;
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
@@ -116,12 +122,31 @@ public class EconomyConfig {
 
         config.captureMilestones = loadMilestones(gson, milestoneFile);
 
+        if (config.mainCurrency == null || config.mainCurrency.isBlank()) {
+            config.mainCurrency = "cobeco";
+        } else {
+            String normalized = config.mainCurrency.trim().toLowerCase(Locale.ROOT);
+            if (!normalized.equals("cobeco") && !normalized.equals("cobbledollars") && !normalized.equals("impactor")) {
+                CobblemonEconomy.LOGGER.warn("Unknown mainCurrency '{}', defaulting to 'cobeco'", config.mainCurrency);
+                normalized = "cobeco";
+            }
+            config.mainCurrency = normalized;
+        }
+
         if (config.battleVictoryReward == null) {
             config.battleVictoryReward = new BigDecimal(100);
         }
 
         if (config.raidDenVictoryReward == null) {
             config.raidDenVictoryReward = config.battleVictoryReward;
+        }
+
+        if (config.cobbleDollarsToPokedollarsRate == null) {
+            config.cobbleDollarsToPokedollarsRate = BigDecimal.ONE;
+        }
+
+        if (config.impactorToPokedollarsRate == null) {
+            config.impactorToPokedollarsRate = BigDecimal.ONE;
         }
 
         if (config.captureReward == null) {

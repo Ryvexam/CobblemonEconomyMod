@@ -1,9 +1,11 @@
 package com.cobblemon.economy.commands;
 
+import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -41,6 +43,30 @@ public class EconomyCommands {
             .then(Commands.argument("player", EntityArgument.player())
                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
                     .executes(EconomyCommands::payPlayer))));
+
+        dispatcher.register(Commands.literal("convertcobbledollars")
+            .requires(source -> source.getEntity() instanceof ServerPlayer)
+            .then(Commands.literal("all").executes(ctx -> convertCobbleDollars(ctx, true)))
+            .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                .executes(ctx -> convertCobbleDollars(ctx, false))));
+
+        dispatcher.register(Commands.literal("convertcd")
+            .requires(source -> source.getEntity() instanceof ServerPlayer)
+            .then(Commands.literal("all").executes(ctx -> convertCobbleDollars(ctx, true)))
+            .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                .executes(ctx -> convertCobbleDollars(ctx, false))));
+
+        dispatcher.register(Commands.literal("convertimpactor")
+            .requires(source -> source.getEntity() instanceof ServerPlayer)
+            .then(Commands.literal("all").executes(ctx -> convertImpactor(ctx, true)))
+            .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
+                .executes(ctx -> convertImpactor(ctx, false))));
+
+        dispatcher.register(Commands.literal("convertim")
+            .requires(source -> source.getEntity() instanceof ServerPlayer)
+            .then(Commands.literal("all").executes(ctx -> convertImpactor(ctx, true)))
+            .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
+                .executes(ctx -> convertImpactor(ctx, false))));
 
         // Admin commands
         dispatcher.register(Commands.literal("eco")
@@ -192,6 +218,8 @@ public class EconomyCommands {
         source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.bal").withStyle(ChatFormatting.GRAY), false);
         source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.pco").withStyle(ChatFormatting.GRAY), false);
         source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.pay").withStyle(ChatFormatting.GRAY), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.convert").withStyle(ChatFormatting.GRAY), false);
+        source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.convert_impactor").withStyle(ChatFormatting.GRAY), false);
         if (source.hasPermission(2)) {
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.admin_title").withStyle(ChatFormatting.RED), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.reload").withStyle(ChatFormatting.GRAY), false);
@@ -235,6 +263,99 @@ public class EconomyCommands {
             return 1;
         }
         return 0;
+    }
+
+    private static int convertCobbleDollars(CommandContext<CommandSourceStack> context, boolean convertAll) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        if (!CompatHandler.canAccessCobbleDollars(player)) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.unsupported"));
+            return 0;
+        }
+
+        int available = CompatHandler.getCobbleDollars(player);
+        if (available <= 0) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.no_funds"));
+            return 0;
+        }
+
+        int amount = convertAll ? available : IntegerArgumentType.getInteger(context, "amount");
+        if (amount > available) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.insufficient", available));
+            return 0;
+        }
+
+        BigDecimal rate = CobblemonEconomy.getConfig().cobbleDollarsToPokedollarsRate;
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.invalid_rate"));
+            return 0;
+        }
+
+        if (!CompatHandler.spendCobbleDollars(player, amount)) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.insufficient", CompatHandler.getCobbleDollars(player)));
+            return 0;
+        }
+
+        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+        BigDecimal pokedollars = rate.multiply(BigDecimal.valueOf(amount));
+        CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), pokedollars);
+
+        String formattedPokedollars = pokedollars.stripTrailingZeros().toPlainString();
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "cobblemon-economy.command.convert.success",
+                amount,
+                formattedPokedollars
+        ).withStyle(ChatFormatting.GOLD), false);
+        return 1;
+    }
+
+    private static int convertImpactor(CommandContext<CommandSourceStack> context, boolean convertAll) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        if (!CompatHandler.canAccessImpactor(player.getUUID())) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.impactor.unsupported"));
+            return 0;
+        }
+
+        BigDecimal available = CompatHandler.getImpactorBalance(player.getUUID());
+        if (available == null || available.compareTo(BigDecimal.ZERO) <= 0) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.impactor.no_funds"));
+            return 0;
+        }
+
+        BigDecimal amount = convertAll
+                ? available
+                : BigDecimal.valueOf(DoubleArgumentType.getDouble(context, "amount"));
+
+        if (amount.compareTo(available) > 0) {
+            context.getSource().sendFailure(Component.translatable(
+                    "cobblemon-economy.command.convert.impactor.insufficient",
+                    available.stripTrailingZeros().toPlainString()
+            ));
+            return 0;
+        }
+
+        BigDecimal rate = CobblemonEconomy.getConfig().impactorToPokedollarsRate;
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.impactor.invalid_rate"));
+            return 0;
+        }
+
+        if (!CompatHandler.withdrawImpactor(player.getUUID(), amount)) {
+            BigDecimal refreshed = CompatHandler.getImpactorBalance(player.getUUID());
+            String refreshedDisplay = refreshed == null ? "0" : refreshed.stripTrailingZeros().toPlainString();
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.convert.impactor.insufficient", refreshedDisplay));
+            return 0;
+        }
+
+        CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+        BigDecimal pokedollars = amount.multiply(rate);
+        CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), pokedollars);
+
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "cobblemon-economy.command.convert.impactor.success",
+                amount.stripTrailingZeros().toPlainString(),
+                pokedollars.stripTrailingZeros().toPlainString()
+        ).withStyle(ChatFormatting.GOLD), false);
+        return 1;
     }
 
     private static int modifyCurrency(CommandContext<CommandSourceStack> context, String label, String action, boolean isMain) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

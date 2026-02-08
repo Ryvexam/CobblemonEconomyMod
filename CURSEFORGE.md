@@ -26,6 +26,8 @@ Player:
 - `/bal` or `/balance`
 - `/pco`
 - `/pay <player> <amount>`
+- `/convertcobbledollars <amount|all>`
+- `/convertimpactor <amount|all>`
 
 Admin:
 - `/eco reload`
@@ -52,8 +54,10 @@ Alternate namespaces also registered for compatibility:
 
 ## Config overview
 Global settings:
+- `main_currency` (`cobeco`, `cobbledollars`, `impactor`; default `cobeco`)
 - `startingBalance`, `startingPco`
-- `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
+- `battleVictoryReward`, `raidDenVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
+- `cobbleDollarsToPokedollarsRate`, `impactorToPokedollarsRate`
 - `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`
 - `enableProfiling`, `profilingThresholdMs`
 
@@ -134,3 +138,13 @@ Capture milestones example (`milestone.json`):
 
 ## Support
 Discord: https://discord.gg/zxZXcaTHwe
+
+## Integrations
+- Raid Dens: raid win rewards via `RaidEvents.RAID_END`.
+- CobbleDollars: optional conversion command and backend bridge.
+- Impactor: optional conversion command and backend bridge.
+
+Currency backend behavior (`main_currency`):
+- `cobeco`: Cobblemon Economy is authoritative and bridges CobbleDollars/Impactor transactions back into CobEco.
+- `cobbledollars`: CobEco balance operations route to CobbleDollars balance.
+- `impactor`: CobEco balance operations route to Impactor primary currency.
