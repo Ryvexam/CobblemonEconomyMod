@@ -39,12 +39,7 @@ public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, P
 
     @Override
     protected boolean shouldShowName(ShopkeeperEntity entity) {
-        double distanceSqr = this.entityRenderDispatcher.distanceToSqr(entity);
-        // Only show name if closer than 8 blocks (8^2 = 64)
-        if (distanceSqr > 64.0) {
-            return false;
-        }
-        return super.shouldShowName(entity);
+        return false;
     }
 
     @Override

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Quest NPC System:** Added configurable quest NPC behavior on the existing `shopkeeper` entity (no duplicate entity type).
   - NPC role modes: `SHOP` and `QUEST`.
   - New admin tools/commands: `/eco quest list`, `/eco questnpc list`, `/eco questnpc get <id>`.
-  - New quest GUI flow with accept/progress/claim states and dialogue lines.
+  - New quest GUI flow with accept/progress/claim/cancel states and dialogue lines.
 - **Quest Configs:** Added per-world quest files:
   - `quests.json` for quest definitions/objectives/rewards.
   - `quest_npcs.json` for quest NPC definitions (name, skin, dialogue, quest pool, max active).
@@ -18,11 +18,30 @@ All notable changes to this project will be documented in this file.
   - Capture with specific balls.
   - Capture specific species with specific balls.
   - Label-based targets (radiant/paradox/legendary/mythical).
-  - Battle win, raid win, and tower win objectives.
+  - Battle win, raid win, tower win, and fossil-revive objectives.
+  - Themed pools for Safari, Fisherman, Explorer, Duel, Ballistics, and Fossil Curator NPCs.
+- **Quest Rotation & Scheduling:**
+  - Daily board/rotation with capped visible missions (default 4).
+  - Supports shared rotation for all players and configurable rotation windows (`MIDNIGHT` or `HOURS`).
+  - Cooldown/availability can be tied to the next board rotation.
+- **Quest Rules:**
+  - `repeatable`, `cooldownMinutes`, `timeLimitMinutes`, and `requiresCompleted` prerequisite chains.
+  - Paid cancellation flow with confirmation (double right-click) and fee (`1000` by default).
+  - Cancelled/expired quests can be locked until next rotation.
+- **Quest UX/Feedback:**
+  - Time remaining and cooldown remaining displayed in GUI.
+  - Clear success/error messages (accepted, claim ready/not ready, too many active quests, cooldown, locked, prerequisites missing, cancel rules).
 
 ### Changed
 - **Config Split for Shops:** Added `shops.json` support while keeping economy/global settings in `config.json`.
 - **Automatic Migration:** If `shops.json` is missing, shops are loaded from legacy `config.json` and written to `shops.json` automatically.
+- **Quest UI:** Moved to a custom 9x6 board-style layout with focused mission cards and detailed objective wording.
+- **Quest Copy/Localization:** Expanded and polished EN/FR translations for quest statuses, objective details, filters, and system messages.
+
+### Fixed
+- **Duplicate Capture Rewards:** Added capture reward de-duplication guard for duplicate capture callbacks.
+- **NPC Nameplate Visibility:** Fully disabled rendered nameplates to prevent residual text above NPC heads.
+- **Quest Dialogue Spam:** Added throttling and non-spam refresh behavior when the quest GUI reopens.
 
 ### Compatibility
 - **Backward Compatible:** Existing worlds/configs continue to work:

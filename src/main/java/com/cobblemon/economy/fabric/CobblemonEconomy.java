@@ -176,32 +176,28 @@ public class CobblemonEconomy implements ModInitializer {
                     }
                 }
 
-                if (stack.is(Items.ENCHANTED_BOOK)) {
-                    net.minecraft.world.item.component.CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-                    String questNpcId = null;
+                net.minecraft.world.item.component.CustomData questSetterData = stack.get(DataComponents.CUSTOM_DATA);
+                String questNpcId = null;
+                if (questSetterData != null && questSetterData.contains("QuestNpcSetterId")) {
+                    questNpcId = questSetterData.copyTag().getString("QuestNpcSetterId");
+                }
 
-                    if (customData != null && customData.contains("QuestNpcSetterId")) {
-                        questNpcId = customData.copyTag().getString("QuestNpcSetterId");
-                    }
-
-                    if (questNpcId != null) {
-                        QuestNpcConfig.QuestNpcDefinition npcDefinition = questNpcConfig != null ? questNpcConfig.questNpcs.get(questNpcId) : null;
-                        if (npcDefinition != null) {
-                            shopkeeper.setNpcRole("QUEST");
-                            shopkeeper.setQuestNpcId(questNpcId);
-                            if (npcDefinition.skin != null && !npcDefinition.skin.isBlank()) {
-                                shopkeeper.setSkinName(npcDefinition.skin);
-                            }
-                            if (npcDefinition.displayName != null && !npcDefinition.displayName.isBlank()) {
-                                shopkeeper.setCustomName(Component.literal(npcDefinition.displayName).withStyle(ChatFormatting.YELLOW));
-                            }
-                            player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.quest_npc_set", questNpcId).withStyle(ChatFormatting.GREEN));
-                            if (!player.getAbilities().instabuild) {
-                                stack.shrink(1);
-                                if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
-                            }
-                            return InteractionResult.SUCCESS;
+                if (questNpcId != null && !questNpcId.isBlank()) {
+                    QuestNpcConfig.QuestNpcDefinition npcDefinition = questNpcConfig != null ? questNpcConfig.questNpcs.get(questNpcId) : null;
+                    if (npcDefinition != null) {
+                        shopkeeper.setNpcRole("QUEST");
+                        shopkeeper.setQuestNpcId(questNpcId);
+                        if (npcDefinition.skin != null && !npcDefinition.skin.isBlank()) {
+                            shopkeeper.setSkinName(npcDefinition.skin);
                         }
+                        // Keep head name hidden; quest NPC display name is shown inside GUI.
+                        shopkeeper.setCustomName(null);
+                        player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.quest_npc_set", questNpcId).withStyle(ChatFormatting.GREEN));
+                        if (!player.getAbilities().instabuild) {
+                            stack.shrink(1);
+                            if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
+                        }
+                        return InteractionResult.SUCCESS;
                     }
                 }
 
