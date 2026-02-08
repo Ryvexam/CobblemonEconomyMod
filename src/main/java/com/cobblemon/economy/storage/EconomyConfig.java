@@ -30,6 +30,7 @@ public class EconomyConfig {
     public BigDecimal captureReward = null;
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
+    public BigDecimal battleTowerCompletionPcoBonus = new BigDecimal(2);
 
     public BigDecimal shinyMultiplier = new BigDecimal(5);
     public BigDecimal radiantMultiplier = new BigDecimal(6);
@@ -147,6 +148,10 @@ public class EconomyConfig {
 
         if (config.impactorToPokedollarsRate == null) {
             config.impactorToPokedollarsRate = BigDecimal.ONE;
+        }
+
+        if (config.battleTowerCompletionPcoBonus == null) {
+            config.battleTowerCompletionPcoBonus = new BigDecimal(2);
         }
 
         if (config.captureReward == null) {

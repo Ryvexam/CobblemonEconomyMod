@@ -8,6 +8,7 @@ import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import com.cobblemon.mod.common.entity.npc.NPCBattleActor;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
@@ -239,18 +240,8 @@ public class CobblemonListeners {
 
         // Reward for winning a battle
         CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL, event -> {
-            boolean isCombatTower = false;
+            boolean isCombatTower = isBattleTowerBattle(event);
             boolean isRaidDenBattle = isRaidDenBattle(event);
-
-            for (var loser : event.getLosers()) {
-                if (loser instanceof NPCBattleActor npcActor) {
-                    LivingEntity entity = npcActor.getEntity();
-                    if (entity != null && entity.getTags().contains("tour_de_combat")) {
-                        isCombatTower = true;
-                        break;
-                    }
-                }
-            }
 
             for (var winner : event.getWinners()) {
                 if (winner instanceof PlayerBattleActor playerActor) {
@@ -278,7 +269,8 @@ public class CobblemonListeners {
                         }
 
                         if (isCombatTower) {
-                            BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward;
+                            BigDecimal pcoReward = CobblemonEconomy.getConfig().battleVictoryPcoReward
+                                    .add(CobblemonEconomy.getConfig().battleTowerCompletionPcoBonus);
                             if (pcoReward.compareTo(BigDecimal.ZERO) > 0) {
                                 CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), pcoReward);
                                 if (hasReward) {
@@ -572,6 +564,63 @@ public class CobblemonListeners {
         }
 
         return hasRaidActor(event.getWinners()) || hasRaidActor(event.getLosers());
+    }
+
+    private static boolean isBattleTowerBattle(com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent event) {
+        return hasBattleTowerActor(event.getWinners()) || hasBattleTowerActor(event.getLosers());
+    }
+
+    private static boolean hasBattleTowerActor(Iterable<?> actors) {
+        if (actors == null) {
+            return false;
+        }
+
+        for (Object actor : actors) {
+            if (actor == null) {
+                continue;
+            }
+
+            String actorClass = actor.getClass().getName().toLowerCase(Locale.ROOT);
+            if (actorClass.contains("battle.tower") || actorClass.contains("battle_tower") || actorClass.contains("battletower")) {
+                return true;
+            }
+
+            LivingEntity entity = null;
+            if (actor instanceof NPCBattleActor npcActor) {
+                entity = npcActor.getEntity();
+            } else {
+                Object resolvedEntity = tryInvoke(actor, new String[] {"getEntity"});
+                if (resolvedEntity instanceof LivingEntity living) {
+                    entity = living;
+                }
+            }
+
+            if (entity == null) {
+                continue;
+            }
+
+            if (entity.getTags().contains("tour_de_combat")) {
+                return true;
+            }
+
+            for (String tag : entity.getTags()) {
+                String lowerTag = tag.toLowerCase(Locale.ROOT);
+                if (lowerTag.contains("battle_tower") || lowerTag.contains("battletower")) {
+                    return true;
+                }
+            }
+
+            ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            if (entityId != null) {
+                String namespace = entityId.getNamespace().toLowerCase(Locale.ROOT);
+                String path = entityId.getPath().toLowerCase(Locale.ROOT);
+                if (namespace.contains("battle_tower") || namespace.contains("battletower") || path.contains("battle_tower") || path.contains("battletower")) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static boolean hasRaidActor(Iterable<?> actors) {
