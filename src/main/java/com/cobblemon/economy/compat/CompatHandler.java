@@ -13,6 +13,7 @@ public class CompatHandler {
     private static boolean hasCobbleDollarsCompat = false;
     private static boolean hasImpactorCompat = false;
     private static final ThreadLocal<Boolean> cobbleDollarsBridgeBypass = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Boolean> impactorBridgeBypass = ThreadLocal.withInitial(() -> false);
 
     public static void init() {
         if (FabricLoader.getInstance().isModLoaded("yawp")) {
@@ -120,6 +121,20 @@ public class CompatHandler {
             return action.get();
         } finally {
             cobbleDollarsBridgeBypass.set(previous);
+        }
+    }
+
+    public static boolean isImpactorBridgeBypassed() {
+        return impactorBridgeBypass.get();
+    }
+
+    public static <T> T withImpactorBridgeBypass(Supplier<T> action) {
+        boolean previous = impactorBridgeBypass.get();
+        impactorBridgeBypass.set(true);
+        try {
+            return action.get();
+        } finally {
+            impactorBridgeBypass.set(previous);
         }
     }
 }

@@ -22,7 +22,8 @@ public class MixinPlugin implements IMixinConfigPlugin {
      */
     private static final Map<String, String> OPTIONAL_MIXINS = Map.of(
             "MixinCardGraderNPCEntity", "academy",  // Star Academy integration
-            "MixinCobbleDollarsPlayer", "cobbledollars" // CobbleDollars bridge
+            "MixinCobbleDollarsPlayer", "cobbledollars", // CobbleDollars bridge
+            "MixinImpactorEconomyService", "impactor" // Impactor bridge
             // Add more optional mixins here: "MixinClassName", "required-mod-id"
     );
 

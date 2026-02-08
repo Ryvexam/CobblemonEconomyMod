@@ -1,35 +1,58 @@
 # Cobblemon Economy
 
-Cobblemon Economy is a server-focused economy and shop system for Cobblemon on Fabric. It adds NPC shops, dual currencies, rewards, and a flexible JSON configuration.
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-3C8527?logo=minecraft&logoColor=white)](https://www.minecraft.net/)
+[![Loader](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Support-5865F2?logo=discord&logoColor=white)](https://discord.gg/zxZXcaTHwe)
 
-## Highlights
-- Dual currencies: PokeDollars and PCO
-- NPC shopkeepers with GUI buy/sell shops
-- Item definitions support component syntax (enchantments, datapack items)
-- Loot crates via dropTable or Minecraft loot tables
-- **Command execution items** - sell commands instead of items (e.g., crate keys, buffs, shoutouts)
-- Purchase limits per item with optional cooldowns
-- Auto-downloaded shopkeeper skins from server
-- Per-world config and SQLite storage
-- Capture, discovery, and battle rewards with multipliers
-- Fossil revival rewards for shiny/radiant/legendary/paradox Pokémon
-- Optional YAWP, Star Academy, and Placeholder API integrations
+Cobblemon Economy is a complete economy + shop system for Cobblemon servers.
+It provides NPC shops, dual currencies, reward events, cross-economy bridges (CobbleDollars/Impactor), and a per-world config workflow.
 
-## Setup
-1. Drop the jar into `mods/`.
-2. Start the server to generate `world/config/cobblemon-economy/config.json`.
-3. Edit shops and items, then run `/eco reload`.
-4. Place skin PNGs in `world/config/cobblemon-economy/skins/`.
+## Discord (Support)
+**Join here:** https://discord.gg/zxZXcaTHwe
+
+## What You Get
+- PokeDollars + PCO currencies
+- Buy and sell NPC shops with pagination
+- Command-based shop items (sell commands, not only items)
+- Capture/discovery/battle rewards + multipliers
+- Raid Dens reward compatibility
+- Cross-economy conversion commands
+- Switchable main backend: `cobeco`, `cobbledollars`, `impactor`
+
+## Installation
+1. Put `cobblemon-economy-0.0.15.jar` in `mods/`.
+2. Start the server once.
+3. Edit `world/config/cobblemon-economy/config.json`.
+4. Restart server (or `/eco reload` for config-only edits).
+
+## File Layout (Per World)
+- `world/config/cobblemon-economy/config.json`
+- `world/config/cobblemon-economy/milestone.json`
+- `world/config/cobblemon-economy/skins/*.png`
+
+`main_currency` is also **per-world** because it lives in this world config folder.
+
+## Quick Start (5 Minutes)
+1. Start server once to generate defaults.
+2. Open `config.json` and set:
+```json
+{
+  "main_currency": "cobeco"
+}
+```
+3. Add one test item to any shop.
+4. Join server and run `/bal`.
+5. Buy/sell to confirm economy flow.
 
 ## Commands
-Player:
+### Player
 - `/bal` or `/balance`
 - `/pco`
 - `/pay <player> <amount>`
 - `/convertcobbledollars <amount|all>`
 - `/convertimpactor <amount|all>`
 
-Admin:
+### Admin
 - `/eco reload`
 - `/eco shop list`
 - `/eco shop get <id>`
@@ -38,76 +61,67 @@ Admin:
 - `/balance <player> <add|remove|set> <amount>`
 - `/pco <player> <add|remove|set> <amount>`
 
-## Placeholders (Placeholder API)
-If `placeholder-api` is installed, Cobblemon Economy exposes balance placeholders for tablists/scoreboards.
-Use the placeholder format required by your tablist plugin (often `%namespace:placeholder%` or `{namespace:placeholder}`).
+## Main Currency Modes
+Configure in `config.json`:
 
-Available placeholders (recommended namespace: `cobeco`):
-- `cobeco:balance`
-- `cobeco:balance_symbol`
-- `cobeco:pco`
-- `cobeco:pco_symbol`
+```json
+{
+  "main_currency": "cobeco"
+}
+```
 
-Alternate namespaces also registered for compatibility:
-- `cobblemon_economy:*`
-- `cobblemon-economy:*`
+Valid values:
+- `cobeco` (default)
+- `cobbledollars`
+- `impactor`
 
-## Config overview
-Global settings:
-- `main_currency` (`cobeco`, `cobbledollars`, `impactor`; default `cobeco`)
-- `startingBalance`, `startingPco`
-- `battleVictoryReward`, `raidDenVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`
-- `cobbleDollarsToPokedollarsRate`, `impactorToPokedollarsRate`
-- `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`
-- `enableProfiling`, `profilingThresholdMs`
+Behavior:
+- `cobeco`: CobEco DB is authoritative; balances are mirrored to CobbleDollars and Impactor when present; API bridge support is enabled.
+- `cobbledollars`: CobEco balance operations route to CobbleDollars.
+- `impactor`: CobEco balance operations route to Impactor primary currency.
 
-Milestones file:
-- `world/config/cobblemon-economy/milestone.json`
+## Conversions
+Rates in `config.json`:
+- `cobbleDollarsToPokedollarsRate`
+- `impactorToPokedollarsRate`
 
-Milestone rules:
-- File missing: defaults are generated.
-- Empty file: defaults are used and saved.
-- Keys are unique-capture counts (strings), values are rewards in PokeDollars.
+Examples:
+- `/convertcobbledollars all`
+- `/convertimpactor 250`
 
-Shop fields:
-- `title`, `currency`, `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`
+## Rewards
+Main reward keys:
+- `battleVictoryReward`
+- `raidDenVictoryReward`
+- `captureReward`
+- `newDiscoveryReward`
+- `battleVictoryPcoReward`
 
-Item fields:
-- `type` - `"item"` (default) or `"command"` for command execution
-- `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `components`, `buyLimit`, `buyCooldownMinutes`, `sellLimit`, `sellCooldownMinutes`
-- `command` - Command to execute for `type: "command"` (use `%player%` placeholder)
-- `displayItem` - Custom display for command items (`material`, `displayname`, `enchantEffect`)
+Multipliers:
+- `shinyMultiplier`
+- `radiantMultiplier`
+- `legendaryMultiplier`
+- `paradoxMultiplier`
 
-Item limit rules:
-- Missing `buyLimit` or `buyLimit <= 0`: unlimited.
-- `buyLimit > 0` and missing `buyCooldownMinutes`: lifetime limit.
-- `buyLimit > 0` and `buyCooldownMinutes = 0`: lifetime limit.
-- `buyLimit > 0` and `buyCooldownMinutes > 0`: limit resets every N minutes.
-- Missing `sellLimit` or `sellLimit <= 0`: unlimited.
-- `sellLimit > 0` and missing `sellCooldownMinutes`: lifetime limit.
-- `sellLimit > 0` and `sellCooldownMinutes = 0`: lifetime limit.
-- `sellLimit > 0` and `sellCooldownMinutes > 0`: limit resets every N minutes.
+## Milestones
+File: `world/config/cobblemon-economy/milestone.json`
 
-## Example item entries
+Example:
+```json
+{ "10": 300, "50": 700, "100": 1500, "200": 3000 }
+```
+
+## Shop Item Types
+### Standard item
 ```json
 { "id": "minecraft:diamond", "name": "Diamond", "price": 1000 }
-{ "id": "minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]", "name": "Sharpness V", "price": 5000 }
-{ "id": "academy:booster_pack[academy:booster_pack=\"base\"]", "name": "Booster Pack", "price": 100 }
-{ "id": "minecraft:chest", "name": "Mystery Box", "price": 500, "dropTable": ["minecraft:diamond", "cobblemon:rare_candy"] }
-{ "id": "minecraft:chest", "name": "Dungeon Loot", "price": 1000, "lootTable": "minecraft:chests/simple_dungeon" }
-{ "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
 ```
 
-Item limit only:
-```json
-{ "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
-```
-
-Item with components (booster example):
+### Component item
 ```json
 {
   "id": "academy:booster_pack",
-  "name": "Oui",
+  "name": "Booster Pack",
   "price": 200,
   "components": {
     "academy:booster_pack": "\"base\""
@@ -115,14 +129,12 @@ Item with components (booster example):
 }
 ```
 
-**Command execution item** (executes command on purchase):
+### Command item
 ```json
 {
   "type": "command",
   "command": "crate key give vote 1 %player%",
   "price": 100,
-  "buyLimit": 1,
-  "buyCooldownMinutes": 1440,
   "displayItem": {
     "material": "supplementaries:key",
     "displayname": "Vote Crate Key",
@@ -131,20 +143,25 @@ Item with components (booster example):
 }
 ```
 
-Capture milestones example (`milestone.json`):
-```json
-{ "10": 300, "50": 700, "100": 1500, "200": 3000, "300": 6000 }
-```
-
-## Support
-Discord: https://discord.gg/zxZXcaTHwe
-
 ## Integrations
-- Raid Dens: raid win rewards via `RaidEvents.RAID_END`.
-- CobbleDollars: optional conversion command and backend bridge.
-- Impactor: optional conversion command and backend routing support.
+- CobbleDollars (bridge + conversion)
+- Impactor (bridge + conversion)
+- Cobblemon Raid Dens (raid win rewards)
+- Star Academy (optional)
+- Placeholder API (optional)
+- YAWP (optional)
 
-Currency backend behavior (`main_currency`):
-- `cobeco`: Cobblemon Economy is authoritative and mirrors balances to CobbleDollars and Impactor when installed.
-- `cobbledollars`: CobEco balance operations route to CobbleDollars balance.
-- `impactor`: CobEco balance operations route to Impactor primary currency.
+## Placeholder API
+Recommended namespace: `cobeco`
+- `cobeco:balance`
+- `cobeco:balance_symbol`
+- `cobeco:pco`
+- `cobeco:pco_symbol`
+
+## Troubleshooting
+- Command missing after update: restart server fully (not only `/eco reload`).
+- Economy bridge not active: verify target mod is loaded and version-compatible.
+- Wrong backend behavior: check `main_currency` in world config.
+
+## Need Help?
+Discord support: https://discord.gg/zxZXcaTHwe

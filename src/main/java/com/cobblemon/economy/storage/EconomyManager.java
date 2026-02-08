@@ -569,7 +569,7 @@ public class EconomyManager {
         }
 
         if (CompatHandler.hasImpactorCompat()) {
-            CompatHandler.setImpactorBalance(uuid, balance.max(BigDecimal.ZERO));
+            CompatHandler.withImpactorBridgeBypass(() -> CompatHandler.setImpactorBalance(uuid, balance.max(BigDecimal.ZERO)));
         }
     }
 
