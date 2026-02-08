@@ -1,8 +1,11 @@
 package com.cobblemon.economy.storage;
 
 import com.cobblemon.economy.api.EconomyEvents;
+import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.util.PerformanceProfiler;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -527,7 +530,48 @@ public class EconomyManager {
         }
     }
 
+    private enum MainCurrencyBackend {
+        COBECO,
+        COBBLEDOLLARS,
+        IMPACTOR
+    }
+
+    private MainCurrencyBackend getMainCurrencyBackend() {
+        String configured = CobblemonEconomy.getConfig() != null ? CobblemonEconomy.getConfig().mainCurrency : "cobeco";
+        if (configured == null) {
+            return MainCurrencyBackend.COBECO;
+        }
+
+        return switch (configured.trim().toLowerCase()) {
+            case "cobbledollars" -> MainCurrencyBackend.COBBLEDOLLARS;
+            case "impactor" -> MainCurrencyBackend.IMPACTOR;
+            default -> MainCurrencyBackend.COBECO;
+        };
+    }
+
+    private ServerPlayer getOnlinePlayer(UUID uuid) {
+        MinecraftServer server = CobblemonEconomy.getGameServer();
+        if (server == null) {
+            return null;
+        }
+        return server.getPlayerList().getPlayer(uuid);
+    }
+
     public BigDecimal getBalance(UUID uuid) {
+        MainCurrencyBackend backend = getMainCurrencyBackend();
+
+        if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
+            ServerPlayer player = getOnlinePlayer(uuid);
+            if (player != null && CompatHandler.canAccessCobbleDollars(player)) {
+                return BigDecimal.valueOf(CompatHandler.getCobbleDollars(player));
+            }
+        } else if (backend == MainCurrencyBackend.IMPACTOR) {
+            BigDecimal impactorBalance = CompatHandler.getImpactorBalance(uuid);
+            if (impactorBalance != null) {
+                return impactorBalance;
+            }
+        }
+
         return getCurrency(uuid, "balance", CobblemonEconomy.getConfig().startingBalance);
     }
 
@@ -559,6 +603,36 @@ public class EconomyManager {
     }
 
     public void setBalance(UUID uuid, BigDecimal amount) {
+        MainCurrencyBackend backend = getMainCurrencyBackend();
+
+        if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
+            ServerPlayer player = getOnlinePlayer(uuid);
+            if (player != null && CompatHandler.canAccessCobbleDollars(player)) {
+                int converted = amount.max(BigDecimal.ZERO).setScale(0, RoundingMode.DOWN).intValue();
+                BigDecimal oldBalance = BigDecimal.valueOf(CompatHandler.getCobbleDollars(player));
+                BigDecimal newBalance = BigDecimal.valueOf(converted);
+                if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, newBalance, false)) {
+                    return;
+                }
+                if (CompatHandler.setCobbleDollars(player, converted)) {
+                    EconomyEvents.BALANCE_UPDATE_POST.invoker().handle(uuid, oldBalance, newBalance, false);
+                    return;
+                }
+            }
+        } else if (backend == MainCurrencyBackend.IMPACTOR) {
+            BigDecimal clamped = amount.max(BigDecimal.ZERO);
+            BigDecimal oldBalance = CompatHandler.getImpactorBalance(uuid);
+            if (oldBalance != null) {
+                if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, clamped, false)) {
+                    return;
+                }
+                if (CompatHandler.setImpactorBalance(uuid, clamped)) {
+                    EconomyEvents.BALANCE_UPDATE_POST.invoker().handle(uuid, oldBalance, clamped, false);
+                    return;
+                }
+            }
+        }
+
         BigDecimal oldBalance = getBalance(uuid);
         if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, amount, false)) {
             return;
@@ -595,6 +669,24 @@ public class EconomyManager {
     }
 
     public void addBalance(UUID uuid, BigDecimal amount) {
+        MainCurrencyBackend backend = getMainCurrencyBackend();
+        if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            ServerPlayer player = getOnlinePlayer(uuid);
+            if (player != null && CompatHandler.canAccessCobbleDollars(player)) {
+                int converted = amount.setScale(0, RoundingMode.DOWN).intValue();
+                if (converted > 0 && CompatHandler.earnCobbleDollars(player, converted)) {
+                    return;
+                }
+            }
+        } else if (backend == MainCurrencyBackend.IMPACTOR) {
+            if (amount.compareTo(BigDecimal.ZERO) > 0 && CompatHandler.depositImpactor(uuid, amount)) {
+                return;
+            }
+        }
+
         setBalance(uuid, getBalance(uuid).add(amount));
     }
 
@@ -603,6 +695,29 @@ public class EconomyManager {
     }
 
     public boolean subtractBalance(UUID uuid, BigDecimal amount) {
+        MainCurrencyBackend backend = getMainCurrencyBackend();
+
+        if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return true;
+            }
+            ServerPlayer player = getOnlinePlayer(uuid);
+            if (player != null && CompatHandler.canAccessCobbleDollars(player)) {
+                int converted = amount.setScale(0, RoundingMode.DOWN).intValue();
+                if (converted <= 0) {
+                    return true;
+                }
+                return CompatHandler.spendCobbleDollars(player, converted);
+            }
+        } else if (backend == MainCurrencyBackend.IMPACTOR) {
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return true;
+            }
+            if (CompatHandler.withdrawImpactor(uuid, amount)) {
+                return true;
+            }
+        }
+
         BigDecimal current = getBalance(uuid);
         if (current.compareTo(amount) < 0) return false;
         setBalance(uuid, current.subtract(amount));

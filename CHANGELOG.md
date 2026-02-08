@@ -16,6 +16,18 @@ All notable changes to this project will be documented in this file.
   - Supports all existing features: buy limits, cooldowns, both currencies.
   - Cannot be sold back to shops (virtual items).
 - **Sell limits:** Per-item sell limits with optional cooldowns, plus UI display of remaining quota.
+- **Raid Dens Integration:** Direct raid reward support through `RaidEvents` with per-player raid win payouts.
+- **Cross-Economy Conversion Commands:**
+  - `/convertcobbledollars <amount|all>`
+  - `/convertimpactor <amount|all>`
+  - Configurable conversion rates: `cobbleDollarsToPokedollarsRate`, `impactorToPokedollarsRate`
+- **Main Currency Backend Switch:** New optional `main_currency` config (`cobeco`, `cobbledollars`, `impactor`).
+  - `cobeco`: Cobblemon Economy balance is authoritative.
+  - `cobbledollars`: Cobblemon Economy balance operations route to CobbleDollars.
+  - `impactor`: Cobblemon Economy balance operations route to Impactor.
+- **Bridge Mixins for External Economy APIs (optional):**
+  - CobbleDollars API calls can be redirected to CobEco when `main_currency: cobeco`.
+  - Impactor account transactions can be redirected to CobEco when `main_currency: cobeco`.
 
 ### Changed
 - **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.

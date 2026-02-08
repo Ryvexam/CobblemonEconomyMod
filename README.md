@@ -19,12 +19,16 @@ Website: https://ryvexam.fr
 - Raid den battle rewards (separate configurable PokeDollar amount)
 - Fossil revival rewards for shiny/radiant/legendary/paradox Pokémon
 - Optional integrations: YAWP protection flag and Star Academy grading
+- Optional CobbleDollars conversion command to import another economy balance
+- Optional Impactor economy conversion command
 
 ## Commands
 Player:
 - `/bal` or `/balance`
 - `/pco`
 - `/pay <player> <amount>`
+- `/convertcobbledollars <amount|all>` (if CobbleDollars is installed)
+- `/convertimpactor <amount|all>` (if Impactor is installed)
 
 Admin (permission level 2):
 - `/eco reload`
@@ -45,10 +49,13 @@ Milestone rules:
 - Keys are unique-capture counts (strings), values are rewards in PokeDollars.
 
 Global settings:
+- `main_currency` (`cobeco`, `cobbledollars`, `impactor`; default `cobeco`)
 - `startingBalance`
 - `startingPco`
 - `battleVictoryReward`
 - `raidDenVictoryReward` (defaults to `battleVictoryReward` if missing)
+- `cobbleDollarsToPokedollarsRate` (used by `/convertcobbledollars`, defaults to `1`)
+- `impactorToPokedollarsRate` (used by `/convertimpactor`, defaults to `1`)
 - `captureReward` (defaults to `battleVictoryReward` if missing)
 - `newDiscoveryReward`
 - `battleVictoryPcoReward`
@@ -190,6 +197,14 @@ Item with components (booster example):
 - YAWP: flag `melee-npc-cobeco` controls shopkeeper vulnerability.
 - Star Academy: optional grading integration when the `academy` mod is present.
 - Cobblemon Raid Dens: direct raid win detection via `RaidEvents.RAID_END`.
+- CobbleDollars: optional `/convertcobbledollars <amount|all>` command to convert CobbleDollars into PokeDollars.
+- Impactor: optional `/convertimpactor <amount|all>` command using Impactor primary currency.
+
+Currency backend behavior (`main_currency`):
+- `cobeco`: Cobblemon Economy database is authoritative for PokeDollars.
+- `cobeco` also bridges CobbleDollars and Impactor account operations back into CobEco when those mods are installed.
+- `cobbledollars`: Cobblemon Economy `balance` operations use CobbleDollars player balance (online players).
+- `impactor`: Cobblemon Economy `balance` operations use Impactor primary account balance.
 
 ## Placeholders (Placeholder API)
 If `placeholder-api` is installed, Cobblemon Economy exposes balance placeholders for tablists/scoreboards.
