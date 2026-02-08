@@ -21,11 +21,33 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public class CobblemonListeners {
     private static final Map<String, Boolean> preChangeKnowledge = new ConcurrentHashMap<>();
+    private static final Set<UUID> activeRaidDensPlayers = ConcurrentHashMap.newKeySet();
+    private static volatile boolean listenersRegistered = false;
+    private static volatile boolean raidDensApiAvailable = false;
+    
+    public static void resetListeners() {
+        preChangeKnowledge.clear();
+        activeRaidDensPlayers.clear();
+        listenersRegistered = false;
+        raidDensApiAvailable = false;
+        CobblemonEconomy.LOGGER.debug("Cobblemon event listeners state reset");
+    }
 
     public static void register() {
+        if (listenersRegistered) {
+            CobblemonEconomy.LOGGER.debug("Cobblemon event listeners already registered, skipping...");
+            return;
+        }
+        listenersRegistered = true;
+        registerRaidDensCompatibility();
+        
         // Capture existing status before change
         CobblemonEvents.POKEDEX_DATA_CHANGED_PRE.subscribe(Priority.NORMAL, event -> {
             try {
@@ -218,6 +240,7 @@ public class CobblemonListeners {
         // Reward for winning a battle
         CobblemonEvents.BATTLE_VICTORY.subscribe(Priority.NORMAL, event -> {
             boolean isCombatTower = false;
+            boolean isRaidDenBattle = isRaidDenBattle(event);
 
             for (var loser : event.getLosers()) {
                 if (loser instanceof NPCBattleActor npcActor) {
@@ -233,15 +256,24 @@ public class CobblemonListeners {
                 if (winner instanceof PlayerBattleActor playerActor) {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
+                        if (raidDensApiAvailable && isRaidDenBattle) {
+                            continue;
+                        }
+
                         CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
-                        BigDecimal reward = CobblemonEconomy.getConfig().battleVictoryReward;
+                        BigDecimal reward = isRaidDenBattle
+                                ? CobblemonEconomy.getConfig().raidDenVictoryReward
+                                : CobblemonEconomy.getConfig().battleVictoryReward;
                         String formattedReward = reward.stripTrailingZeros().toPlainString();
                         Component message = Component.empty();
                         boolean hasReward = false;
 
                         if (reward.compareTo(BigDecimal.ZERO) > 0) {
                              CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
-                             message = Component.translatable("cobblemon-economy.event.victory", formattedReward);
+                             message = Component.translatable(
+                                     isRaidDenBattle ? "cobblemon-economy.event.raid_victory" : "cobblemon-economy.event.victory",
+                                     formattedReward
+                             );
                              hasReward = true;
                         }
 
@@ -270,113 +302,168 @@ public class CobblemonListeners {
             return kotlin.Unit.INSTANCE;
         });
 
-        // Reward for fossil revival
-        CobblemonEvents.FOSSIL_REVIVED.subscribe(Priority.NORMAL, event -> {
-            ServerPlayer player = event.getPlayer();
-            Pokemon pokemon = event.getPokemon();
-            if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
-            CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+        try {
+            CobblemonEvents.FOSSIL_REVIVED.subscribe(Priority.NORMAL, event -> {
+                ServerPlayer player = event.getPlayer();
+                Pokemon pokemon = event.getPokemon();
+                if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
+                CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
 
-            BigDecimal multiplier = BigDecimal.ONE;
-            BigDecimal currentPokemonMult = BigDecimal.ZERO;
-            boolean isSpecial = false;
-            boolean hadShiny = false;
-            boolean hadRadiant = false;
-            boolean hadLegendary = false;
-            boolean hadParadox = false;
+                BigDecimal multiplier = BigDecimal.ONE;
+                BigDecimal currentPokemonMult = BigDecimal.ZERO;
+                boolean isSpecial = false;
+                boolean hadShiny = false;
+                boolean hadRadiant = false;
+                boolean hadLegendary = false;
+                boolean hadParadox = false;
 
-            boolean isShiny = pokemon.getShiny();
-            var labels = pokemon.getSpecies().getLabels();
-            
-            CobblemonEconomy.LOGGER.debug("Fossil revival event - Pokemon: {}, Shiny: {}, Labels: {}", 
-                pokemon.getSpecies().getName(), isShiny, labels);
-
-            if (isShiny) {
-                currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
-                isSpecial = true;
-                hadShiny = true;
-                CobblemonEconomy.LOGGER.debug("Shiny fossil detected! Multiplier added: {}", 
-                    CobblemonEconomy.getConfig().shinyMultiplier);
-            }
-            
-            if (labels != null) {
-                if (labels.contains("radiant")) {
-                    currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().radiantMultiplier);
-                    isSpecial = true;
-                    hadRadiant = true;
-                    CobblemonEconomy.LOGGER.debug("Radiant fossil detected! Multiplier added: {}", 
-                        CobblemonEconomy.getConfig().radiantMultiplier);
-                }
-                if (labels.contains("legendary") || labels.contains("mythical")) {
-                    currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
-                    isSpecial = true;
-                    hadLegendary = true;
-                    CobblemonEconomy.LOGGER.debug("Legendary/Mythical fossil detected! Multiplier added: {}", 
-                        CobblemonEconomy.getConfig().legendaryMultiplier);
-                }
-                if (labels.contains("paradox")) {
-                    currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
-                    isSpecial = true;
-                    hadParadox = true;
-                    CobblemonEconomy.LOGGER.debug("Paradox fossil detected! Multiplier added: {}", 
-                        CobblemonEconomy.getConfig().paradoxMultiplier);
-                }
-            }
-
-            if (isSpecial) {
-                multiplier = currentPokemonMult;
-            }
-
-            BigDecimal baseReward = CobblemonEconomy.getConfig().captureReward;
-            BigDecimal reward = baseReward.multiply(multiplier);
-            
-            CobblemonEconomy.LOGGER.debug("Fossil revival reward calculation - Base: {}, Multiplier: {}, Total: {}, isSpecial: {}", 
-                baseReward, multiplier, reward, isSpecial);
-            
-            if (reward.compareTo(BigDecimal.ZERO) > 0) {
-                CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                boolean isShiny = pokemon.getShiny();
+                var labels = pokemon.getSpecies().getLabels();
                 
-                String formattedReward = reward.stripTrailingZeros().toPlainString();
+                CobblemonEconomy.LOGGER.debug("Fossil revival event - Pokemon: {}, Shiny: {}, Labels: {}", 
+                    pokemon.getSpecies().getName(), isShiny, labels);
+
+                if (isShiny) {
+                    currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().shinyMultiplier);
+                    isSpecial = true;
+                    hadShiny = true;
+                    CobblemonEconomy.LOGGER.debug("Shiny fossil detected! Multiplier added: {}", 
+                        CobblemonEconomy.getConfig().shinyMultiplier);
+                }
                 
-                String translationKey = "cobblemon-economy.event.fossil";
-                ChatFormatting color = ChatFormatting.GOLD;
-                
-                if (hadRadiant && hadLegendary) {
-                    translationKey = "cobblemon-economy.event.fossil.radiant_legendary";
-                    color = ChatFormatting.LIGHT_PURPLE;
-                } else if (hadRadiant && hadParadox) {
-                    translationKey = "cobblemon-economy.event.fossil.radiant_paradox";
-                    color = ChatFormatting.AQUA;
-                } else if (hadShiny && hadLegendary) {
-                    translationKey = "cobblemon-economy.event.fossil.shiny_legendary";
-                    color = ChatFormatting.LIGHT_PURPLE;
-                } else if (hadShiny && hadParadox) {
-                    translationKey = "cobblemon-economy.event.fossil.shiny_paradox";
-                    color = ChatFormatting.AQUA;
-                } else if (hadLegendary) {
-                    translationKey = "cobblemon-economy.event.fossil.legendary";
-                    color = ChatFormatting.LIGHT_PURPLE;
-                } else if (hadRadiant) {
-                    translationKey = "cobblemon-economy.event.fossil.radiant";
-                    color = ChatFormatting.AQUA;
-                } else if (hadShiny) {
-                    translationKey = "cobblemon-economy.event.fossil.shiny";
-                    color = ChatFormatting.AQUA;
-                } else if (hadParadox) {
-                    translationKey = "cobblemon-economy.event.fossil.special";
-                    color = ChatFormatting.DARK_PURPLE;
+                if (labels != null) {
+                    if (labels.contains("radiant")) {
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().radiantMultiplier);
+                        isSpecial = true;
+                        hadRadiant = true;
+                        CobblemonEconomy.LOGGER.debug("Radiant fossil detected! Multiplier added: {}", 
+                            CobblemonEconomy.getConfig().radiantMultiplier);
+                    }
+                    if (labels.contains("legendary") || labels.contains("mythical")) {
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().legendaryMultiplier);
+                        isSpecial = true;
+                        hadLegendary = true;
+                        CobblemonEconomy.LOGGER.debug("Legendary/Mythical fossil detected! Multiplier added: {}", 
+                            CobblemonEconomy.getConfig().legendaryMultiplier);
+                    }
+                    if (labels.contains("paradox")) {
+                        currentPokemonMult = currentPokemonMult.add(CobblemonEconomy.getConfig().paradoxMultiplier);
+                        isSpecial = true;
+                        hadParadox = true;
+                        CobblemonEconomy.LOGGER.debug("Paradox fossil detected! Multiplier added: {}", 
+                            CobblemonEconomy.getConfig().paradoxMultiplier);
+                    }
                 }
 
-                Component message = Component.translatable(translationKey, formattedReward);
-                player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
-            } else {
-                CobblemonEconomy.LOGGER.warn("No fossil revival reward given - reward amount was zero or negative: {}", reward);
-            }
+                if (isSpecial) {
+                    multiplier = currentPokemonMult;
+                }
 
-            return kotlin.Unit.INSTANCE;
-        });
+                BigDecimal baseReward = CobblemonEconomy.getConfig().captureReward;
+                BigDecimal reward = baseReward.multiply(multiplier);
+                
+                CobblemonEconomy.LOGGER.debug("Fossil revival reward calculation - Base: {}, Multiplier: {}, Total: {}, isSpecial: {}", 
+                    baseReward, multiplier, reward, isSpecial);
+                
+                if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                    CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                    
+                    String formattedReward = reward.stripTrailingZeros().toPlainString();
+                    
+                    String translationKey = "cobblemon-economy.event.fossil";
+                    ChatFormatting color = ChatFormatting.GOLD;
+                    
+                    if (hadRadiant && hadLegendary) {
+                        translationKey = "cobblemon-economy.event.fossil.radiant_legendary";
+                        color = ChatFormatting.LIGHT_PURPLE;
+                    } else if (hadRadiant && hadParadox) {
+                        translationKey = "cobblemon-economy.event.fossil.radiant_paradox";
+                        color = ChatFormatting.AQUA;
+                    } else if (hadShiny && hadLegendary) {
+                        translationKey = "cobblemon-economy.event.fossil.shiny_legendary";
+                        color = ChatFormatting.LIGHT_PURPLE;
+                    } else if (hadShiny && hadParadox) {
+                        translationKey = "cobblemon-economy.event.fossil.shiny_paradox";
+                        color = ChatFormatting.AQUA;
+                    } else if (hadLegendary) {
+                        translationKey = "cobblemon-economy.event.fossil.legendary";
+                        color = ChatFormatting.LIGHT_PURPLE;
+                    } else if (hadRadiant) {
+                        translationKey = "cobblemon-economy.event.fossil.radiant";
+                        color = ChatFormatting.AQUA;
+                    } else if (hadShiny) {
+                        translationKey = "cobblemon-economy.event.fossil.shiny";
+                        color = ChatFormatting.AQUA;
+                    } else if (hadParadox) {
+                        translationKey = "cobblemon-economy.event.fossil.special";
+                        color = ChatFormatting.DARK_PURPLE;
+                    }
+
+                    Component message = Component.translatable(translationKey, formattedReward);
+                    player.sendSystemMessage(message.copy().withStyle(color, ChatFormatting.BOLD));
+                } else {
+                    CobblemonEconomy.LOGGER.warn("No fossil revival reward given - reward amount was zero or negative: {}", reward);
+                }
+
+                return kotlin.Unit.INSTANCE;
+            });
+        } catch (Throwable t) {
+            CobblemonEconomy.LOGGER.warn("Fossil revival event not available on this Cobblemon version.");
+        }
 
         CobblemonEconomy.LOGGER.info("Events registered for Cobblemon 1.7.1 (Pokedex Change Logic + Fossil Rewards)");
+    }
+
+    private static void registerRaidDensCompatibility() {
+        try {
+            Class<?> raidEventsClass = Class.forName("com.necro.raid.dens.common.events.RaidEvents");
+
+            Object raidBattleStart = raidEventsClass.getField("RAID_BATTLE_START").get(null);
+            Object raidEnd = raidEventsClass.getField("RAID_END").get(null);
+
+            var subscribeMethod = raidBattleStart.getClass().getMethod("subscribe", Priority.class, Consumer.class);
+
+            Consumer<Object> onRaidBattleStart = event -> {
+                ServerPlayer player = asServerPlayer(tryInvoke(event, new String[] {"getPlayer"}));
+                if (player != null) {
+                    activeRaidDensPlayers.add(player.getUUID());
+                }
+            };
+
+            Consumer<Object> onRaidEnd = event -> {
+                ServerPlayer player = asServerPlayer(tryInvoke(event, new String[] {"getPlayer"}));
+                if (player == null) {
+                    return;
+                }
+
+                activeRaidDensPlayers.remove(player.getUUID());
+
+                Object winValue = tryInvoke(event, new String[] {"isWin"});
+                boolean isWin = winValue instanceof Boolean b && b;
+                if (!isWin) {
+                    return;
+                }
+
+                CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+                BigDecimal reward = CobblemonEconomy.getConfig().raidDenVictoryReward;
+                if (reward.compareTo(BigDecimal.ZERO) <= 0) {
+                    return;
+                }
+
+                CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
+                String formattedReward = reward.stripTrailingZeros().toPlainString();
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.event.raid_victory", formattedReward)
+                        .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            };
+
+            subscribeMethod.invoke(raidBattleStart, Priority.NORMAL, onRaidBattleStart);
+            subscribeMethod.invoke(raidEnd, Priority.NORMAL, onRaidEnd);
+
+            raidDensApiAvailable = true;
+            CobblemonEconomy.LOGGER.info("Cobblemon Raid Dens compatibility enabled.");
+        } catch (Throwable ignored) {
+            raidDensApiAvailable = false;
+        }
     }
 
     private static void handleCaptureMilestones(ServerPlayer player, int uniqueCount) {
@@ -463,7 +550,75 @@ public class CobblemonListeners {
         return knowledge == PokedexEntryProgress.CAUGHT;
     }
 
+    private static boolean isRaidDenBattle(com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent event) {
+        try {
+            var battle = event.getBattle();
+            if (battle != null && battle.getFormat() != null) {
+                String formatMod = battle.getFormat().getMod();
+                if (containsRaidKeyword(formatMod)) {
+                    return true;
+                }
+
+                var ruleSet = battle.getFormat().getRuleSet();
+                if (ruleSet != null) {
+                    for (String rule : ruleSet) {
+                        if (containsRaidKeyword(rule)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return hasRaidActor(event.getWinners()) || hasRaidActor(event.getLosers());
+    }
+
+    private static boolean hasRaidActor(Iterable<?> actors) {
+        if (actors == null) {
+            return false;
+        }
+
+        for (Object actor : actors) {
+            if (actor == null) {
+                continue;
+            }
+
+            String className = actor.getClass().getName().toLowerCase(Locale.ROOT);
+            if (containsRaidKeyword(className)) {
+                return true;
+            }
+
+            Object entity = tryInvoke(actor, new String[] {"getEntity"});
+            if (entity instanceof LivingEntity livingEntity) {
+                for (String tag : livingEntity.getTags()) {
+                    if (containsRaidKeyword(tag)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean containsRaidKeyword(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+
+        String lower = value.toLowerCase(Locale.ROOT);
+        return lower.contains("raid") || lower.contains("den");
+    }
+
+    private static ServerPlayer asServerPlayer(Object value) {
+        return value instanceof ServerPlayer serverPlayer ? serverPlayer : null;
+    }
+
     private static Object tryInvoke(Object target, String[] methodNames, Object... args) {
+        if (target == null) {
+            return null;
+        }
         for (String name : methodNames) {
             try {
                 Class<?>[] params = new Class<?>[args.length];

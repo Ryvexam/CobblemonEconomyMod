@@ -70,7 +70,7 @@ Shop fields:
 
 Item fields:
 - `type` - `"item"` (default) or `"command"` for command execution
-- `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `components`, `buyLimit`, `buyCooldownMinutes`
+- `id`, `name`, `price`, `nbt`, `dropTable`, `lootTable`, `components`, `buyLimit`, `buyCooldownMinutes`, `sellLimit`, `sellCooldownMinutes`
 - `command` - Command to execute for `type: "command"` (use `%player%` placeholder)
 - `displayItem` - Custom display for command items (`material`, `displayname`, `enchantEffect`)
 
@@ -79,6 +79,10 @@ Item limit rules:
 - `buyLimit > 0` and missing `buyCooldownMinutes`: lifetime limit.
 - `buyLimit > 0` and `buyCooldownMinutes = 0`: lifetime limit.
 - `buyLimit > 0` and `buyCooldownMinutes > 0`: limit resets every N minutes.
+- Missing `sellLimit` or `sellLimit <= 0`: unlimited.
+- `sellLimit > 0` and missing `sellCooldownMinutes`: lifetime limit.
+- `sellLimit > 0` and `sellCooldownMinutes = 0`: lifetime limit.
+- `sellLimit > 0` and `sellCooldownMinutes > 0`: limit resets every N minutes.
 
 ## Example item entries
 ```json

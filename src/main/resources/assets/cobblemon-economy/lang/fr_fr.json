@@ -69,6 +69,7 @@
   "cobblemon-economy.event.discovery.title": "§bNouvelle Découverte ! §r",
   "cobblemon-economy.event.discovery.reward": "Vous avez reçu %s₽ pour votre capture !",
   "cobblemon-economy.event.victory": "Victoire ! Vous avez reçu %s₽",
+  "cobblemon-economy.event.raid_victory": "Raid gagne ! Vous avez recu %s₽",
   "cobblemon-economy.event.capture": "Capture ! Vous avez reçu %s₽",
   "cobblemon-economy.event.capture.shiny": "CAPTURE SHINY ! Vous avez reçu %s₽",
   "cobblemon-economy.event.capture.radiant": "CAPTURE RADIANTE ! Vous avez reçu %s₽",

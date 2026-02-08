@@ -47,6 +47,14 @@ public class EconomyManager {
                           "count INTEGER NOT NULL," +
                           "PRIMARY KEY (uuid, shop_id, item_id)" +
                           ");";
+        String sellLimitSql = "CREATE TABLE IF NOT EXISTS sell_limits (" +
+                          "uuid TEXT NOT NULL," +
+                          "shop_id TEXT NOT NULL," +
+                          "item_id TEXT NOT NULL," +
+                          "window_start INTEGER NOT NULL," +
+                          "count INTEGER NOT NULL," +
+                          "PRIMARY KEY (uuid, shop_id, item_id)" +
+                          ");";
         String captureCountSql = "CREATE TABLE IF NOT EXISTS capture_counts (" +
                                  "uuid TEXT PRIMARY KEY," +
                                  "count INTEGER NOT NULL" +
@@ -60,6 +68,7 @@ public class EconomyManager {
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             stmt.execute(limitSql);
+            stmt.execute(sellLimitSql);
             stmt.execute(captureCountSql);
             stmt.execute(captureMilestonesSql);
             ensureColumnExists(conn, "balances", "username", "TEXT");
@@ -241,6 +250,72 @@ public class EconomyManager {
         return status;
     }
 
+    public PurchaseLimitStatus getSellLimitStatus(UUID uuid, String shopId, String itemId, Integer limit, Integer cooldownMinutes) {
+        long profileStart = PerformanceProfiler.start();
+        if (limit == null || limit <= 0) {
+            return new PurchaseLimitStatus(false, -1, 0);
+        }
+
+        long now = System.currentTimeMillis();
+        long windowMs = cooldownMinutes == null ? 0 : cooldownMinutes.longValue() * 60000L;
+        long windowStart = now;
+        int count = 0;
+
+        String selectSql = "SELECT window_start, count FROM sell_limits WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+        String insertSql = "INSERT INTO sell_limits(uuid, shop_id, item_id, window_start, count) VALUES(?, ?, ?, ?, ?)";
+        String updateSql = "UPDATE sell_limits SET window_start = ?, count = ? WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            selectStmt.setString(2, shopId);
+            selectStmt.setString(3, itemId);
+            ResultSet rs = selectStmt.executeQuery();
+
+            boolean found = rs.next();
+            if (found) {
+                windowStart = rs.getLong("window_start");
+                count = rs.getInt("count");
+            }
+
+            if (windowMs > 0 && now - windowStart >= windowMs) {
+                windowStart = now;
+                count = 0;
+            }
+
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setString(2, shopId);
+                    insertStmt.setString(3, itemId);
+                    insertStmt.setLong(4, windowStart);
+                    insertStmt.setInt(5, count);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setLong(1, windowStart);
+                    updateStmt.setInt(2, count);
+                    updateStmt.setString(3, uuid.toString());
+                    updateStmt.setString(4, shopId);
+                    updateStmt.setString(5, itemId);
+                    updateStmt.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to read sell limit for " + uuid, e);
+        }
+
+        long resetAt = windowMs > 0 ? windowStart + windowMs : 0;
+        int remaining = Math.max(0, limit - count);
+        PurchaseLimitStatus status = new PurchaseLimitStatus(true, remaining, resetAt);
+        PerformanceProfiler.end("db_sell_limit_status", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("item", itemId));
+        return status;
+    }
+
     public boolean consumePurchaseLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
         long profileStart = PerformanceProfiler.start();
         if (limit == null || limit <= 0) {
@@ -317,6 +392,90 @@ public class EconomyManager {
         }
 
         PerformanceProfiler.end("db_purchase_limit_consume", profileStart,
+            PerformanceProfiler.format("uuid", uuid) +
+                ", " + PerformanceProfiler.format("shop", shopId) +
+                ", " + PerformanceProfiler.format("item", itemId) +
+                ", " + PerformanceProfiler.format("qty", quantity) +
+                ", " + PerformanceProfiler.format("result", "error"));
+        return false;
+    }
+
+    public boolean consumeSellLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
+        long profileStart = PerformanceProfiler.start();
+        if (limit == null || limit <= 0) {
+            return true;
+        }
+
+        long now = System.currentTimeMillis();
+        long windowMs = cooldownMinutes == null ? 0 : cooldownMinutes.longValue() * 60000L;
+        long windowStart = now;
+        int count = 0;
+
+        String selectSql = "SELECT window_start, count FROM sell_limits WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+        String insertSql = "INSERT INTO sell_limits(uuid, shop_id, item_id, window_start, count) VALUES(?, ?, ?, ?, ?)";
+        String updateSql = "UPDATE sell_limits SET window_start = ?, count = ? WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+            selectStmt.setString(1, uuid.toString());
+            selectStmt.setString(2, shopId);
+            selectStmt.setString(3, itemId);
+            ResultSet rs = selectStmt.executeQuery();
+
+            boolean found = rs.next();
+            if (found) {
+                windowStart = rs.getLong("window_start");
+                count = rs.getInt("count");
+            }
+
+            if (windowMs > 0 && now - windowStart >= windowMs) {
+                windowStart = now;
+                count = 0;
+            }
+
+            if (count + quantity > limit) {
+                PerformanceProfiler.end("db_sell_limit_consume", profileStart,
+                    PerformanceProfiler.format("uuid", uuid) +
+                        ", " + PerformanceProfiler.format("shop", shopId) +
+                        ", " + PerformanceProfiler.format("item", itemId) +
+                        ", " + PerformanceProfiler.format("qty", quantity) +
+                        ", " + PerformanceProfiler.format("result", "denied"));
+                return false;
+            }
+
+            int newCount = count + quantity;
+            if (!found) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                    insertStmt.setString(1, uuid.toString());
+                    insertStmt.setString(2, shopId);
+                    insertStmt.setString(3, itemId);
+                    insertStmt.setLong(4, windowStart);
+                    insertStmt.setInt(5, newCount);
+                    insertStmt.executeUpdate();
+                }
+            } else {
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setLong(1, windowStart);
+                    updateStmt.setInt(2, newCount);
+                    updateStmt.setString(3, uuid.toString());
+                    updateStmt.setString(4, shopId);
+                    updateStmt.setString(5, itemId);
+                    updateStmt.executeUpdate();
+                }
+            }
+
+            PerformanceProfiler.end("db_sell_limit_consume", profileStart,
+                PerformanceProfiler.format("uuid", uuid) +
+                    ", " + PerformanceProfiler.format("shop", shopId) +
+                    ", " + PerformanceProfiler.format("item", itemId) +
+                    ", " + PerformanceProfiler.format("qty", quantity) +
+                    ", " + PerformanceProfiler.format("result", "ok"));
+            return true;
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to update sell limit for " + uuid, e);
+        }
+
+        PerformanceProfiler.end("db_sell_limit_consume", profileStart,
             PerformanceProfiler.format("uuid", uuid) +
                 ", " + PerformanceProfiler.format("shop", shopId) +
                 ", " + PerformanceProfiler.format("item", itemId) +

@@ -16,6 +16,7 @@ Website: https://ryvexam.fr
 - Auto-downloaded shopkeeper skins from server
 - Transaction logging to file
 - Capture, discovery, and battle rewards with multipliers
+- Raid den battle rewards (separate configurable PokeDollar amount)
 - Fossil revival rewards for shiny/radiant/legendary/paradox Pokémon
 - Optional integrations: YAWP protection flag and Star Academy grading
 
@@ -47,6 +48,7 @@ Global settings:
 - `startingBalance`
 - `startingPco`
 - `battleVictoryReward`
+- `raidDenVictoryReward` (defaults to `battleVictoryReward` if missing)
 - `captureReward` (defaults to `battleVictoryReward` if missing)
 - `newDiscoveryReward`
 - `battleVictoryPcoReward`
@@ -76,6 +78,8 @@ Item definition fields:
 - `components` (data components for items)
 - `buyLimit` (optional)
 - `buyCooldownMinutes` (optional, 0 means lifetime limit)
+- `sellLimit` (optional)
+- `sellCooldownMinutes` (optional, 0 means lifetime limit)
 - `command` - Command string for `type: "command"` (use `%player%` placeholder)
 - `displayItem` - Custom display configuration for command items:
   - `material` - Item ID to display
@@ -87,6 +91,10 @@ Item limit rules:
 - `buyLimit > 0` and missing `buyCooldownMinutes`: lifetime limit.
 - `buyLimit > 0` and `buyCooldownMinutes = 0`: lifetime limit.
 - `buyLimit > 0` and `buyCooldownMinutes > 0`: limit resets every N minutes.
+- Missing `sellLimit` or `sellLimit <= 0`: unlimited.
+- `sellLimit > 0` and missing `sellCooldownMinutes`: lifetime limit.
+- `sellLimit > 0` and `sellCooldownMinutes = 0`: lifetime limit.
+- `sellLimit > 0` and `sellCooldownMinutes > 0`: limit resets every N minutes.
 
 Example shop:
 ```json
@@ -181,6 +189,7 @@ Item with components (booster example):
 ## Integrations
 - YAWP: flag `melee-npc-cobeco` controls shopkeeper vulnerability.
 - Star Academy: optional grading integration when the `academy` mod is present.
+- Cobblemon Raid Dens: direct raid win detection via `RaidEvents.RAID_END`.
 
 ## Placeholders (Placeholder API)
 If `placeholder-api` is installed, Cobblemon Economy exposes balance placeholders for tablists/scoreboards.
