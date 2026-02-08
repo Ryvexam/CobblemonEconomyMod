@@ -30,12 +30,15 @@ import java.util.function.Consumer;
 
 public class CobblemonListeners {
     private static final Map<String, Boolean> preChangeKnowledge = new ConcurrentHashMap<>();
+    private static final Map<String, Long> recentCaptureRewards = new ConcurrentHashMap<>();
     private static final Set<UUID> activeRaidDensPlayers = ConcurrentHashMap.newKeySet();
     private static volatile boolean listenersRegistered = false;
     private static volatile boolean raidDensApiAvailable = false;
+    private static final long CAPTURE_REWARD_DEDUP_MS = 3000L;
     
     public static void resetListeners() {
         preChangeKnowledge.clear();
+        recentCaptureRewards.clear();
         activeRaidDensPlayers.clear();
         listenersRegistered = false;
         raidDensApiAvailable = false;
@@ -123,6 +126,12 @@ public class CobblemonListeners {
             ServerPlayer player = event.getPlayer();
             Pokemon pokemon = event.getPokemon();
             if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
+
+            if (!shouldProcessCaptureReward(player, pokemon)) {
+                CobblemonEconomy.LOGGER.debug("Skipped duplicate capture reward for player {} pokemon {}", player.getUUID(), pokemon.getUuid());
+                return kotlin.Unit.INSTANCE;
+            }
+
             CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
             QuestService.handleCapture(event);
 
@@ -304,6 +313,7 @@ public class CobblemonListeners {
                 Pokemon pokemon = event.getPokemon();
                 if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
                 CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+                QuestService.handleFossilRevive(player, pokemon);
 
                 BigDecimal multiplier = BigDecimal.ONE;
                 BigDecimal currentPokemonMult = BigDecimal.ZERO;
@@ -683,5 +693,28 @@ public class CobblemonListeners {
             }
         }
         return null;
+    }
+
+    private static boolean shouldProcessCaptureReward(ServerPlayer player, Pokemon pokemon) {
+        long now = System.currentTimeMillis();
+        recentCaptureRewards.entrySet().removeIf(entry -> now - entry.getValue() > CAPTURE_REWARD_DEDUP_MS);
+
+        UUID pokemonUuid = pokemon.getUuid();
+        if (pokemonUuid == null) {
+            return true;
+        }
+
+        String key = player.getUUID() + ":" + pokemonUuid;
+        Long previous = recentCaptureRewards.putIfAbsent(key, now);
+        if (previous == null) {
+            return true;
+        }
+
+        if (now - previous > CAPTURE_REWARD_DEDUP_MS) {
+            recentCaptureRewards.put(key, now);
+            return true;
+        }
+
+        return false;
     }
 }

@@ -305,4 +305,38 @@ public class QuestManager {
             CobblemonEconomy.LOGGER.error("Failed to mark quest claimed", e);
         }
     }
+
+    public void cancelQuest(UUID uuid, String npcId, String questId, long availableAt) {
+        String stateSql = "UPDATE quest_state SET status = 'CANCELLED', completed_at = 0, claimed_at = 0, available_at = ? WHERE uuid = ? AND npc_id = ? AND quest_id = ?";
+        String progressSql = "DELETE FROM quest_progress WHERE uuid = ? AND npc_id = ? AND quest_id = ?";
+        try (Connection conn = connect()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement stateStmt = conn.prepareStatement(stateSql);
+                 PreparedStatement progressStmt = conn.prepareStatement(progressSql)) {
+                stateStmt.setLong(1, availableAt);
+                stateStmt.setString(2, uuid.toString());
+                stateStmt.setString(3, npcId);
+                stateStmt.setString(4, questId);
+                stateStmt.executeUpdate();
+
+                progressStmt.setString(1, uuid.toString());
+                progressStmt.setString(2, npcId);
+                progressStmt.setString(3, questId);
+                progressStmt.executeUpdate();
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to cancel quest", e);
+        }
+    }
+
+    public void cancelQuest(UUID uuid, String npcId, String questId) {
+        cancelQuest(uuid, npcId, questId, System.currentTimeMillis());
+    }
 }

@@ -22,12 +22,27 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
 ## What You Get
 - PokeDollars + PCO currencies
 - Buy and sell NPC shops with pagination
+- Quest NPCs with configurable mission boards
 - Command-based shop items (sell commands, not only items)
 - Capture/discovery/battle rewards + multipliers
 - Raid Dens reward compatibility
 - Battle Tower PCO rewards + completion bonus
 - Cross-economy bridge + conversion support
 - Switchable main backend: `cobeco`, `cobbledollars`, `impactor` (per world)
+
+## Quest NPC System (0.0.16)
+- One NPC entity, two roles: `SHOP` or `QUEST` (no duplicate entity type).
+- Per-world quest files with full data-driven behavior:
+  - `quests.json`: objectives, rewards, repeatability, cooldowns, prerequisites.
+  - `quest_npcs.json`: NPC pool, max active quests, visible board size, rotation strategy.
+- Custom quest board UX:
+  - Up to 4 missions visible by default (configurable per NPC).
+  - Detailed objective text (species/type/ball/location/shiny/labels).
+  - Time remaining, cooldown remaining, and clear action states.
+- Rotation system:
+  - Shared board for all players or per-player board (configurable).
+  - Rotation by midnight or every X hours.
+  - Cancelled/expired quests can be blocked until next rotation.
 
 ## Installation
 1. Put `cobblemon-economy-0.0.16.jar` in `mods/`.
@@ -56,10 +71,13 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
   - **Backward compatibility:** if this file is missing, the mod loads legacy `config.json.shops` and auto-creates `shops.json`.
 - `quests.json`
   - Quest definitions and objectives.
-  - Supports capture filters (species, type, ball, dimension, shiny) plus event objectives (`battle_win`, `raid_win`, `tower_win`).
+  - Supports capture filters (species, type, ball, `dimension` or `dimensions`, shiny, labels).
+  - Supports event objectives: `battle_win`, `raid_win`, `tower_win`, `fossil_revive`.
+  - Per-quest control: `repeatable`, `repeatPolicy`, `cooldownMinutes`, `timeLimitMinutes`, `requiresCompleted`.
   - Supports rewards (`pokedollars`, `pco`, optional command list).
 - `quest_npcs.json`
   - Quest NPC definitions (display name, skin, dialogue lines, quest pool, max active quests).
+  - Board/rotation control: `visibleQuests`, `sharedRotation`, `rotationMode` (`MIDNIGHT`/`HOURS`), `rotationHours`.
   - One NPC can offer a list of multiple quests via `questPool`.
 - `milestone.json`
   - Unique-capture milestone rewards.
@@ -192,6 +210,7 @@ Recommended namespace: `cobeco`
 - Command missing after update: restart server fully (not only `/eco reload`).
 - Economy bridge not active: verify target mod is loaded and version-compatible.
 - Wrong backend behavior: check `main_currency` in world config.
+- Existing world does not show new default quest pools: your `quests.json` / `quest_npcs.json` already exists; merge manually or regenerate after backup.
 
 ## Need Help?
 Discord support: https://discord.gg/zxZXcaTHwe
