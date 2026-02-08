@@ -28,12 +28,16 @@ All notable changes to this project will be documented in this file.
 - **External Balance Mirroring in `cobeco` mode:** CobEco balance is mirrored to CobbleDollars and Impactor (when installed), including on player join.
 - **Bridge Mixins for External Economy APIs (optional):**
   - CobbleDollars API calls can be redirected to CobEco when `main_currency: cobeco`.
+  - Impactor account API calls can be redirected to CobEco when `main_currency: cobeco`.
 
 ### Changed
 - **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.
 - **Config Format:** Generated configs now show `type` field for all items, making the format self-documenting.
 
 ### Fixed
+- **Impactor Bridge Stability:** Reworked Impactor bridge flow to avoid direct `ImpactorAccount` class-target crashes in large modpacks.
+- **Impactor Mixin Descriptor Compatibility:** Fixed service bridge injector descriptors (coerced external parameters) to prevent startup `InvalidInjectionException` on Impactor 5.3.5.
+- **Cross-Economy Mirror Safety:** Added recursion guards to CobbleDollars/Impactor mirror writes in `cobeco` mode.
 - **Duplicate Event Listeners on World Rejoin:** Fixed a critical bug where players could receive multiple rewards when rejoining a world without restarting the game.
   - Event listeners are now properly tracked and only registered once per server session.
   - Added automatic cleanup of listeners when the server stops (world disconnect).

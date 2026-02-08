@@ -202,7 +202,7 @@ Item with components (booster example):
 
 Currency backend behavior (`main_currency`):
 - `cobeco`: Cobblemon Economy database is authoritative for PokeDollars.
-- `cobeco` mirrors balances to CobbleDollars and Impactor accounts when those mods are installed.
+- `cobeco` mirrors balances to CobbleDollars and Impactor accounts when those mods are installed, and bridges their API transactions into CobEco.
 - `cobbledollars`: Cobblemon Economy `balance` operations use CobbleDollars player balance (online players).
 - `impactor`: Cobblemon Economy `balance` operations use Impactor primary account balance.
 
