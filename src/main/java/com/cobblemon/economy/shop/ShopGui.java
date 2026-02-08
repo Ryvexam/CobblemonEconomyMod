@@ -508,6 +508,14 @@ public class ShopGui {
                             resolved.definition.buyLimit,
                             resolved.definition.buyCooldownMinutes
                     );
+                } else if (isSell && resolved.definition.sellLimit != null && resolved.definition.sellLimit > 0) {
+                    limitStatus = CobblemonEconomy.getEconomyManager().getSellLimitStatus(
+                            player.getUUID(),
+                            shopId,
+                            resolved.definition.id,
+                            resolved.definition.sellLimit,
+                            resolved.definition.sellCooldownMinutes
+                    );
                 }
 
                 GuiElementBuilder elementBuilder = new GuiElementBuilder(displayStack)
@@ -521,7 +529,7 @@ public class ShopGui {
                     elementBuilder.addLoreLine(Component.translatable(
                                     "cobblemon-economy.shop.limit_status",
                                     limitStatus.remaining,
-                                    resolved.definition.buyLimit
+                                    isSell ? resolved.definition.sellLimit : resolved.definition.buyLimit
                             ).withStyle(ChatFormatting.GRAY));
                     if (limitStatus.resetAtMillis > 0) {
                         long remainingMs = Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis());
@@ -544,7 +552,7 @@ public class ShopGui {
                             player.playSound(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 0.5f, 1.2f);
                         } else {
                             if (isSell) {
-                                handleSell(player, resolved, isPco, type.isRight);
+                                handleSell(player, resolved, isPco, type.isRight, shopId);
                             } else {
                                 handlePurchase(player, resolved, isPco, shopId);
                             }
@@ -837,7 +845,7 @@ public class ShopGui {
         return minutes + "m";
     }
 
-    private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll) {
+    private static void handleSell(ServerPlayer player, ResolvedItem resolved, boolean isPco, boolean sellAll, String shopId) {
         long profileStart = PerformanceProfiler.start();
         // Command items cannot be sold
         if (resolved.isCommand) {
@@ -871,6 +879,40 @@ public class ShopGui {
             amountToSell = resolved.quantity;
         }
 
+        EconomyManager.PurchaseLimitStatus limitStatus = null;
+        if (resolved.definition.sellLimit != null && resolved.definition.sellLimit > 0) {
+            limitStatus = CobblemonEconomy.getEconomyManager().getSellLimitStatus(
+                    player.getUUID(),
+                    shopId,
+                    resolved.definition.id,
+                    resolved.definition.sellLimit,
+                    resolved.definition.sellCooldownMinutes
+            );
+        }
+
+        if (limitStatus != null && limitStatus.enabled && amountToSell > limitStatus.remaining) {
+            long remainingMs = limitStatus.resetAtMillis > 0 ? Math.max(0, limitStatus.resetAtMillis - System.currentTimeMillis()) : 0;
+            if (limitStatus.remaining <= 0) {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            } else {
+                MutableComponent message = Component.translatable("cobblemon-economy.shop.limit_remaining", limitStatus.remaining)
+                        .withStyle(ChatFormatting.RED);
+                if (remainingMs > 0) {
+                    message = message.append(Component.literal(" "))
+                            .append(Component.translatable("cobblemon-economy.shop.limit_resets_in", formatDuration(remainingMs))
+                                    .withStyle(ChatFormatting.GRAY));
+                }
+                player.sendSystemMessage(message);
+            }
+            return;
+        }
+
         ItemStack toRemove = resolved.templateStack.copy();
         toRemove.setCount(amountToSell);
 
@@ -882,6 +924,31 @@ public class ShopGui {
         BigDecimal totalPrice = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(amountToSell));
         if (isPco) CobblemonEconomy.getEconomyManager().addPco(player.getUUID(), totalPrice);
         else CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), totalPrice);
+
+        if (limitStatus != null && limitStatus.enabled) {
+            boolean consumed = CobblemonEconomy.getEconomyManager().consumeSellLimit(
+                    player.getUUID(),
+                    shopId,
+                    resolved.definition.id,
+                    amountToSell,
+                    resolved.definition.sellLimit,
+                    resolved.definition.sellCooldownMinutes
+            );
+            if (!consumed) {
+                if (isPco) {
+                    CobblemonEconomy.getEconomyManager().subtractPco(player.getUUID(), totalPrice);
+                } else {
+                    CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), totalPrice);
+                }
+                ItemStack refundStack = resolved.templateStack.copy();
+                refundStack.setCount(amountToSell);
+                if (!player.getInventory().add(refundStack)) {
+                    player.drop(refundStack, false);
+                }
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED));
+                return;
+            }
+        }
         
         player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.sell_success", amountToSell, resolved.name, totalPrice, (isPco ? " PCo" : "₽")).withStyle(ChatFormatting.GREEN));
         player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);

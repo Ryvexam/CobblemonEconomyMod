@@ -99,6 +99,11 @@ public class CobblemonEconomy implements ModInitializer {
             LOGGER.info("Cobblemon Economy (Server Init) - DONE");
         });
 
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            CobblemonListeners.resetListeners();
+            LOGGER.info("Cobblemon Economy (Server Stop) - Listeners reset");
+        });
+
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> EconomyCommands.register(dispatcher));
 
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {

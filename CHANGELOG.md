@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.15] - 2026-02-01
+## [0.0.15] - 2026-02-03
 
 ### Added
 - **Command Execution Items:** New item type that executes commands instead of giving items.
@@ -15,20 +15,23 @@ All notable changes to this project will be documented in this file.
     - `enchantEffect` - Boolean to add enchantment glint
   - Supports all existing features: buy limits, cooldowns, both currencies.
   - Cannot be sold back to shops (virtual items).
+- **Sell limits:** Per-item sell limits with optional cooldowns, plus UI display of remaining quota.
 
 ### Changed
 - **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.
 - **Config Format:** Generated configs now show `type` field for all items, making the format self-documenting.
 
 ### Fixed
+- **Duplicate Event Listeners on World Rejoin:** Fixed a critical bug where players could receive multiple rewards when rejoining a world without restarting the game.
+  - Event listeners are now properly tracked and only registered once per server session.
+  - Added automatic cleanup of listeners when the server stops (world disconnect).
+  - Prevents exploit where players could farm unlimited capture/battle rewards by repeatedly leaving and rejoining worlds.
+
 - **Capture Rewards for Shiny/Radiant:** Fixed potential issue where capture multipliers could be null in malformed configs.
   - Added validation to ensure `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are never null.
   - Added debug logging to help diagnose capture reward issues.
   - Added null check for species labels to prevent NPE.
 
-## [0.0.16] - 2026-02-01
-
-### Added
 - **Fossil Revival Rewards:** Shiny, radiant, legendary, and paradox Pokémon revived from fossils now give rewards!
   - Uses same reward system as captures (base reward × multipliers).
   - Special messages for shiny/radiant/legendary/paradox fossil revivals.

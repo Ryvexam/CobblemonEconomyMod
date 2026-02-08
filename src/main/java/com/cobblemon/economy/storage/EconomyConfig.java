@@ -20,6 +20,7 @@ public class EconomyConfig {
     public BigDecimal startingBalance = new BigDecimal(1000);
     public BigDecimal startingPco = new BigDecimal(0);
     public BigDecimal battleVictoryReward = new BigDecimal(100);
+    public BigDecimal raidDenVictoryReward = null;
     public BigDecimal captureReward = null;
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
@@ -63,6 +64,8 @@ public class EconomyConfig {
         public Map<String, String> components;
         public Integer buyLimit;
         public Integer buyCooldownMinutes;
+        public Integer sellLimit;
+        public Integer sellCooldownMinutes;
         public String command; // Command to execute when type is "command"
         public DisplayItemDefinition displayItem; // Custom display item when type is "command"
 
@@ -76,6 +79,8 @@ public class EconomyConfig {
             this.components = null;
             this.buyLimit = null;
             this.buyCooldownMinutes = null;
+            this.sellLimit = null;
+            this.sellCooldownMinutes = null;
             this.command = null;
             this.displayItem = null;
         }
@@ -110,6 +115,14 @@ public class EconomyConfig {
         }
 
         config.captureMilestones = loadMilestones(gson, milestoneFile);
+
+        if (config.battleVictoryReward == null) {
+            config.battleVictoryReward = new BigDecimal(100);
+        }
+
+        if (config.raidDenVictoryReward == null) {
+            config.raidDenVictoryReward = config.battleVictoryReward;
+        }
 
         if (config.captureReward == null) {
             config.captureReward = config.battleVictoryReward;
