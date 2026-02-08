@@ -1,9 +1,10 @@
 package com.cobblemon.economy.mixin;
 
+import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -13,13 +14,13 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 
-@Pseudo
-@Mixin(targets = "fr.harmex.cobbledollars.common.mixin.PlayerMixin")
+@Mixin(Player.class)
 public abstract class MixinCobbleDollarsPlayer {
 
     private boolean shouldUseCobecoBridge() {
         return CobblemonEconomy.getConfig() != null
                 && "cobeco".equalsIgnoreCase(CobblemonEconomy.getConfig().mainCurrency)
+                && !CompatHandler.isCobbleDollarsBridgeBypassed()
                 && (Object) this instanceof ServerPlayer;
     }
 
