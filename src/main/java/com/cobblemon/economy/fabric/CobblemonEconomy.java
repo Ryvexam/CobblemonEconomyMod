@@ -4,8 +4,12 @@ import com.cobblemon.economy.commands.EconomyCommands;
 import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.events.CobblemonListeners;
+import com.cobblemon.economy.quest.QuestGui;
+import com.cobblemon.economy.quest.QuestManager;
 import com.cobblemon.economy.storage.EconomyConfig;
 import com.cobblemon.economy.storage.EconomyManager;
+import com.cobblemon.economy.storage.QuestConfig;
+import com.cobblemon.economy.storage.QuestNpcConfig;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -45,7 +49,10 @@ public class CobblemonEconomy implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     
     private static EconomyManager economyManager;
+    private static QuestManager questManager;
     private static EconomyConfig config;
+    private static QuestConfig questConfig;
+    private static QuestNpcConfig questNpcConfig;
     private static MinecraftServer gameServer;
     private static File modDirectory;
 
@@ -93,8 +100,11 @@ public class CobblemonEconomy implements ModInitializer {
             File skinsDir = new File(modDirectory, "skins");
             if (!skinsDir.exists()) skinsDir.mkdirs();
 
-            config = EconomyConfig.load(new File(modDirectory, "config.json"));
+            config = EconomyConfig.load(new File(modDirectory, "config.json"), new File(modDirectory, "shops.json"));
+            questConfig = QuestConfig.load(new File(modDirectory, "quests.json"));
+            questNpcConfig = QuestNpcConfig.load(new File(modDirectory, "quest_npcs.json"));
             economyManager = new EconomyManager(new File(modDirectory, "economy.db"));
+            questManager = new QuestManager(new File(modDirectory, "quests.db"));
             
             CobblemonListeners.register();
             LOGGER.info("Cobblemon Economy (Server Init) - DONE");
@@ -150,11 +160,42 @@ public class CobblemonEconomy implements ModInitializer {
                         EconomyConfig.ShopDefinition shopDef = config.shops.get(shopId);
                         if (shopDef != null) {
                             shopkeeper.setShopId(shopId);
+                            shopkeeper.setNpcRole("SHOP");
+                            shopkeeper.setQuestNpcId("");
                             if (shopDef.skin != null && !shopDef.skin.isEmpty()) {
                                 shopkeeper.setSkinName(shopDef.skin);
                             }
                             
                             player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN));
+                            if (!player.getAbilities().instabuild) {
+                                stack.shrink(1);
+                                if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
+                            }
+                            return InteractionResult.SUCCESS;
+                        }
+                    }
+                }
+
+                if (stack.is(Items.ENCHANTED_BOOK)) {
+                    net.minecraft.world.item.component.CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+                    String questNpcId = null;
+
+                    if (customData != null && customData.contains("QuestNpcSetterId")) {
+                        questNpcId = customData.copyTag().getString("QuestNpcSetterId");
+                    }
+
+                    if (questNpcId != null) {
+                        QuestNpcConfig.QuestNpcDefinition npcDefinition = questNpcConfig != null ? questNpcConfig.questNpcs.get(questNpcId) : null;
+                        if (npcDefinition != null) {
+                            shopkeeper.setNpcRole("QUEST");
+                            shopkeeper.setQuestNpcId(questNpcId);
+                            if (npcDefinition.skin != null && !npcDefinition.skin.isBlank()) {
+                                shopkeeper.setSkinName(npcDefinition.skin);
+                            }
+                            if (npcDefinition.displayName != null && !npcDefinition.displayName.isBlank()) {
+                                shopkeeper.setCustomName(Component.literal(npcDefinition.displayName).withStyle(ChatFormatting.YELLOW));
+                            }
+                            player.sendSystemMessage(Component.translatable("cobblemon-economy.notification.quest_npc_set", questNpcId).withStyle(ChatFormatting.GREEN));
                             if (!player.getAbilities().instabuild) {
                                 stack.shrink(1);
                                 if (player instanceof ServerPlayer sp) sp.containerMenu.broadcastChanges();
@@ -213,7 +254,11 @@ public class CobblemonEconomy implements ModInitializer {
             }
 
             if (player instanceof ServerPlayer serverPlayer && !player.isShiftKeyDown()) {
-                com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
+                if (shopkeeper.isQuestNpc() && shopkeeper.getQuestNpcId() != null && !shopkeeper.getQuestNpcId().isBlank()) {
+                    QuestGui.open(serverPlayer, shopkeeper);
+                } else {
+                    com.cobblemon.economy.shop.ShopGui.open(serverPlayer, shopkeeper.getShopId());
+                }
                 return InteractionResult.SUCCESS;
             }
 
@@ -225,12 +270,17 @@ public class CobblemonEconomy implements ModInitializer {
 
     public static void reloadConfig() {
         if (modDirectory != null) {
-            config = EconomyConfig.load(new File(modDirectory, "config.json"));
+            config = EconomyConfig.load(new File(modDirectory, "config.json"), new File(modDirectory, "shops.json"));
+            questConfig = QuestConfig.load(new File(modDirectory, "quests.json"));
+            questNpcConfig = QuestNpcConfig.load(new File(modDirectory, "quest_npcs.json"));
         }
     }
 
     public static EconomyManager getEconomyManager() { return economyManager; }
+    public static QuestManager getQuestManager() { return questManager; }
     public static EconomyConfig getConfig() { return config; }
+    public static QuestConfig getQuestConfig() { return questConfig; }
+    public static QuestNpcConfig getQuestNpcConfig() { return questNpcConfig; }
     public static MinecraftServer getGameServer() { return gameServer; }
     public static File getModDirectory() { return modDirectory; }
 }

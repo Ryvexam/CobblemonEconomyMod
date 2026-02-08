@@ -3,6 +3,8 @@ package com.cobblemon.economy.commands;
 import com.cobblemon.economy.compat.CompatHandler;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyConfig;
+import com.cobblemon.economy.storage.QuestConfig;
+import com.cobblemon.economy.storage.QuestNpcConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -83,7 +85,15 @@ public class EconomyCommands {
                 .then(Commands.literal("get")
                     .then(Commands.argument("id", StringArgumentType.string())
                         .suggests(EconomyCommands::suggestShopIds)
-                        .executes(EconomyCommands::giveShopSetter)))));
+                        .executes(EconomyCommands::giveShopSetter))))
+            .then(Commands.literal("quest")
+                .then(Commands.literal("list").executes(EconomyCommands::listQuests)))
+            .then(Commands.literal("questnpc")
+                .then(Commands.literal("list").executes(EconomyCommands::listQuestNpcs))
+                .then(Commands.literal("get")
+                    .then(Commands.argument("id", StringArgumentType.string())
+                        .suggests(EconomyCommands::suggestQuestNpcIds)
+                        .executes(EconomyCommands::giveQuestNpcSetter)))));
     }
 
     private static CompletableFuture<Suggestions> suggestShopIds(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
@@ -107,6 +117,14 @@ public class EconomyCommands {
         // Also suggest default "shopkeeper"
         skins.add("shopkeeper");
         return SharedSuggestionProvider.suggest(skins, builder);
+    }
+
+    private static CompletableFuture<Suggestions> suggestQuestNpcIds(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        QuestNpcConfig config = CobblemonEconomy.getQuestNpcConfig();
+        if (config == null || config.questNpcs == null) {
+            return Suggestions.empty();
+        }
+        return SharedSuggestionProvider.suggest(config.questNpcs.keySet(), builder);
     }
 
     private static int giveSkinSetter(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -155,6 +173,32 @@ public class EconomyCommands {
         
         player.getInventory().add(stack);
         ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.notification.shopkeeper_set", shopId).withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int giveQuestNpcSetter(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        String npcId = StringArgumentType.getString(ctx, "id");
+        QuestNpcConfig config = CobblemonEconomy.getQuestNpcConfig();
+        if (config == null || config.questNpcs == null || !config.questNpcs.containsKey(npcId)) {
+            ctx.getSource().sendFailure(Component.translatable("cobblemon-economy.command.quest_npc.unknown", npcId));
+            return 0;
+        }
+
+        ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
+        stack.set(DataComponents.CUSTOM_NAME, Component.translatable("cobblemon-economy.item.quest_npc_setter.name", npcId).withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+        tag.putString("QuestNpcSetterId", npcId);
+        stack.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+
+        stack.set(DataComponents.LORE, new ItemLore(List.of(
+                Component.translatable("cobblemon-economy.item.quest_npc_setter.lore1").withStyle(ChatFormatting.GRAY),
+                Component.translatable("cobblemon-economy.item.quest_npc_setter.lore2", npcId).withStyle(ChatFormatting.GRAY)
+        )));
+
+        player.getInventory().add(stack);
+        ctx.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.notification.quest_npc_set", npcId).withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
@@ -225,6 +269,9 @@ public class EconomyCommands {
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.reload").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.shop_list").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.shop_get").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.quest_list").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.questnpc_list").withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.questnpc_get").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.skin").withStyle(ChatFormatting.GRAY), false);
             source.sendSuccess(() -> Component.translatable("cobblemon-economy.command.help.item").withStyle(ChatFormatting.GRAY), false);
         }
@@ -235,6 +282,32 @@ public class EconomyCommands {
         Map<String, EconomyConfig.ShopDefinition> shops = CobblemonEconomy.getConfig().shops;
         context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.shop.list_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
         for (String id : shops.keySet()) {
+            context.getSource().sendSuccess(() -> Component.literal("- " + id).withStyle(ChatFormatting.YELLOW), false);
+        }
+        return 1;
+    }
+
+    private static int listQuests(CommandContext<CommandSourceStack> context) {
+        QuestConfig config = CobblemonEconomy.getQuestConfig();
+        context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.quest.list_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        if (config == null || config.quests == null || config.quests.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.quest.empty").withStyle(ChatFormatting.GRAY), false);
+            return 1;
+        }
+        for (String id : config.quests.keySet()) {
+            context.getSource().sendSuccess(() -> Component.literal("- " + id).withStyle(ChatFormatting.YELLOW), false);
+        }
+        return 1;
+    }
+
+    private static int listQuestNpcs(CommandContext<CommandSourceStack> context) {
+        QuestNpcConfig config = CobblemonEconomy.getQuestNpcConfig();
+        context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.quest_npc.list_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        if (config == null || config.questNpcs == null || config.questNpcs.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.quest_npc.empty").withStyle(ChatFormatting.GRAY), false);
+            return 1;
+        }
+        for (String id : config.questNpcs.keySet()) {
             context.getSource().sendSuccess(() -> Component.literal("- " + id).withStyle(ChatFormatting.YELLOW), false);
         }
         return 1;

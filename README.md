@@ -34,6 +34,9 @@ Admin (permission level 2):
 - `/eco reload`
 - `/eco shop list`
 - `/eco shop get <id>`
+- `/eco quest list`
+- `/eco questnpc list`
+- `/eco questnpc get <id>`
 - `/eco skin <name>`
 - `/eco item`
 - `/balance <player> <add|remove|set> <amount>`
@@ -41,7 +44,12 @@ Admin (permission level 2):
 
 ## Configuration
 Config path: `world/config/cobblemon-economy/config.json`
+Shops path: `world/config/cobblemon-economy/shops.json`
 Milestones path: `world/config/cobblemon-economy/milestone.json`
+Quests path: `world/config/cobblemon-economy/quests.json`
+Quest NPCs path: `world/config/cobblemon-economy/quest_npcs.json`
+
+Legacy compatibility: if `shops.json` is missing, shops are still loaded from `config.json` and migrated automatically.
 
 Milestone rules:
 - File missing: defaults are generated.
