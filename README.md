@@ -59,6 +59,7 @@ Global settings:
 - `captureReward` (defaults to `battleVictoryReward` if missing)
 - `newDiscoveryReward`
 - `battleVictoryPcoReward`
+- `battleTowerCompletionPcoBonus` (small extra PCO reward on Battle Tower wins)
 - `shinyMultiplier`
 - `legendaryMultiplier`
 - `paradoxMultiplier`

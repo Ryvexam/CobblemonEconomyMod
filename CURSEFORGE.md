@@ -3,9 +3,18 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-3C8527?logo=minecraft&logoColor=white)](https://www.minecraft.net/)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Support-5865F2?logo=discord&logoColor=white)](https://discord.gg/zxZXcaTHwe)
+[![Economy Bridge](https://img.shields.io/badge/Bridge-CobbleDollars%20%2B%20Impactor-1F8B4C)](#main-currency-modes)
+[![Server Ready](https://img.shields.io/badge/Use%20Case-Cobblemon%20Servers-2D7D9A)](#what-you-get)
 
-Cobblemon Economy is a complete economy + shop system for Cobblemon servers.
-It provides NPC shops, dual currencies, reward events, cross-economy bridges (CobbleDollars/Impactor), and a per-world config workflow.
+Cobblemon Economy is the all-in-one economy core for Cobblemon servers.
+It gives you modern NPC shops, dual currencies, reward systems, and most importantly a compatibility bridge so you can keep mod compatibility while still using CobEco as your main economy.
+
+## Why Cobblemon Economy
+- One economy core for your server instead of fragmented balances.
+- Bridge support for CobbleDollars and Impactor, so many existing economy-dependent mods keep working.
+- Main-currency switch with per-world config (`cobeco`, `cobbledollars`, `impactor`).
+- PvE progression rewards (capture, battle, raid dens, battle tower).
+- Production-friendly: JSON config, hot reload tools, SQLite persistence.
 
 ## Discord (Support)
 **Join here:** https://discord.gg/zxZXcaTHwe
@@ -16,8 +25,9 @@ It provides NPC shops, dual currencies, reward events, cross-economy bridges (Co
 - Command-based shop items (sell commands, not only items)
 - Capture/discovery/battle rewards + multipliers
 - Raid Dens reward compatibility
-- Cross-economy conversion commands
-- Switchable main backend: `cobeco`, `cobbledollars`, `impactor`
+- Battle Tower PCO rewards + completion bonus
+- Cross-economy bridge + conversion support
+- Switchable main backend: `cobeco`, `cobbledollars`, `impactor` (per world)
 
 ## Installation
 1. Put `cobblemon-economy-0.0.15.jar` in `mods/`.
@@ -76,9 +86,11 @@ Valid values:
 - `impactor`
 
 Behavior:
-- `cobeco`: CobEco DB is authoritative; balances are mirrored to CobbleDollars and Impactor when present; API bridge support is enabled.
+- `cobeco`: CobEco DB is authoritative; balances are mirrored to CobbleDollars and Impactor when present, and bridge hooks keep external transactions synced back into CobEco.
 - `cobbledollars`: CobEco balance operations route to CobbleDollars.
 - `impactor`: CobEco balance operations route to Impactor primary currency.
+
+In practice: you can choose CobEco as your main economy and still keep broad compatibility with mods that expect CobbleDollars/Impactor-style flows.
 
 ## Conversions
 Rates in `config.json`:
@@ -96,6 +108,7 @@ Main reward keys:
 - `captureReward`
 - `newDiscoveryReward`
 - `battleVictoryPcoReward`
+- `battleTowerCompletionPcoBonus`
 
 Multipliers:
 - `shinyMultiplier`
@@ -144,8 +157,8 @@ Example:
 ```
 
 ## Integrations
-- CobbleDollars (bridge + conversion)
-- Impactor (bridge + conversion)
+- CobbleDollars (bridge + conversion, transaction sync support)
+- Impactor (bridge + conversion, transaction sync support)
 - Cobblemon Raid Dens (raid win rewards)
 - Star Academy (optional)
 - Placeholder API (optional)

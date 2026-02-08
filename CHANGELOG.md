@@ -5,34 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [0.0.15] - 2026-02-03
 
 ### Added
-- **Command Execution Items:** New item type that executes commands instead of giving items.
-  - Use `type: "command"` in shop item definitions.
-  - `command` field supports `%player%` placeholder (replaced with buyer's username).
-  - Commands execute with OP permission level 4.
-  - `displayItem` configuration for custom visual appearance:
-    - `material` - Item ID to display (e.g., "supplementaries:key")
-    - `displayname` - Custom name shown in shop GUI
-    - `enchantEffect` - Boolean to add enchantment glint
-  - Supports all existing features: buy limits, cooldowns, both currencies.
-  - Cannot be sold back to shops (virtual items).
 - **Sell limits:** Per-item sell limits with optional cooldowns, plus UI display of remaining quota.
 - **Raid Dens Integration:** Direct raid reward support through `RaidEvents` with per-player raid win payouts.
-- **Cross-Economy Conversion Commands:**
-  - `/convertcobbledollars <amount|all>`
-  - `/convertimpactor <amount|all>`
-  - Configurable conversion rates: `cobbleDollarsToPokedollarsRate`, `impactorToPokedollarsRate`
+- **Battle Tower Bonus:** Added `battleTowerCompletionPcoBonus` for a small extra PCO reward on Battle Tower wins.
 - **Main Currency Backend Switch:** New optional `main_currency` config (`cobeco`, `cobbledollars`, `impactor`).
   - `cobeco`: Cobblemon Economy balance is authoritative.
   - `cobbledollars`: Cobblemon Economy balance operations route to CobbleDollars.
   - `impactor`: Cobblemon Economy balance operations route to Impactor.
+- **Cross-Economy Sync/Bridge:** When `main_currency: cobeco`, transactions going through CobbleDollars or Impactor APIs are synced back into Cobblemon Economy, so compatible mods continue working without economy desync.
 - **External Balance Mirroring in `cobeco` mode:** CobEco balance is mirrored to CobbleDollars and Impactor (when installed), including on player join.
 - **Bridge Mixins for External Economy APIs (optional):**
   - CobbleDollars API calls can be redirected to CobEco when `main_currency: cobeco`.
   - Impactor account API calls can be redirected to CobEco when `main_currency: cobeco`.
-
-### Changed
-- **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.
-- **Config Format:** Generated configs now show `type` field for all items, making the format self-documenting.
 
 ### Fixed
 - **Impactor Bridge Stability:** Reworked Impactor bridge flow to avoid direct `ImpactorAccount` class-target crashes in large modpacks.
@@ -43,21 +27,34 @@ All notable changes to this project will be documented in this file.
   - Added automatic cleanup of listeners when the server stops (world disconnect).
   - Prevents exploit where players could farm unlimited capture/battle rewards by repeatedly leaving and rejoining worlds.
 
-- **Capture Rewards for Shiny/Radiant:** Fixed potential issue where capture multipliers could be null in malformed configs.
-  - Added validation to ensure `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are never null.
-  - Added debug logging to help diagnose capture reward issues.
-  - Added null check for species labels to prevent NPE.
-
-- **Fossil Revival Rewards:** Shiny, radiant, legendary, and paradox Pokémon revived from fossils now give rewards!
-  - Uses same reward system as captures (base reward × multipliers).
-  - Special messages for shiny/radiant/legendary/paradox fossil revivals.
-  - Added new translation keys for fossil events in both English and French.
-
 ## [0.0.14] - 2026-01-31
 
 ### Added
+- **Command Execution Items:** New item type that executes commands instead of giving items.
+  - Use `type: "command"` in shop item definitions.
+  - `command` field supports `%player%` placeholder (replaced with buyer's username).
+  - Commands execute with OP permission level 4.
+  - `displayItem` configuration for custom visual appearance:
+    - `material` - Item ID to display (e.g., "supplementaries:key")
+    - `displayname` - Custom name shown in shop GUI
+    - `enchantEffect` - Boolean to add enchantment glint
+  - Supports all existing features: buy limits, cooldowns, both currencies.
+  - Cannot be sold back to shops (virtual items).
+- **Fossil Revival Rewards:** Shiny, radiant, legendary, and paradox Pokémon revived from fossils now give rewards.
+  - Uses same reward system as captures (base reward × multipliers).
+  - Special messages for shiny/radiant/legendary/paradox fossil revivals.
+  - Added translation keys for fossil events in English and French.
 - **Placeholder API integration:** Exposes player balance and PCO placeholders for tablists/scoreboards (multiple namespaces for compatibility).
 - **Performance profiling:** Optional timing logs for shop rendering, purchases, and database operations.
+
+### Changed
+- **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.
+- **Config Format:** Generated configs now show `type` field for all items, making the format self-documenting.
+
+### Fixed
+- **Capture Rewards for Shiny/Radiant:** Fixed potential null-multiplier edge cases in malformed configs.
+  - Ensures `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are never null.
+  - Added debug logging and label null guards to prevent NPEs.
 
 ## [0.0.13] - 2026-01-28
 
