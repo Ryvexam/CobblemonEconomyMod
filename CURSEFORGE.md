@@ -30,17 +30,39 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
 - Switchable main backend: `cobeco`, `cobbledollars`, `impactor` (per world)
 
 ## Installation
-1. Put `cobblemon-economy-0.0.15.jar` in `mods/`.
+1. Put `cobblemon-economy-0.0.16.jar` in `mods/`.
 2. Start the server once.
 3. Edit `world/config/cobblemon-economy/config.json`.
 4. Restart server (or `/eco reload` for config-only edits).
 
 ## File Layout (Per World)
 - `world/config/cobblemon-economy/config.json`
+- `world/config/cobblemon-economy/shops.json`
+- `world/config/cobblemon-economy/quests.json`
+- `world/config/cobblemon-economy/quest_npcs.json`
 - `world/config/cobblemon-economy/milestone.json`
+- `world/config/cobblemon-economy/economy.db`
+- `world/config/cobblemon-economy/quests.db`
 - `world/config/cobblemon-economy/skins/*.png`
 
 `main_currency` is also **per-world** because it lives in this world config folder.
+
+### How Each Config Works
+- `config.json`
+  - Global economy behavior (currencies, rewards, multipliers, profiling).
+  - Does **not** need to contain shops anymore.
+- `shops.json`
+  - All shop definitions (`title`, `currency`, `items`, limits, linked shops, etc.).
+  - **Backward compatibility:** if this file is missing, the mod loads legacy `config.json.shops` and auto-creates `shops.json`.
+- `quests.json`
+  - Quest definitions and objectives.
+  - Supports capture filters (species, type, ball, dimension, shiny) plus event objectives (`battle_win`, `raid_win`, `tower_win`).
+  - Supports rewards (`pokedollars`, `pco`, optional command list).
+- `quest_npcs.json`
+  - Quest NPC definitions (display name, skin, dialogue lines, quest pool, max active quests).
+  - One NPC can offer a list of multiple quests via `questPool`.
+- `milestone.json`
+  - Unique-capture milestone rewards.
 
 ## Quick Start (5 Minutes)
 1. Start server once to generate defaults.
@@ -66,6 +88,9 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
 - `/eco reload`
 - `/eco shop list`
 - `/eco shop get <id>`
+- `/eco quest list`
+- `/eco questnpc list`
+- `/eco questnpc get <id>`
 - `/eco skin <name>`
 - `/eco item`
 - `/balance <player> <add|remove|set> <amount>`
@@ -91,15 +116,6 @@ Behavior:
 - `impactor`: CobEco balance operations route to Impactor primary currency.
 
 In practice: you can choose CobEco as your main economy and still keep broad compatibility with mods that expect CobbleDollars/Impactor-style flows.
-
-## Conversions
-Rates in `config.json`:
-- `cobbleDollarsToPokedollarsRate`
-- `impactorToPokedollarsRate`
-
-Examples:
-- `/convertcobbledollars all`
-- `/convertimpactor 250`
 
 ## Rewards
 Main reward keys:
@@ -160,6 +176,7 @@ Example:
 - CobbleDollars (bridge + conversion, transaction sync support)
 - Impactor (bridge + conversion, transaction sync support)
 - Cobblemon Raid Dens (raid win rewards)
+- Cobblemon Battle Tower (PCO rewards on tower wins + completion bonus)
 - Star Academy (optional)
 - Placeholder API (optional)
 - YAWP (optional)

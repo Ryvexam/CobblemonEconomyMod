@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.16] - 2026-02-08
+
+### Added
+- **Quest NPC System:** Added configurable quest NPC behavior on the existing `shopkeeper` entity (no duplicate entity type).
+  - NPC role modes: `SHOP` and `QUEST`.
+  - New admin tools/commands: `/eco quest list`, `/eco questnpc list`, `/eco questnpc get <id>`.
+  - New quest GUI flow with accept/progress/claim states and dialogue lines.
+- **Quest Configs:** Added per-world quest files:
+  - `quests.json` for quest definitions/objectives/rewards.
+  - `quest_npcs.json` for quest NPC definitions (name, skin, dialogue, quest pool, max active).
+- **Quest Progression Tracking:** New SQLite persistence (`quests.db`) for per-player quest state and objective progress.
+- **Default Quest Content:** Added a large default quest pack including:
+  - Capture by type/species/dimension/shiny.
+  - Capture with specific balls.
+  - Capture specific species with specific balls.
+  - Label-based targets (radiant/paradox/legendary/mythical).
+  - Battle win, raid win, and tower win objectives.
+
+### Changed
+- **Config Split for Shops:** Added `shops.json` support while keeping economy/global settings in `config.json`.
+- **Automatic Migration:** If `shops.json` is missing, shops are loaded from legacy `config.json` and written to `shops.json` automatically.
+
+### Compatibility
+- **Backward Compatible:** Existing worlds/configs continue to work:
+  - Legacy `config.json` shop definitions are still supported.
+  - Existing NPCs default to `SHOP` role unless explicitly assigned as quest NPCs.
+
 ## [0.0.15] - 2026-02-03
 
 ### Added

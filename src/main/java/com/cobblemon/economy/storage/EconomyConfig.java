@@ -100,9 +100,14 @@ public class EconomyConfig {
     }
 
     public static EconomyConfig load(File configFile) {
+        return load(configFile, null);
+    }
+
+    public static EconomyConfig load(File configFile, File shopsFile) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         EconomyConfig config = null;
         boolean isNewConfig = !configFile.exists();
+        boolean shopsDirty = false;
         File milestoneFile = new File(configFile.getParentFile(), "milestone.json");
 
         if (configFile.exists()) {
@@ -117,9 +122,20 @@ public class EconomyConfig {
             config = new EconomyConfig();
         }
 
-        if (config.shops == null) {
-            config.shops = new HashMap<>();
+        Map<String, ShopDefinition> loadedShops = null;
+        if (shopsFile != null) {
+            loadedShops = loadShops(gson, shopsFile);
         }
+        if ((loadedShops == null || loadedShops.isEmpty()) && config.shops != null && !config.shops.isEmpty()) {
+            loadedShops = new HashMap<>(config.shops);
+            if (shopsFile != null && !shopsFile.exists()) {
+                shopsDirty = true;
+            }
+        }
+        if (loadedShops == null) {
+            loadedShops = new HashMap<>();
+        }
+        config.shops = loadedShops;
 
         config.captureMilestones = loadMilestones(gson, milestoneFile);
 
@@ -181,14 +197,19 @@ public class EconomyConfig {
             ShopDefinition shop = entry.getValue();
             if (shop.items == null) {
                 shop.items = new ArrayList<>();
+                shopsDirty = true;
             }
+            int beforeSize = shop.items.size();
             shop.items.removeIf(item -> item == null || item.id == null);
+            if (shop.items.size() != beforeSize) {
+                shopsDirty = true;
+            }
         }
 
         // --- Add defaults ONLY if it's a fresh install ---
-        boolean modified = false;
+        boolean modified = isNewConfig;
 
-        if (isNewConfig) {
+        if (config.shops.isEmpty()) {
             // 1. General Shop
             ShopDefinition defaultPoke = new ShopDefinition();
             defaultPoke.title = "GENERAL SHOP";
@@ -421,6 +442,7 @@ public class EconomyConfig {
             */
 
             modified = true;
+            shopsDirty = true;
         }
 
         // Save if modified
@@ -432,7 +454,46 @@ public class EconomyConfig {
             }
         }
 
+        if (shopsFile != null && (!shopsFile.exists() || shopsDirty)) {
+            saveShops(gson, shopsFile, config.shops);
+        }
+
         return config;
+    }
+
+    private static class ShopsFileModel {
+        Map<String, ShopDefinition> shops = new HashMap<>();
+    }
+
+    private static Map<String, ShopDefinition> loadShops(Gson gson, File shopsFile) {
+        if (shopsFile == null || !shopsFile.exists()) {
+            return null;
+        }
+
+        try (FileReader reader = new FileReader(shopsFile)) {
+            ShopsFileModel wrapped = gson.fromJson(reader, ShopsFileModel.class);
+            if (wrapped != null && wrapped.shops != null && !wrapped.shops.isEmpty()) {
+                return wrapped.shops;
+            }
+        } catch (Exception ignored) {
+        }
+
+        try (FileReader reader = new FileReader(shopsFile)) {
+            return gson.fromJson(reader, new TypeToken<Map<String, ShopDefinition>>() {}.getType());
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.error("Failed to load shops config", e);
+            return null;
+        }
+    }
+
+    private static void saveShops(Gson gson, File shopsFile, Map<String, ShopDefinition> shops) {
+        ShopsFileModel model = new ShopsFileModel();
+        model.shops = shops == null ? new HashMap<>() : shops;
+        try (FileWriter writer = new FileWriter(shopsFile)) {
+            gson.toJson(model, writer);
+        } catch (IOException e) {
+            CobblemonEconomy.LOGGER.error("Failed to save shops config", e);
+        }
     }
 
     private static Map<String, BigDecimal> loadMilestones(Gson gson, File milestoneFile) {

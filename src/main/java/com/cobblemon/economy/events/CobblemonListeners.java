@@ -8,6 +8,7 @@ import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import com.cobblemon.mod.common.entity.npc.NPCBattleActor;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.quest.QuestService;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
@@ -123,6 +124,7 @@ public class CobblemonListeners {
             Pokemon pokemon = event.getPokemon();
             if (player == null || pokemon == null) return kotlin.Unit.INSTANCE;
             CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
+            QuestService.handleCapture(event);
 
             BigDecimal multiplier = BigDecimal.ONE;
             BigDecimal currentPokemonMult = BigDecimal.ZERO;
@@ -247,6 +249,8 @@ public class CobblemonListeners {
                 if (winner instanceof PlayerBattleActor playerActor) {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
+                        QuestService.handleBattleVictory(player, isRaidDenBattle, isCombatTower);
+
                         if (raidDensApiAvailable && isRaidDenBattle) {
                             continue;
                         }

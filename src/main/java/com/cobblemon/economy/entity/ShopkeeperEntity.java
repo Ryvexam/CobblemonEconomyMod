@@ -25,6 +25,8 @@ import net.minecraft.world.entity.player.Player;
 
 public class ShopkeeperEntity extends PathfinderMob {
     private String shopId = "default_poke";
+    private String npcRole = "SHOP";
+    private String questNpcId = "";
     private static final EntityDataAccessor<String> SKIN_NAME = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
 
     public ShopkeeperEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
@@ -138,10 +140,32 @@ public class ShopkeeperEntity extends PathfinderMob {
         this.shopId = shopId;
     }
 
+    public String getNpcRole() {
+        return npcRole;
+    }
+
+    public void setNpcRole(String npcRole) {
+        this.npcRole = npcRole == null || npcRole.isBlank() ? "SHOP" : npcRole.toUpperCase();
+    }
+
+    public boolean isQuestNpc() {
+        return "QUEST".equalsIgnoreCase(npcRole);
+    }
+
+    public String getQuestNpcId() {
+        return questNpcId;
+    }
+
+    public void setQuestNpcId(String questNpcId) {
+        this.questNpcId = questNpcId == null ? "" : questNpcId;
+    }
+
     @Override
     public void addAdditionalSaveData(CompoundTag nbt) {
         super.addAdditionalSaveData(nbt);
         nbt.putString("ShopId", shopId);
+        nbt.putString("NpcRole", npcRole);
+        nbt.putString("QuestNpcId", questNpcId);
         nbt.putString("SkinName", getSkinName());
     }
 
@@ -150,6 +174,12 @@ public class ShopkeeperEntity extends PathfinderMob {
         super.readAdditionalSaveData(nbt);
         if (nbt.contains("ShopId")) {
             this.shopId = nbt.getString("ShopId");
+        }
+        if (nbt.contains("NpcRole")) {
+            setNpcRole(nbt.getString("NpcRole"));
+        }
+        if (nbt.contains("QuestNpcId")) {
+            setQuestNpcId(nbt.getString("QuestNpcId"));
         }
         if (nbt.contains("SkinName")) {
             setSkinName(nbt.getString("SkinName"));
