@@ -6,11 +6,13 @@ import net.minecraft.world.entity.Entity;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class CompatHandler {
     private static boolean isYawpLoaded = false;
     private static boolean hasCobbleDollarsCompat = false;
     private static boolean hasImpactorCompat = false;
+    private static final ThreadLocal<Boolean> cobbleDollarsBridgeBypass = ThreadLocal.withInitial(() -> false);
 
     public static void init() {
         if (FabricLoader.getInstance().isModLoaded("yawp")) {
@@ -105,5 +107,19 @@ public class CompatHandler {
 
     public static boolean setImpactorBalance(UUID uuid, BigDecimal amount) {
         return com.cobblemon.economy.compat.impactor.ImpactorIntegration.setBalance(uuid, amount);
+    }
+
+    public static boolean isCobbleDollarsBridgeBypassed() {
+        return cobbleDollarsBridgeBypass.get();
+    }
+
+    public static <T> T withCobbleDollarsBridgeBypass(Supplier<T> action) {
+        boolean previous = cobbleDollarsBridgeBypass.get();
+        cobbleDollarsBridgeBypass.set(true);
+        try {
+            return action.get();
+        } finally {
+            cobbleDollarsBridgeBypass.set(previous);
+        }
     }
 }

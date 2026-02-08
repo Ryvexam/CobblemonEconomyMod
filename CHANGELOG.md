@@ -25,9 +25,9 @@ All notable changes to this project will be documented in this file.
   - `cobeco`: Cobblemon Economy balance is authoritative.
   - `cobbledollars`: Cobblemon Economy balance operations route to CobbleDollars.
   - `impactor`: Cobblemon Economy balance operations route to Impactor.
+- **External Balance Mirroring in `cobeco` mode:** CobEco balance is mirrored to CobbleDollars and Impactor (when installed), including on player join.
 - **Bridge Mixins for External Economy APIs (optional):**
   - CobbleDollars API calls can be redirected to CobEco when `main_currency: cobeco`.
-  - Impactor account transactions can be redirected to CobEco when `main_currency: cobeco`.
 
 ### Changed
 - **Default Shop Format:** All default shop items now explicitly use `type: "item"` for clarity.

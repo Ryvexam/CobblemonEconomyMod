@@ -142,9 +142,9 @@ Discord: https://discord.gg/zxZXcaTHwe
 ## Integrations
 - Raid Dens: raid win rewards via `RaidEvents.RAID_END`.
 - CobbleDollars: optional conversion command and backend bridge.
-- Impactor: optional conversion command and backend bridge.
+- Impactor: optional conversion command and backend routing support.
 
 Currency backend behavior (`main_currency`):
-- `cobeco`: Cobblemon Economy is authoritative and bridges CobbleDollars/Impactor transactions back into CobEco.
+- `cobeco`: Cobblemon Economy is authoritative and mirrors balances to CobbleDollars and Impactor when installed.
 - `cobbledollars`: CobEco balance operations route to CobbleDollars balance.
 - `impactor`: CobEco balance operations route to Impactor primary currency.

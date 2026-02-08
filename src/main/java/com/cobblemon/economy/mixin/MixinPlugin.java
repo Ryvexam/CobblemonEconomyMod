@@ -22,8 +22,7 @@ public class MixinPlugin implements IMixinConfigPlugin {
      */
     private static final Map<String, String> OPTIONAL_MIXINS = Map.of(
             "MixinCardGraderNPCEntity", "academy",  // Star Academy integration
-            "MixinCobbleDollarsPlayer", "cobbledollars", // CobbleDollars bridge
-            "MixinImpactorAccount", "impactor" // Impactor bridge
+            "MixinCobbleDollarsPlayer", "cobbledollars" // CobbleDollars bridge
             // Add more optional mixins here: "MixinClassName", "required-mod-id"
     );
 
@@ -45,7 +44,10 @@ public class MixinPlugin implements IMixinConfigPlugin {
 
     @Override public void onLoad(String mixinPackage) {}
     @Override public String getRefMapperConfig() { return null; }
-    @Override public boolean shouldApplyMixin(String targetClassName, String mixinClassName) { return true; }
+    @Override
+    public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        return true;
+    }
     @Override public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) {}
     @Override public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}
     @Override public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {}

@@ -557,6 +557,22 @@ public class EconomyManager {
         return server.getPlayerList().getPlayer(uuid);
     }
 
+    private void syncExternalMirrors(UUID uuid, BigDecimal balance) {
+        if (getMainCurrencyBackend() != MainCurrencyBackend.COBECO) {
+            return;
+        }
+
+        ServerPlayer player = getOnlinePlayer(uuid);
+        if (player != null && CompatHandler.canAccessCobbleDollars(player)) {
+            int converted = balance.max(BigDecimal.ZERO).setScale(0, RoundingMode.DOWN).intValue();
+            CompatHandler.withCobbleDollarsBridgeBypass(() -> CompatHandler.setCobbleDollars(player, converted));
+        }
+
+        if (CompatHandler.hasImpactorCompat()) {
+            CompatHandler.setImpactorBalance(uuid, balance.max(BigDecimal.ZERO));
+        }
+    }
+
     public BigDecimal getBalance(UUID uuid) {
         MainCurrencyBackend backend = getMainCurrencyBackend();
 
@@ -572,7 +588,11 @@ public class EconomyManager {
             }
         }
 
-        return getCurrency(uuid, "balance", CobblemonEconomy.getConfig().startingBalance);
+        BigDecimal balance = getCurrency(uuid, "balance", CobblemonEconomy.getConfig().startingBalance);
+        if (backend == MainCurrencyBackend.COBECO) {
+            syncExternalMirrors(uuid, balance);
+        }
+        return balance;
     }
 
     public BigDecimal getPco(UUID uuid) {
@@ -639,6 +659,9 @@ public class EconomyManager {
         }
         updateCurrency(uuid, "balance", amount);
         EconomyEvents.BALANCE_UPDATE_POST.invoker().handle(uuid, oldBalance, amount, false);
+        if (backend == MainCurrencyBackend.COBECO) {
+            syncExternalMirrors(uuid, amount);
+        }
     }
 
     public void setPco(UUID uuid, BigDecimal amount) {
