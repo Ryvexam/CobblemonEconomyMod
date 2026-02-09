@@ -50,6 +50,38 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
   - Rotation by midnight or every X hours.
   - Cancelled/expired quests can be blocked until next rotation.
 
+## How To Set A Quest NPC (Summon + Bind)
+- Spawn a shopkeeper NPC:
+  - Use the spawn egg `cobblemon-economy:shopkeeper_spawn_egg`, or
+  - Run `/summon cobblemon-economy:shopkeeper`.
+- Check available quest NPC profiles with `/eco questnpc list`.
+- Get a Quest NPC setter item with `/eco questnpc get <id>`.
+- Right-click the spawned shopkeeper with that setter to switch it to `QUEST` role and bind `questNpcId`.
+- Optional: switch the same NPC back to a normal shop with `/eco shop get <shopId>` then right-click.
+
+### Minimal `quest_npcs.json` Example
+```json
+{
+  "quest_npcs": {
+    "safari_guide": {
+      "displayName": "Safari Guide",
+      "skin": "shopkeeper",
+      "maxActive": 2,
+      "visibleQuests": 4,
+      "sharedRotation": true,
+      "rotationMode": "MIDNIGHT",
+      "rotationHours": 24,
+      "questPool": ["safari_water_10", "safari_bug_12"]
+    }
+  }
+}
+```
+
+## Configuration Warning
+- Configuration support is limited.
+- No hand-holding for custom config troubleshooting: test changes incrementally on a staging world/server.
+- If a custom setup fails, validate JSON syntax, quest IDs, npc IDs, and objective keys first.
+
 ## Installation
 1. Put `cobblemon-economy-0.0.16.jar` in `mods/`.
 2. Start the server once.
