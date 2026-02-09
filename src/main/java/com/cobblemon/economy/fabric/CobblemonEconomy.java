@@ -2,6 +2,7 @@ package com.cobblemon.economy.fabric;
 
 import com.cobblemon.economy.commands.EconomyCommands;
 import com.cobblemon.economy.compat.CompatHandler;
+import com.cobblemon.economy.compat.tab.TabIntegration;
 import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.events.CobblemonListeners;
 import com.cobblemon.economy.quest.QuestGui;
@@ -113,6 +114,10 @@ public class CobblemonEconomy implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             CobblemonListeners.resetListeners();
             LOGGER.info("Cobblemon Economy (Server Stop) - Listeners reset");
+        });
+
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            TabIntegration.register();
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {

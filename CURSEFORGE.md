@@ -35,6 +35,12 @@ It gives you modern NPC shops, dual currencies, reward systems, and most importa
 - Per-world quest files with full data-driven behavior:
   - `quests.json`: objectives, rewards, repeatability, cooldowns, prerequisites.
   - `quest_npcs.json`: NPC pool, max active quests, visible board size, rotation strategy.
+- Quest objective coverage includes:
+  - Capture filters (`species`, `type`, `ball`, `dimension`/`dimensions`, shiny, labels).
+  - Progression events (`battle_win`, `raid_win`, `tower_win`, `fossil_revive`).
+- Reward model supports:
+  - Currency rewards (`pokedollars`, `pco`) and optional command rewards per quest.
+  - Prerequisite chains, repeat policies, time limits, and cooldown lockouts.
 - Custom quest board UX:
   - Up to 4 missions visible by default (configurable per NPC).
   - Detailed objective text (species/type/ball/location/shiny/labels).
