@@ -2,22 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.17] - 2026-02-09
-
-### Added
-- **TAB Integration:** Added optional TAB placeholder registration with auto-reload-safe hooks.
-  - New placeholders: `%cobeco_balance%`, `%cobeco_balance_symbol%`, `%cobeco_pco%`, `%cobeco_pco_symbol%`, `%cobeco_unique_captures%`.
-- **Unique Capture Placeholder Support:** Added `unique_captures` support to Placeholder API placeholders.
-  - Reads live Pokedex data when available and persists capture counts for offline display.
-
-### Changed
-- **Placeholder API Compatibility:** Integration now supports both legacy and current PB4 Placeholder API class/package variants.
-- **Placeholder Namespace Focus:** Placeholder registration now targets the `cobeco` namespace for consistency.
-- **Display Formatting:** Balance and PCO placeholders are now rendered as rounded whole numbers.
-
-### Fixed
-- **Capture Count Access:** Exposed unique capture lookup utility for cross-integration reuse.
-
 ## [0.0.16] - 2026-02-08
 
 ### Added
@@ -53,6 +37,9 @@ All notable changes to this project will be documented in this file.
 - **Automatic Migration:** If `shops.json` is missing, shops are loaded from legacy `config.json` and written to `shops.json` automatically.
 - **Quest UI:** Moved to a custom 9x6 board-style layout with focused mission cards and detailed objective wording.
 - **Quest Copy/Localization:** Expanded and polished EN/FR translations for quest statuses, objective details, filters, and system messages.
+- **Placeholder API Compatibility:** Integration now supports both legacy and current PB4 Placeholder API class/package variants.
+- **Placeholder Namespace Focus:** Placeholder registration now targets the `cobeco` namespace for consistency.
+- **Display Formatting:** Balance and PCO placeholders are now rendered as rounded whole numbers.
 
 ### Fixed
 - **Duplicate Capture Rewards:** Added capture reward de-duplication guard for duplicate capture callbacks.
@@ -63,6 +50,10 @@ All notable changes to this project will be documented in this file.
 - **Backward Compatible:** Existing worlds/configs continue to work:
   - Legacy `config.json` shop definitions are still supported.
   - Existing NPCs default to `SHOP` role unless explicitly assigned as quest NPCs.
+- **TAB Integration:** Added optional TAB placeholder registration with auto-reload-safe hooks.
+  - New placeholders: `%cobeco_balance%`, `%cobeco_balance_symbol%`, `%cobeco_pco%`, `%cobeco_pco_symbol%`, `%cobeco_unique_captures%`.
+- **Unique Capture Placeholder Support:** Added `unique_captures` support to Placeholder API placeholders.
+  - Reads live Pokedex data when available and persists capture counts for offline display.
 
 ## [0.0.15] - 2026-02-03
 
