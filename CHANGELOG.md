@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.17] - 2026-02-09
+
+### Added
+- **TAB Integration:** Added optional TAB placeholder registration with auto-reload-safe hooks.
+  - New placeholders: `%cobeco_balance%`, `%cobeco_balance_symbol%`, `%cobeco_pco%`, `%cobeco_pco_symbol%`, `%cobeco_unique_captures%`.
+- **Unique Capture Placeholder Support:** Added `unique_captures` support to Placeholder API placeholders.
+  - Reads live Pokedex data when available and persists capture counts for offline display.
+
+### Changed
+- **Placeholder API Compatibility:** Integration now supports both legacy and current PB4 Placeholder API class/package variants.
+- **Placeholder Namespace Focus:** Placeholder registration now targets the `cobeco` namespace for consistency.
+- **Display Formatting:** Balance and PCO placeholders are now rendered as rounded whole numbers.
+
+### Fixed
+- **Capture Count Access:** Exposed unique capture lookup utility for cross-integration reuse.
+
 ## [0.0.16] - 2026-02-08
 
 ### Added

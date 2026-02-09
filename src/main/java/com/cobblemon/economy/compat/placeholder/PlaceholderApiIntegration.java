@@ -1,5 +1,6 @@
 package com.cobblemon.economy.compat.placeholder;
 
+import com.cobblemon.economy.events.CobblemonListeners;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyManager;
 import net.fabricmc.loader.api.FabricLoader;
@@ -12,20 +13,35 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 public final class PlaceholderApiIntegration {
+    private static final String[] API_CLASS_NAMES = new String[] {
+        "eu.pb4.placeholders.api.Placeholders",
+        "eu.pb4.placeholder.api.PlaceholderApi"
+    };
+
+    private static final String[] HANDLER_CLASS_NAMES = new String[] {
+        "eu.pb4.placeholders.api.PlaceholderHandler",
+        "eu.pb4.placeholder.api.Placeholder"
+    };
+
+    private static final String[] RESULT_CLASS_NAMES = new String[] {
+        "eu.pb4.placeholders.api.PlaceholderResult",
+        "eu.pb4.placeholder.api.PlaceholderResult"
+    };
+
     private static final String[] PLACEHOLDER_NAMESPACES = new String[] {
-        "cobeco",
-        "cobblemon_economy",
-        "cobblemon-economy"
+        "cobeco"
     };
 
     private static final String[] PLACEHOLDERS = new String[] {
         "balance",
         "balance_symbol",
         "pco",
-        "pco_symbol"
+        "pco_symbol",
+        "unique_captures"
     };
 
     private PlaceholderApiIntegration() {
@@ -37,9 +53,14 @@ public final class PlaceholderApiIntegration {
         }
 
         try {
-            Class<?> placeholderApiClass = Class.forName("eu.pb4.placeholder.api.PlaceholderApi");
-            Class<?> placeholderClass = Class.forName("eu.pb4.placeholder.api.Placeholder");
-            Class<?> placeholderResultClass = Class.forName("eu.pb4.placeholder.api.PlaceholderResult");
+            Class<?> placeholderApiClass = loadFirstPresentClass(API_CLASS_NAMES);
+            Class<?> placeholderClass = loadFirstPresentClass(HANDLER_CLASS_NAMES);
+            Class<?> placeholderResultClass = loadFirstPresentClass(RESULT_CLASS_NAMES);
+
+            if (placeholderApiClass == null || placeholderClass == null || placeholderResultClass == null) {
+                CobblemonEconomy.LOGGER.warn("Placeholder API detected but compatible API classes were not found.");
+                return;
+            }
 
             Method registerMethod = findRegisterMethod(placeholderApiClass, placeholderClass);
             if (registerMethod == null) {
@@ -77,6 +98,16 @@ public final class PlaceholderApiIntegration {
             }
             if (params[1].isAssignableFrom(placeholderClass)) {
                 return method;
+            }
+        }
+        return null;
+    }
+
+    private static Class<?> loadFirstPresentClass(String[] classNames) {
+        for (String className : classNames) {
+            try {
+                return Class.forName(className);
+            } catch (ClassNotFoundException ignored) {
             }
         }
         return null;
@@ -156,16 +187,34 @@ public final class PlaceholderApiIntegration {
 
         boolean withSymbol = placeholderId.endsWith("_symbol");
         boolean isPco = placeholderId.startsWith("pco");
+        boolean uniqueCapture = placeholderId.startsWith("unique_capture");
+
+        if (uniqueCapture) {
+            int count = CobblemonListeners.getUniqueCaptureCount(player);
+            if (count >= 0) {
+                manager.setCaptureCount(player.getUUID(), count);
+                return String.valueOf(count);
+            }
+            return String.valueOf(manager.getCaptureCount(player.getUUID()));
+        }
+
         BigDecimal value = isPco
             ? manager.getPco(player.getUUID())
             : manager.getBalance(player.getUUID());
 
-        String base = value.stripTrailingZeros().toPlainString();
+        String base = formatWholeNumber(value);
         if (!withSymbol) {
             return base;
         }
 
         return isPco ? base + " PCo" : base + "₽";
+    }
+
+    private static String formatWholeNumber(BigDecimal value) {
+        if (value == null) {
+            return "0";
+        }
+        return value.setScale(0, RoundingMode.HALF_UP).toPlainString();
     }
 
     private static Object buildPlaceholderResult(Class<?> placeholderResultClass, Component component) {

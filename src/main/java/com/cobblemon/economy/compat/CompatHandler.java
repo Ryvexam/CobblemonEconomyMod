@@ -32,6 +32,12 @@ public class CompatHandler {
         }
 
         try {
+            com.cobblemon.economy.compat.tab.TabIntegration.register();
+        } catch (Exception e) {
+            System.err.println("[CobblemonEconomy] Failed to register TAB integration: " + e.getMessage());
+        }
+
+        try {
             hasCobbleDollarsCompat = com.cobblemon.economy.compat.cobbledollars.CobbleDollarsIntegration.register();
         } catch (Exception e) {
             hasCobbleDollarsCompat = false;

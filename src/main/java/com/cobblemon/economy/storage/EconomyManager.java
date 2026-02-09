@@ -162,6 +162,21 @@ public class EconomyManager {
         }
     }
 
+    public int getCaptureCount(UUID uuid) {
+        String sql = "SELECT count FROM capture_counts WHERE uuid = ?";
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            CobblemonEconomy.LOGGER.error("Failed to read capture count for " + uuid, e);
+        }
+        return 0;
+    }
+
     public boolean claimCaptureMilestone(UUID uuid, int milestone) {
         String sql = "INSERT OR IGNORE INTO capture_milestones(uuid, milestone) VALUES(?, ?)";
         try (Connection conn = connect();

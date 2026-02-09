@@ -515,7 +515,7 @@ public class CobblemonListeners {
         }
     }
 
-    private static int getUniqueCaptureCount(ServerPlayer player) {
+    public static int getUniqueCaptureCount(ServerPlayer player) {
         try {
             Object pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
             Object records = tryInvoke(pokedex, new String[] {"getSpeciesRecords", "getAllSpeciesRecords", "getEntries", "getDexRecords"});
