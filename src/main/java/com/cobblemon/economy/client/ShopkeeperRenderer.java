@@ -27,9 +27,19 @@ public class ShopkeeperRenderer extends LivingEntityRenderer<ShopkeeperEntity, P
     
     // Cache for external textures
     private static final Map<String, ResourceLocation> EXTERNAL_TEXTURES = new HashMap<>();
+    private final PlayerModel<ShopkeeperEntity> steveModel;
+    private final PlayerModel<ShopkeeperEntity> alexModel;
 
     public ShopkeeperRenderer(EntityRendererProvider.Context context) {
         super(context, new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER), false), 0.5f);
+        this.steveModel = this.model;
+        this.alexModel = new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM), true);
+    }
+
+    @Override
+    public void render(ShopkeeperEntity entity, float entityYaw, float partialTick, com.mojang.blaze3d.vertex.PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource buffer, int packedLight) {
+        this.model = "alex".equals(entity.getSkinModel()) ? alexModel : steveModel;
+        super.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
     }
 
     // Public method for network handler to register skins

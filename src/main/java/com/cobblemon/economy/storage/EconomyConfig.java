@@ -48,6 +48,7 @@ public class EconomyConfig {
         public String title = "Shop";
         public String currency = "POKE"; 
         public String skin = "shopkeeper";
+        public String skinModel = "steve";
         public boolean isSellShop = false;
         public String linkedShop = null; // Optional: ID of a linked shop (e.g., link a buy shop to a sell shop)
         public String linkedShopIcon = null; // Optional: Custom icon for the linked shop button (e.g., "minecraft:diamond")
@@ -197,6 +198,11 @@ public class EconomyConfig {
             ShopDefinition shop = entry.getValue();
             if (shop.items == null) {
                 shop.items = new ArrayList<>();
+                shopsDirty = true;
+            }
+            String normalizedSkinModel = normalizeSkinModel(shop.skinModel);
+            if (!normalizedSkinModel.equals(shop.skinModel)) {
+                shop.skinModel = normalizedSkinModel;
                 shopsDirty = true;
             }
             int beforeSize = shop.items.size();
@@ -463,6 +469,13 @@ public class EconomyConfig {
 
     private static class ShopsFileModel {
         Map<String, ShopDefinition> shops = new HashMap<>();
+    }
+
+    private static String normalizeSkinModel(String skinModel) {
+        if (skinModel == null) {
+            return "steve";
+        }
+        return "alex".equalsIgnoreCase(skinModel.trim()) ? "alex" : "steve";
     }
 
     private static Map<String, ShopDefinition> loadShops(Gson gson, File shopsFile) {

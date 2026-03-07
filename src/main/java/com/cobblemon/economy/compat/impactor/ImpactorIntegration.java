@@ -1,160 +1,166 @@
 package com.cobblemon.economy.compat.impactor;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.storage.EconomyConfig;
 import net.fabricmc.loader.api.FabricLoader;
+import net.impactdev.impactor.api.Impactor;
+import net.impactdev.impactor.api.economy.EconomyService;
+import net.impactdev.impactor.api.economy.accounts.Account;
+import net.impactdev.impactor.api.economy.events.SuggestEconomyServiceEvent;
+import net.impactdev.impactor.api.platform.plugins.PluginMetadata;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Handles integration with the Impactor economy API.
+ *
+ * <p>When {@code mainCurrency} is {@code "cobeco"} or {@code "cobbledollars"}, this class registers
+ * CobblemonEconomy as the Impactor EconomyService provider via {@link SuggestEconomyServiceEvent},
+ * making all Impactor-compatible mods use the chosen backend transparently.</p>
+ *
+ * <p>When {@code mainCurrency} is {@code "impactor"}, CobblemonEconomy does NOT register
+ * its own service and instead defers to whatever EconomyService Impactor provides,
+ * reading/writing balances through it.</p>
+ */
 public final class ImpactorIntegration {
-    private static final String SERVICE_CLASS = "net.impactdev.impactor.api.economy.EconomyService";
 
-    private ImpactorIntegration() {
-    }
+    private static boolean registered = false;
+    /** True when we successfully registered our CobblecoEconomyService as the Impactor provider. */
+    private static boolean ownsService = false;
 
+    private ImpactorIntegration() {}
+
+    /**
+     * Called during mod init. If Impactor is loaded, subscribes to the
+     * SuggestEconomyServiceEvent on Impactor's event bus.
+     *
+     * @return true if Impactor is present
+     */
     public static boolean register() {
         boolean loaded = FabricLoader.getInstance().isModLoaded("impactor");
-        if (loaded) {
-            CobblemonEconomy.LOGGER.info("Impactor compatibility enabled.");
+        if (!loaded) {
+            return false;
         }
-        return loaded;
+
+        try {
+            // Subscribe to the SuggestEconomyServiceEvent on Impactor's event bus.
+            // This fires during SERVER_STARTING inside Impactor's EconomyModule.init().
+            Impactor.instance().events().subscribe(SuggestEconomyServiceEvent.class, event -> {
+                // Check mainCurrency config. At event fire time, our SERVER_STARTING handler
+                // may or may not have loaded the config yet. If config is null, default to
+                // "cobeco" (the default) — which means we register our service.
+                EconomyConfig config = CobblemonEconomy.getConfig();
+                String mainCurrency = config != null ? config.mainCurrency : "cobeco";
+                if (mainCurrency == null) mainCurrency = "cobeco";
+
+                if ("impactor".equalsIgnoreCase(mainCurrency.trim())) {
+                    // User wants Impactor's own economy as the backend — don't replace it
+                    CobblemonEconomy.LOGGER.info("mainCurrency=impactor — NOT registering CobblemonEconomy as Impactor EconomyService provider.");
+                    return;
+                }
+
+                // For both "cobeco" and "cobbledollars", register our service so that all
+                // Impactor-compatible mods route through EconomyManager (which delegates
+                // to the correct backend based on mainCurrency).
+
+                PluginMetadata metadata = PluginMetadata.builder()
+                        .id("cobblemon-economy")
+                        .name("Cobblemon Economy")
+                        .version("1.0.0")
+                        .build();
+
+                event.suggest(metadata, CobblecoEconomyService::new, 10);
+                ownsService = true;
+                CobblemonEconomy.LOGGER.info("Registered CobblemonEconomy as Impactor EconomyService provider (priority 10)");
+            });
+
+            registered = true;
+            CobblemonEconomy.LOGGER.info("Impactor compatibility enabled (event-based, no mixin).");
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.error("Failed to register Impactor event listener", e);
+            return false;
+        }
+
+        return true;
     }
+
+    /**
+     * Whether we own the Impactor EconomyService (i.e. we registered CobblecoEconomyService).
+     * When true, external mods calling Impactor's API already go through our service,
+     * so there is nothing to "sync" to Impactor — it IS us.
+     */
+    public static boolean ownsService() {
+        return ownsService;
+    }
+
+    // ---- Direct access to Impactor's own economy (used when mainCurrency = "impactor") ----
+    // These methods are only called when mainCurrency=impactor, meaning we did NOT register
+    // our service, so EconomyService.instance() returns Impactor's own implementation.
 
     public static boolean canAccess(UUID uuid) {
-        return uuid != null && getServiceInstance() != null;
+        return uuid != null && registered;
     }
 
+    /**
+     * Gets a balance from Impactor's EconomyService directly.
+     * Used when mainCurrency is "impactor".
+     */
     public static BigDecimal getBalance(UUID uuid) {
-        if (uuid == null) {
-            return null;
-        }
-
+        if (uuid == null) return null;
         try {
-            Object service = getServiceInstance();
-            if (service == null) {
-                return null;
-            }
-
-            Object account = getAccount(service, uuid);
-            if (account == null) {
-                return null;
-            }
-
-            Object balance = account.getClass().getMethod("balance").invoke(account);
-            return balance instanceof BigDecimal decimal ? decimal : null;
-        } catch (Exception ignored) {
+            EconomyService service = EconomyService.instance();
+            Account account = service.account(uuid).get(2, TimeUnit.SECONDS);
+            return account.balance();
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to get Impactor balance for {}", uuid, e);
         }
-
         return null;
     }
 
+    /**
+     * Withdraws from Impactor's EconomyService directly.
+     */
     public static boolean withdraw(UUID uuid, BigDecimal amount) {
-        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
-        }
-
+        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return false;
         try {
-            Object service = getServiceInstance();
-            if (service == null) {
-                return false;
-            }
-
-            Object account = getAccount(service, uuid);
-            if (account == null) {
-                return false;
-            }
-
-            Object transaction = account.getClass().getMethod("withdraw", BigDecimal.class).invoke(account, amount);
-            if (transaction == null) {
-                return false;
-            }
-
-            Object success = transaction.getClass().getMethod("successful").invoke(transaction);
-            return success instanceof Boolean result && result;
-        } catch (Exception ignored) {
+            EconomyService service = EconomyService.instance();
+            Account account = service.account(uuid).get(2, TimeUnit.SECONDS);
+            return account.withdraw(amount).successful();
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to withdraw from Impactor for {}", uuid, e);
         }
-
         return false;
     }
 
+    /**
+     * Deposits into Impactor's EconomyService directly.
+     */
     public static boolean deposit(UUID uuid, BigDecimal amount) {
-        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
-        }
-
+        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return false;
         try {
-            Object service = getServiceInstance();
-            if (service == null) {
-                return false;
-            }
-
-            Object account = getAccount(service, uuid);
-            if (account == null) {
-                return false;
-            }
-
-            Object transaction = account.getClass().getMethod("deposit", BigDecimal.class).invoke(account, amount);
-            if (transaction == null) {
-                return false;
-            }
-
-            Object success = transaction.getClass().getMethod("successful").invoke(transaction);
-            return success instanceof Boolean result && result;
-        } catch (Exception ignored) {
+            EconomyService service = EconomyService.instance();
+            Account account = service.account(uuid).get(2, TimeUnit.SECONDS);
+            return account.deposit(amount).successful();
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to deposit to Impactor for {}", uuid, e);
         }
-
         return false;
     }
 
+    /**
+     * Sets balance in Impactor's EconomyService directly.
+     */
     public static boolean setBalance(UUID uuid, BigDecimal amount) {
-        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
-            return false;
-        }
-
+        if (uuid == null || amount == null || amount.compareTo(BigDecimal.ZERO) < 0) return false;
         try {
-            Object service = getServiceInstance();
-            if (service == null) {
-                return false;
-            }
-
-            Object account = getAccount(service, uuid);
-            if (account == null) {
-                return false;
-            }
-
-            Object transaction = account.getClass().getMethod("set", BigDecimal.class).invoke(account, amount);
-            if (transaction == null) {
-                return false;
-            }
-
-            Object success = transaction.getClass().getMethod("successful").invoke(transaction);
-            return success instanceof Boolean result && result;
-        } catch (Exception ignored) {
+            EconomyService service = EconomyService.instance();
+            Account account = service.account(uuid).get(2, TimeUnit.SECONDS);
+            return account.set(amount).successful();
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.debug("Failed to set Impactor balance for {}", uuid, e);
         }
-
         return false;
-    }
-
-    private static Object getServiceInstance() {
-        try {
-            Class<?> serviceClass = Class.forName(SERVICE_CLASS);
-            return serviceClass.getMethod("instance").invoke(null);
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private static Object getAccount(Object service, UUID uuid) {
-        try {
-            Object future = service.getClass().getMethod("account", UUID.class).invoke(service, uuid);
-            if (!(future instanceof CompletableFuture<?> completableFuture)) {
-                return null;
-            }
-            return completableFuture.get(2, TimeUnit.SECONDS);
-        } catch (Exception ignored) {
-        }
-        return null;
     }
 }

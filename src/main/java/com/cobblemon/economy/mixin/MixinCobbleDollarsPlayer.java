@@ -18,17 +18,26 @@ import java.math.RoundingMode;
 @Mixin(Player.class)
 public abstract class MixinCobbleDollarsPlayer {
 
-    private boolean shouldUseCobecoBridge() {
-        return CobblemonEconomy.getConfig() != null
-                && "cobeco".equalsIgnoreCase(CobblemonEconomy.getConfig().mainCurrency)
-                && !CompatHandler.isCobbleDollarsBridgeBypassed()
-                && (Object) this instanceof ServerPlayer;
+    /**
+     * Returns true when we should intercept CobbleDollars methods.
+     * Active when mainCurrency is "cobeco" or "impactor" — in both cases,
+     * CobbleDollars is NOT the source of truth and should delegate elsewhere.
+     * When mainCurrency is "cobbledollars", CobbleDollars IS the master so we don't intercept.
+     */
+    private boolean shouldInterceptCobbleDollars() {
+        if (CobblemonEconomy.getConfig() == null) return false;
+        if (CompatHandler.isCobbleDollarsBridgeBypassed()) return false;
+        if (!((Object) this instanceof ServerPlayer)) return false;
+        String main = CobblemonEconomy.getConfig().mainCurrency;
+        // Intercept when cobeco (our DB is master) or impactor (Impactor is master)
+        // Don't intercept when cobbledollars (CobbleDollars is master)
+        return !"cobbledollars".equalsIgnoreCase(main);
     }
 
     @Dynamic
     @Inject(method = "cobbleDollars$getCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$getCobbleDollarsV2(CallbackInfoReturnable<BigInteger> cir) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         ServerPlayer player = (ServerPlayer) (Object) this;
@@ -39,7 +48,7 @@ public abstract class MixinCobbleDollarsPlayer {
     @Dynamic
     @Inject(method = "cobbleDollars$setCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$setCobbleDollarsV2(BigInteger amount, CallbackInfo ci) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         ServerPlayer player = (ServerPlayer) (Object) this;
@@ -51,7 +60,7 @@ public abstract class MixinCobbleDollarsPlayer {
     @Dynamic
     @Inject(method = "getCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$getCobbleDollarsV1(CallbackInfoReturnable<Integer> cir) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         ServerPlayer player = (ServerPlayer) (Object) this;
@@ -62,7 +71,7 @@ public abstract class MixinCobbleDollarsPlayer {
     @Dynamic
     @Inject(method = "setCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$setCobbleDollarsV1(int amount, CallbackInfo ci) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         ServerPlayer player = (ServerPlayer) (Object) this;
@@ -73,7 +82,7 @@ public abstract class MixinCobbleDollarsPlayer {
     @Dynamic
     @Inject(method = "earnCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$earnCobbleDollarsV1(int amount, CallbackInfo ci) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         if (amount > 0) {
@@ -86,7 +95,7 @@ public abstract class MixinCobbleDollarsPlayer {
     @Dynamic
     @Inject(method = "spendCobbleDollars", at = @At("HEAD"), cancellable = true, require = 0, remap = false)
     private void cobeco$spendCobbleDollarsV1(int amount, CallbackInfo ci) {
-        if (!shouldUseCobecoBridge()) {
+        if (!shouldInterceptCobbleDollars()) {
             return;
         }
         if (amount > 0) {

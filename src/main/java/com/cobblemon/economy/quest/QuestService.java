@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public final class QuestService {
-    public static final BigDecimal CANCEL_FEE = new BigDecimal("1000");
-    public static final int DEFAULT_VISIBLE_QUESTS = 4;
+    public static final int DEFAULT_VISIBLE_QUESTS = 6;
 
     private QuestService() {
     }
@@ -83,7 +83,7 @@ public final class QuestService {
             }
         }
 
-        int visibleLimit = Math.max(1, npcDefinition.visibleQuests);
+        int visibleLimit = Math.max(DEFAULT_VISIBLE_QUESTS, npcDefinition.visibleQuests);
         LinkedHashSet<String> selectedIds = new LinkedHashSet<>();
         selectedIds.addAll(ongoing);
         for (String dailyId : getDailyQuestIds(player.getUUID(), npcId, npcDefinition)) {
@@ -197,7 +197,7 @@ public final class QuestService {
         return true;
     }
 
-    public static boolean cancelQuestWithFee(ServerPlayer player, String npcId, String questId) {
+    public static boolean cancelQuest(ServerPlayer player, String npcId, String questId) {
         QuestConfig questConfig = CobblemonEconomy.getQuestConfig();
         QuestManager manager = CobblemonEconomy.getQuestManager();
         if (questConfig == null || manager == null) {
@@ -216,14 +216,9 @@ public final class QuestService {
             return false;
         }
 
-        if (!CobblemonEconomy.getEconomyManager().subtractBalance(player.getUUID(), CANCEL_FEE)) {
-            player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.cancel_not_enough", CANCEL_FEE.toPlainString()).withStyle(ChatFormatting.RED));
-            return false;
-        }
-
         QuestNpcConfig.QuestNpcDefinition npcDefinition = getNpcDefinition(npcId);
         manager.cancelQuest(player.getUUID(), npcId, questId, nextRotationBoundaryMillis(npcDefinition));
-        player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.cancelled_paid", quest.name, CANCEL_FEE.toPlainString()).withStyle(ChatFormatting.YELLOW));
+        player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.cancelled_free", quest.name).withStyle(ChatFormatting.YELLOW));
         player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.cancelled_wait_rotation").withStyle(ChatFormatting.RED));
         return true;
     }
@@ -311,6 +306,19 @@ public final class QuestService {
     }
 
     public static void handleBattleVictory(ServerPlayer player, boolean isRaidVictory, boolean isTowerVictory) {
+        handleEventObjectiveProgress(player, type -> switch (type) {
+            case "battle_win" -> true;
+            case "raid_win" -> isRaidVictory;
+            case "tower_win" -> isTowerVictory;
+            default -> false;
+        });
+    }
+
+    public static void handleRaidVictory(ServerPlayer player) {
+        handleEventObjectiveProgress(player, type -> "raid_win".equals(type));
+    }
+
+    private static void handleEventObjectiveProgress(ServerPlayer player, Predicate<String> objectiveMatcher) {
         if (player == null) {
             return;
         }
@@ -343,14 +351,7 @@ public final class QuestService {
                     continue;
                 }
                 String type = objective.type.toLowerCase(Locale.ROOT);
-                boolean matches = switch (type) {
-                    case "battle_win" -> true;
-                    case "raid_win" -> isRaidVictory;
-                    case "tower_win" -> isTowerVictory;
-                    default -> false;
-                };
-
-                if (!matches) {
+                if (!objectiveMatcher.test(type)) {
                     continue;
                 }
 
@@ -630,7 +631,7 @@ public final class QuestService {
         List<String> copy = new ArrayList<>(new LinkedHashSet<>(npcDefinition.questPool));
         Collections.shuffle(copy, new Random(seed));
 
-        int max = Math.min(Math.max(1, npcDefinition.visibleQuests), copy.size());
+        int max = Math.min(Math.max(DEFAULT_VISIBLE_QUESTS, npcDefinition.visibleQuests), copy.size());
         return new ArrayList<>(copy.subList(0, max));
     }
 

@@ -160,7 +160,7 @@ public class QuestConfig {
     private static Map<String, QuestDefinition> defaultQuests() {
         Map<String, QuestDefinition> defaults = new HashMap<>();
 
-        defaults.put("safari_water_10", quest("Safari Water Hunter", "DAILY", reward("2000", "20"),
+        defaults.put("safari_water_10", quest("Safari Water Tracker", "DAILY", reward("2000", "20"),
                 captureObjective(10, null, List.of("water"), null, null, "minecraft:overworld", null)));
 
         defaults.put("safari_bug_12", quest("Bug Net Patrol", "DAILY", reward("1800", "15"),
@@ -183,7 +183,7 @@ public class QuestConfig {
         defaults.put("safari_radiant_1", quest("Radiant Miracle", "DAILY", reward("6000", "180"),
                 captureObjective(1, null, null, List.of("radiant"), null, "minecraft:overworld", null)));
 
-        defaults.put("safari_paradox_1", quest("Temporal Hunter", "DAILY", reward("5500", "90"),
+        defaults.put("safari_paradox_1", quest("Temporal Tracker", "DAILY", reward("5500", "90"),
                 captureObjective(1, null, null, List.of("paradox"), null, "minecraft:overworld", null)));
 
         defaults.put("safari_fly_8", quest("Wing Survey", "DAILY", reward("2200", "20"),
@@ -323,7 +323,7 @@ public class QuestConfig {
         defaults.put("ball_combo_water_dive", quest("Deep Sea Method", "DAILY", reward("3200", "32"),
                 captureObjective(5, null, List.of("water"), null, List.of("cobblemon:dive_ball"), null, null)));
 
-        defaults.put("starter_hunter", quest("Professor Checklist", "DAILY", reward("3000", "20"),
+        defaults.put("starter_tracker", quest("Professor Checklist", "DAILY", reward("3000", "20"),
                 captureObjective(1, List.of("cobblemon:bulbasaur"), null, null, null, null, null),
                 captureObjective(1, List.of("cobblemon:charmander"), null, null, null, null, null),
                 captureObjective(1, List.of("cobblemon:squirtle"), null, null, null, null, null)));
@@ -370,6 +370,14 @@ public class QuestConfig {
                 eventObjective("battle_win", 8),
                 captureObjective(4, null, List.of("fighting"), null, null, null, null)));
 
+        defaults.put("duel_fighting_12", quest("Dojo Conditioning", "DAILY", reward("5400", "62"),
+                eventObjective("battle_win", 4),
+                captureObjective(12, null, List.of("fighting"), null, null, null, null)));
+
+        defaults.put("duel_hitmonlee_focus", quest("Judoka Precision", "DAILY", reward("6800", "86"),
+                eventObjective("battle_win", 6),
+                captureObjective(2, List.of("cobblemon:hitmonlee"), List.of("fighting"), null, null, null, null)));
+
         defaults.put("duel_dragon_precision", quest("Final Bout", "DAILY", reward("9500", "135"),
                 eventObjective("battle_win", 12),
                 captureObjective(1, List.of("cobblemon:garchomp"), null, null, List.of("cobblemon:ultra_ball"), null, null)));
@@ -383,7 +391,7 @@ public class QuestConfig {
                 eventObjective("battle_win", 8),
                 captureObjective(3, null, null, null, List.of("cobblemon:great_ball"), null, null)));
 
-        defaults.put("duel_paradox_hunt", quest("Rift Duel Protocol", "DAILY", reward("13000", "190"),
+        defaults.put("duel_paradox_protocol", quest("Rift Duel Protocol", "DAILY", reward("13000", "190"),
                 eventObjective("raid_win", 4),
                 captureObjective(1, null, null, List.of("paradox"), null, null, null)));
 
@@ -416,7 +424,7 @@ public class QuestConfig {
         defaults.put("collector_ground_set", quest("Tectonic Index", "DAILY", reward("5200", "58"),
                 captureObjective(10, null, List.of("ground"), null, null, null, null)));
 
-        defaults.put("mixed_hunter", quest("Elite Field Trial", "DAILY", reward("8500", "120"),
+        defaults.put("mixed_elite_trial", quest("Elite Field Trial", "DAILY", reward("8500", "120"),
                 captureObjective(3, null, List.of("water"), null, null, null, null),
                 captureObjective(2, null, null, List.of("radiant"), null, null, null),
                 eventObjective("raid_win", 2),

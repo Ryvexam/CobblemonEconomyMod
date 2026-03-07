@@ -583,9 +583,9 @@ public class EconomyManager {
             CompatHandler.withCobbleDollarsBridgeBypass(() -> CompatHandler.setCobbleDollars(player, converted));
         }
 
-        if (CompatHandler.hasImpactorCompat()) {
-            CompatHandler.withImpactorBridgeBypass(() -> CompatHandler.setImpactorBalance(uuid, balance.max(BigDecimal.ZERO)));
-        }
+        // Note: Impactor sync is not needed here. When mainCurrency=cobeco and Impactor is present,
+        // CobblemonEconomy IS the Impactor EconomyService (via CobblecoEconomyService).
+        // CobblecoAccount.balance() already reads from EconomyManager — no separate data store to sync.
     }
 
     public BigDecimal getBalance(UUID uuid) {

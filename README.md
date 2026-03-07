@@ -18,17 +18,15 @@ Website: https://ryvexam.fr
 - Capture, discovery, and battle rewards with multipliers
 - Raid den battle rewards (separate configurable PokeDollar amount)
 - Fossil revival rewards for shiny/radiant/legendary/paradox Pokémon
+- Quest board interface (client custom screen, non-SGUI)
 - Optional integrations: YAWP protection flag and Star Academy grading
-- Optional CobbleDollars conversion command to import another economy balance
-- Optional Impactor economy conversion command
+- Optional CobbleDollars and Impactor bridge compatibility
 
 ## Commands
 Player:
 - `/bal` or `/balance`
 - `/pco`
 - `/pay <player> <amount>`
-- `/convertcobbledollars <amount|all>` (if CobbleDollars is installed)
-- `/convertimpactor <amount|all>` (if Impactor is installed)
 
 Admin (permission level 2):
 - `/eco reload`
@@ -37,6 +35,10 @@ Admin (permission level 2):
 - `/eco quest list`
 - `/eco questnpc list`
 - `/eco questnpc get <id>`
+- `/eco questboard list`
+- `/eco questboard open <id>`
+- `/eco questboard bind <id>`
+- `/eco questboard unbind`
 - `/eco skin <name>`
 - `/eco item`
 - `/balance <player> <add|remove|set> <amount>`
@@ -62,8 +64,6 @@ Global settings:
 - `startingPco`
 - `battleVictoryReward`
 - `raidDenVictoryReward` (defaults to `battleVictoryReward` if missing)
-- `cobbleDollarsToPokedollarsRate` (used by `/convertcobbledollars`, defaults to `1`)
-- `impactorToPokedollarsRate` (used by `/convertimpactor`, defaults to `1`)
 - `captureReward` (defaults to `battleVictoryReward` if missing)
 - `newDiscoveryReward`
 - `battleVictoryPcoReward`
@@ -78,6 +78,7 @@ Shop definition fields:
 - `title`
 - `currency` (`POKE` or `PCO`)
 - `skin` (filename without extension)
+- `skinModel` (optional: `steve` or `alex`, default `steve`)
 - `isSellShop` (true to let players sell)
 - `linkedShop` (optional)
 - `linkedShopIcon` (optional item id)
@@ -194,6 +195,7 @@ Item with components (booster example):
 ## Skins
 - Place PNGs in `world/config/cobblemon-economy/skins/`.
 - Use `/eco skin <name>` to get a Skin Setter.
+- In `shops.json` and `quest_npcs.json`, you can set `skinModel` to `steve` or `alex` for arm model type.
 
 ## Storage
 - Config: `world/config/cobblemon-economy/config.json`
@@ -203,11 +205,17 @@ Item with components (booster example):
 - Skins: `world/config/cobblemon-economy/skins/`
 
 ## Integrations
+- Cobblemon (required): capture, pokedex, battle victory, and fossil events come from Cobblemon's event bus.
+- Cobblemon Raid Dens (optional): raid completion is read from `com.necro.raid.dens.common.events.RaidEvents` (`RAID_BATTLE_START` / `RAID_END`).
+- Battle Tower-like systems (optional): no hard dependency; tower wins are detected from battle actor metadata, entity IDs/tags, and explicit `tour_de_combat` NPC tag.
 - YAWP: flag `melee-npc-cobeco` controls shopkeeper vulnerability.
 - Star Academy: optional grading integration when the `academy` mod is present.
-- Cobblemon Raid Dens: direct raid win detection via `RaidEvents.RAID_END`.
-- CobbleDollars: optional `/convertcobbledollars <amount|all>` command to convert CobbleDollars into PokeDollars.
-- Impactor: optional `/convertimpactor <amount|all>` command using Impactor primary currency.
+- CobbleDollars: optional compatibility bridge support.
+- Impactor: optional compatibility bridge support.
+
+Quest event notes:
+- `raid_win` objectives use Raid Dens `RAID_END` when the Raid Dens mod is available, with fallback detection from Cobblemon battle events when it is not.
+- `tower_win` objectives rely on tower actor detection; for custom NPC towers, tag NPCs with `tour_de_combat` (Tower Tagger from `/eco item`) to guarantee detection.
 
 Currency backend behavior (`main_currency`):
 - `cobeco`: Cobblemon Economy database is authoritative for PokeDollars.
@@ -237,3 +245,6 @@ Jar output: `build/libs/` (use the remapped jar).
 
 ## Support
 Discord: https://discord.gg/zxZXcaTHwe
+
+## Acknowledgements
+Thanks to Rikunji for their contributions to the project.

@@ -1,8 +1,11 @@
 package com.cobblemon.economy.client;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.questboard.QuestBoardState;
+import com.cobblemon.economy.networking.OpenQuestBoardPayload;
 import com.cobblemon.economy.networking.ProvideSkinPayload;
 import com.cobblemon.economy.networking.RequestSkinPayload;
+import com.google.gson.Gson;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
@@ -17,6 +20,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 public class ClientNetworkHandler {
     private static final Set<String> REQUESTED_SKINS = new HashSet<>();
+    private static final Gson GSON = new Gson();
 
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(ProvideSkinPayload.TYPE, (payload, context) -> {
@@ -47,6 +51,13 @@ public class ClientNetworkHandler {
                 } catch (Exception e) {
                     ShopkeeperRenderer.CLIENT_LOGGER.error("Failed to load skin '{}' from server data", skinName, e);
                 }
+            });
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(OpenQuestBoardPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> {
+                QuestBoardState state = GSON.fromJson(payload.jsonState(), QuestBoardState.class);
+                Minecraft.getInstance().setScreen(new QuestBoardScreen(payload.boardId(), state));
             });
         });
     }

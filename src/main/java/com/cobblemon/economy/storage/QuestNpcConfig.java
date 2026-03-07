@@ -29,8 +29,9 @@ public class QuestNpcConfig {
     public static class QuestNpcDefinition {
         public String displayName = "Quest NPC";
         public String skin = "shopkeeper";
+        public String skinModel = "steve";
         public int maxActive = 1;
-        public int visibleQuests = 4;
+        public int visibleQuests = 6;
         public boolean sharedRotation = true;
         public String rotationMode = "MIDNIGHT";
         public int rotationHours = 24;
@@ -74,12 +75,17 @@ public class QuestNpcConfig {
                 def.skin = "shopkeeper";
                 shouldSave = true;
             }
+            String normalizedSkinModel = normalizeSkinModel(def.skinModel);
+            if (!normalizedSkinModel.equals(def.skinModel)) {
+                def.skinModel = normalizedSkinModel;
+                shouldSave = true;
+            }
             if (def.maxActive <= 0) {
                 def.maxActive = 1;
                 shouldSave = true;
             }
             if (def.visibleQuests <= 0) {
-                def.visibleQuests = 4;
+                def.visibleQuests = 6;
                 shouldSave = true;
             }
             if (def.rotationMode == null || def.rotationMode.isBlank()) {
@@ -125,7 +131,7 @@ public class QuestNpcConfig {
             safari.displayName = "Safari Guide";
             safari.skin = "shopkeeper";
             safari.maxActive = 2;
-            safari.visibleQuests = 4;
+            safari.visibleQuests = 6;
             safari.sharedRotation = true;
             safari.rotationMode = "MIDNIGHT";
             safari.rotationHours = 24;
@@ -155,7 +161,7 @@ public class QuestNpcConfig {
             fisherman.displayName = "Harbor Fisherman";
             fisherman.skin = "shopkeeper";
             fisherman.maxActive = 2;
-            fisherman.visibleQuests = 4;
+            fisherman.visibleQuests = 6;
             fisherman.sharedRotation = true;
             fisherman.rotationMode = "HOURS";
             fisherman.rotationHours = 12;
@@ -170,9 +176,6 @@ public class QuestNpcConfig {
             fisherman.questPool.add("fisher_radiant_tide");
             fisherman.questPool.add("fisher_tournament");
             fisherman.questPool.add("fisher_storm_run");
-            fisherman.questPool.add("fossil_research_6");
-            fisherman.questPool.add("fossil_shiny_1");
-            fisherman.questPool.add("fossil_radiant_1");
             fisherman.dialogues.greeting = List.of("La mer est genereuse aujourd'hui, %player%.", "Pret pour une vraie peche en profondeur ?");
             fisherman.dialogues.inProgress = List.of("Ramene-moi une meilleure prise. %progress%", "La maree n'attend personne.");
             fisherman.dialogues.readyToClaim = List.of("Un pecheur tient sa parole. Voila ta recompense.");
@@ -184,7 +187,7 @@ public class QuestNpcConfig {
             archaeologist.displayName = "Fossil Curator";
             archaeologist.skin = "shopkeeper";
             archaeologist.maxActive = 2;
-            archaeologist.visibleQuests = 4;
+            archaeologist.visibleQuests = 6;
             archaeologist.sharedRotation = true;
             archaeologist.rotationMode = "HOURS";
             archaeologist.rotationHours = 12;
@@ -204,7 +207,7 @@ public class QuestNpcConfig {
             explorer.displayName = "Frontier Explorer";
             explorer.skin = "shopkeeper";
             explorer.maxActive = 2;
-            explorer.visibleQuests = 4;
+            explorer.visibleQuests = 6;
             explorer.sharedRotation = true;
             explorer.rotationMode = "MIDNIGHT";
             explorer.rotationHours = 24;
@@ -235,14 +238,14 @@ public class QuestNpcConfig {
             ballistic.displayName = "Ballistics Expert";
             ballistic.skin = "shopkeeper";
             ballistic.maxActive = 2;
-            ballistic.visibleQuests = 4;
+            ballistic.visibleQuests = 6;
             ballistic.sharedRotation = true;
             ballistic.rotationMode = "HOURS";
             ballistic.rotationHours = 8;
             ballistic.questPool.add("ball_specialist_quick");
             ballistic.questPool.add("ball_specialist_dusk");
             ballistic.questPool.add("ball_combo_water_dive");
-            ballistic.questPool.add("starter_hunter");
+            ballistic.questPool.add("starter_tracker");
             ballistic.questPool.add("collector_eevee_line");
             ballistic.questPool.add("collector_starters_johto");
             ballistic.questPool.add("collector_psychic_set");
@@ -251,7 +254,7 @@ public class QuestNpcConfig {
             ballistic.questPool.add("collector_shiny_pair");
             ballistic.questPool.add("collector_dragon_set");
             ballistic.questPool.add("collector_ground_set");
-            ballistic.questPool.add("mixed_hunter");
+            ballistic.questPool.add("mixed_elite_trial");
             ballistic.dialogues.greeting = List.of("Un vrai dresseur maitrise chaque pokeball.");
             ballistic.dialogues.inProgress = List.of("La technique avant la chance. %progress%");
             ballistic.dialogues.readyToClaim = List.of("Lancers impeccables. Recupere ton paiement.");
@@ -263,7 +266,7 @@ public class QuestNpcConfig {
             duelist.displayName = "Arena Duel Master";
             duelist.skin = "shopkeeper";
             duelist.maxActive = 2;
-            duelist.visibleQuests = 4;
+            duelist.visibleQuests = 6;
             duelist.sharedRotation = true;
             duelist.rotationMode = "HOURS";
             duelist.rotationHours = 6;
@@ -278,9 +281,11 @@ public class QuestNpcConfig {
             duelist.questPool.add("duel_tower_4");
             duelist.questPool.add("duel_elite_combo");
             duelist.questPool.add("duel_capture_fighter");
+            duelist.questPool.add("duel_fighting_12");
+            duelist.questPool.add("duel_hitmonlee_focus");
             duelist.questPool.add("duel_dragon_precision");
             duelist.questPool.add("duel_precision_ball");
-            duelist.questPool.add("duel_paradox_hunt");
+            duelist.questPool.add("duel_paradox_protocol");
             duelist.questPool.add("legendary_echo");
             duelist.questPool.add("mythical_echo");
             duelist.questPool.add("duel_grand_champion");
@@ -295,14 +300,15 @@ public class QuestNpcConfig {
             commander.displayName = "Raid Commander";
             commander.skin = "shopkeeper";
             commander.maxActive = 1;
-            commander.visibleQuests = 4;
+            commander.visibleQuests = 6;
             commander.sharedRotation = true;
             commander.rotationMode = "HOURS";
             commander.rotationHours = 8;
             commander.questPool.add("raid_winner_7");
+            commander.questPool.add("raid_winner_3");
+            commander.questPool.add("duel_raid_5");
             commander.questPool.add("duel_raid_10");
             commander.questPool.add("duel_elite_combo");
-            commander.questPool.add("fossil_legend_1");
             commander.dialogues.greeting = List.of("Nous avons besoin d'operateurs precis pour les raids de haut niveau.");
             commander.dialogues.inProgress = List.of("Garde ta formation serree. %progress%");
             commander.dialogues.readyToClaim = List.of("Operation terminee. Excellent travail.");
@@ -322,5 +328,12 @@ public class QuestNpcConfig {
         }
 
         return config;
+    }
+
+    private static String normalizeSkinModel(String skinModel) {
+        if (skinModel == null) {
+            return "steve";
+        }
+        return "alex".equalsIgnoreCase(skinModel.trim()) ? "alex" : "steve";
     }
 }

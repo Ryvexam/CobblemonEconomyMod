@@ -1,6 +1,9 @@
 package com.cobblemon.economy.networking;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.questboard.QuestBoardService;
+import com.cobblemon.economy.quest.QuestService;
+import com.cobblemon.economy.storage.QuestNpcConfig;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.world.level.storage.LevelResource;
@@ -17,7 +20,9 @@ public class NetworkHandler {
         }
         registered = true;
         PayloadTypeRegistry.playC2S().register(RequestSkinPayload.TYPE, RequestSkinPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(QuestBoardActionPayload.TYPE, QuestBoardActionPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ProvideSkinPayload.TYPE, ProvideSkinPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(OpenQuestBoardPayload.TYPE, OpenQuestBoardPayload.CODEC);
 
         // Server-side handler: Receive Request -> Send Data
         ServerPlayNetworking.registerGlobalReceiver(RequestSkinPayload.TYPE, (payload, context) -> {
@@ -63,6 +68,34 @@ public class NetworkHandler {
                 } catch (Exception e) {
                     CobblemonEconomy.LOGGER.error("Error sending skin " + skinName, e);
                 }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(QuestBoardActionPayload.TYPE, (payload, context) -> {
+            context.server().execute(() -> {
+                if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer player)) {
+                    return;
+                }
+
+                String boardId = payload.boardId();
+                String questId = payload.questId();
+                String action = payload.action() == null ? "" : payload.action().toUpperCase();
+
+                QuestNpcConfig config = CobblemonEconomy.getQuestNpcConfig();
+                QuestNpcConfig.QuestNpcDefinition board = config != null && config.questNpcs != null ? config.questNpcs.get(boardId) : null;
+                if (board == null) {
+                    return;
+                }
+
+                switch (action) {
+                    case "ACCEPT" -> QuestService.acceptQuest(player, boardId, questId, board);
+                    case "CLAIM" -> QuestService.claimQuest(player, boardId, questId);
+                    case "CANCEL" -> QuestService.cancelQuest(player, boardId, questId);
+                    default -> {
+                    }
+                }
+
+                QuestBoardService.openBoard(player, boardId);
             });
         });
     }

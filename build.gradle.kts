@@ -10,7 +10,11 @@ group = project.property("maven_group") as String
 repositories {
     maven {
         name = "ImpactDev"
-        url = uri("https://maven.impactdev.net/repository/maven-public/")
+        url = uri("https://maven.impactdev.net/repository/development/")
+    }
+    maven {
+        name = "Sonatype Snapshots"
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
     }
     maven {
         url = uri("https://api.modrinth.com/maven")
@@ -46,6 +50,19 @@ dependencies {
     // YAWP Integration
     modApi("curse.maven:yawp-663276:6176022")
     modImplementation(files("libs/yawp-1.21.1-fabric-0.6.3-beta1.jar"))
+
+    // Impactor API (compileOnly - only used when Impactor is present at runtime)
+    // Transitive deps excluded because net.kyori:event-api:5.0.0-SNAPSHOT isn't publicly available
+    compileOnly("net.impactdev.impactor.api:economy:5.3.0") { isTransitive = false }
+    compileOnly("net.impactdev.impactor.api:core:5.3.0") { isTransitive = false }
+    compileOnly("net.impactdev.impactor.api:storage:5.3.0") { isTransitive = false }
+    // Adventure API needed by Impactor's interfaces (provided by Impactor at runtime)
+    compileOnly("net.kyori:adventure-api:4.17.0")
+    // Maven artifact version class referenced by Impactor's PluginMetadata
+    compileOnly("org.apache.maven:maven-artifact:3.9.0")
+    // Kyori event bus used by Impactor's API (5.0.0-SNAPSHOT extracted from Impactor jar,
+    // not published to any public Maven repository)
+    compileOnly(files("libs/event-api-5.0.0-SNAPSHOT.jar"))
 }
 
 tasks.processResources {

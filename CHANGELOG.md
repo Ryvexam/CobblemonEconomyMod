@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.17] - 2026-03-03
+
+### Added
+- **Shopkeeper Skin Model Selection:** Added optional `skinModel` support (`steve` or `alex`) for both shop NPCs and quest NPCs.
+  - New config field in `shops.json` shop definitions and `quest_npcs.json` NPC definitions.
+  - Synced + persisted per-entity model selection so arm model choice survives save/load and is visible to clients.
+  - Renderer now switches correctly between classic and slim player models.
+
+### Changed
+- **Quest Board Visual Assets:** Updated quest tier icon color grading (tier stars) and darkened/greened quest favicon palette.
+
+### Fixed
+- **Raid Quest Progress Reliability:** Fixed cases where `raid_win` objectives could fail to progress consistently.
+  - When Cobblemon Raid Dens is present, `raid_win` progression is now driven by `RaidEvents.RAID_END` (win only).
+  - Added dedicated raid objective progression path to avoid event-source ambiguity.
+  - Improved raid battle classification using active raid participants tracked from `RAID_BATTLE_START`.
+  - Prevented double-count edge cases between generic battle victory handling and Raid Dens event handling.
+
+### Documentation
+- **CURSEFORGE.md:** Expanded quest system docs with precise JSON authoring guidance, copy-safe examples, objective key rules, and common mistakes.
+- **CURSEFORGE.md:** Clarified Pokemon preview behavior (including shiny species preview logic).
+- **README.md:** Clarified integration event sources for Cobblemon, Raid Dens, and Battle Tower-style detection.
+
 ## [0.0.16] - 2026-02-08
 
 ### Added
@@ -33,8 +56,9 @@ All notable changes to this project will be documented in this file.
   - Clear success/error messages (accepted, claim ready/not ready, too many active quests, cooldown, locked, prerequisites missing, cancel rules).
 
 ### Changed
-- **Config Split for Shops:** Added `shops.json` support while keeping economy/global settings in `config.json`.
-- **Automatic Migration:** If `shops.json` is missing, shops are loaded from legacy `config.json` and written to `shops.json` automatically.
+- **Config Split for Shops:** Shop definitions are now separated into `world/config/cobblemon-economy/shops.json`, while economy/global options stay in `world/config/cobblemon-economy/config.json`.
+- **Automatic Migration:** On first boot after update, if `shops.json` is missing, legacy `config.json.shops` is read and exported to `shops.json` automatically.
+- **Reload/Admin Workflow:** Shop edits should now be done in `shops.json` (not `config.json`) and reloaded with `/eco reload`.
 - **Quest UI:** Moved to a custom 9x6 board-style layout with focused mission cards and detailed objective wording.
 - **Quest Copy/Localization:** Expanded and polished EN/FR translations for quest statuses, objective details, filters, and system messages.
 - **Placeholder API Compatibility:** Integration now supports both legacy and current PB4 Placeholder API class/package variants.
@@ -48,7 +72,9 @@ All notable changes to this project will be documented in this file.
 
 ### Compatibility
 - **Backward Compatible:** Existing worlds/configs continue to work:
-  - Legacy `config.json` shop definitions are still supported.
+  - Legacy worlds with inline `config.json.shops` continue to load.
+  - `shops.json` is generated from legacy shop data when missing.
+  - If both formats exist, `shops.json` is the authoritative shop source.
   - Existing NPCs default to `SHOP` role unless explicitly assigned as quest NPCs.
 - **TAB Integration:** Added optional TAB placeholder registration with auto-reload-safe hooks.
   - New placeholders: `%cobeco_balance%`, `%cobeco_balance_symbol%`, `%cobeco_pco%`, `%cobeco_pco_symbol%`, `%cobeco_unique_captures%`.

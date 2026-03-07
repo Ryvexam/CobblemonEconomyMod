@@ -13,8 +13,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 
-import net.minecraft.Util;
-
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
@@ -28,6 +26,7 @@ public class ShopkeeperEntity extends PathfinderMob {
     private String npcRole = "SHOP";
     private String questNpcId = "";
     private static final EntityDataAccessor<String> SKIN_NAME = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<String> SKIN_MODEL = SynchedEntityData.defineId(ShopkeeperEntity.class, EntityDataSerializers.STRING);
 
     public ShopkeeperEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -111,6 +110,7 @@ public class ShopkeeperEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(SKIN_NAME, "shopkeeper"); // Valeur par défaut : "shopkeeper"
+        builder.define(SKIN_MODEL, "steve");
     }
 
     public String getSkinName() {
@@ -119,6 +119,19 @@ public class ShopkeeperEntity extends PathfinderMob {
 
     public void setSkinName(String name) {
         this.entityData.set(SKIN_NAME, name);
+    }
+
+    public String getSkinModel() {
+        return this.entityData.get(SKIN_MODEL);
+    }
+
+    public void setSkinModel(String model) {
+        if (model == null) {
+            this.entityData.set(SKIN_MODEL, "steve");
+            return;
+        }
+        String normalized = model.trim().toLowerCase();
+        this.entityData.set(SKIN_MODEL, "alex".equals(normalized) ? "alex" : "steve");
     }
 
     @Override
@@ -167,6 +180,7 @@ public class ShopkeeperEntity extends PathfinderMob {
         nbt.putString("NpcRole", npcRole);
         nbt.putString("QuestNpcId", questNpcId);
         nbt.putString("SkinName", getSkinName());
+        nbt.putString("SkinModel", getSkinModel());
     }
 
     @Override
@@ -183,6 +197,9 @@ public class ShopkeeperEntity extends PathfinderMob {
         }
         if (nbt.contains("SkinName")) {
             setSkinName(nbt.getString("SkinName"));
+        }
+        if (nbt.contains("SkinModel")) {
+            setSkinModel(nbt.getString("SkinModel"));
         }
         
         // Sanitize: Ensure CustomNameVisible is off if it was accidentally enabled by previous versions

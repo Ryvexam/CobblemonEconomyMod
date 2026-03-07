@@ -258,7 +258,8 @@ public class CobblemonListeners {
                 if (winner instanceof PlayerBattleActor playerActor) {
                     ServerPlayer player = playerActor.getEntity();
                     if (player != null) {
-                        QuestService.handleBattleVictory(player, isRaidDenBattle, isCombatTower);
+                        boolean countRaidFromBattleEvent = isRaidDenBattle && !raidDensApiAvailable;
+                        QuestService.handleBattleVictory(player, countRaidFromBattleEvent, isCombatTower);
 
                         if (raidDensApiAvailable && isRaidDenBattle) {
                             continue;
@@ -450,6 +451,8 @@ public class CobblemonListeners {
                     return;
                 }
 
+                QuestService.handleRaidVictory(player);
+
                 CobblemonEconomy.getEconomyManager().updateUsername(player.getUUID(), player.getGameProfile().getName());
                 BigDecimal reward = CobblemonEconomy.getConfig().raidDenVictoryReward;
                 if (reward.compareTo(BigDecimal.ZERO) <= 0) {
@@ -557,6 +560,10 @@ public class CobblemonListeners {
     }
 
     private static boolean isRaidDenBattle(com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent event) {
+        if (hasActiveRaidPlayer(event.getWinners()) || hasActiveRaidPlayer(event.getLosers())) {
+            return true;
+        }
+
         try {
             var battle = event.getBattle();
             if (battle != null && battle.getFormat() != null) {
@@ -578,6 +585,28 @@ public class CobblemonListeners {
         }
 
         return hasRaidActor(event.getWinners()) || hasRaidActor(event.getLosers());
+    }
+
+    private static boolean hasActiveRaidPlayer(Iterable<?> actors) {
+        if (actors == null) {
+            return false;
+        }
+
+        for (Object actor : actors) {
+            if (actor instanceof PlayerBattleActor playerActor && playerActor.getEntity() != null) {
+                if (activeRaidDensPlayers.contains(playerActor.getEntity().getUUID())) {
+                    return true;
+                }
+                continue;
+            }
+
+            Object entity = tryInvoke(actor, new String[] {"getEntity"});
+            if (entity instanceof ServerPlayer player && activeRaidDensPlayers.contains(player.getUUID())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static boolean isBattleTowerBattle(com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent event) {

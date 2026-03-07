@@ -1,0 +1,33 @@
+{
+  "variants": {
+    "facing=north,part=origin": { "model": "cobblemon-economy:block/quest_board" },
+    "facing=east,part=origin": { "model": "cobblemon-economy:block/quest_board", "y": 90 },
+    "facing=south,part=origin": { "model": "cobblemon-economy:block/quest_board", "y": 180 },
+    "facing=west,part=origin": { "model": "cobblemon-economy:block/quest_board", "y": 270 },
+
+    "facing=north,part=left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=east,part=left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=south,part=left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=west,part=left": { "model": "cobblemon-economy:block/quest_board_structure" },
+
+    "facing=north,part=right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=east,part=right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=south,part=right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=west,part=right": { "model": "cobblemon-economy:block/quest_board_structure" },
+
+    "facing=north,part=top_left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=east,part=top_left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=south,part=top_left": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=west,part=top_left": { "model": "cobblemon-economy:block/quest_board_structure" },
+
+    "facing=north,part=top": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=east,part=top": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=south,part=top": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=west,part=top": { "model": "cobblemon-economy:block/quest_board_structure" },
+
+    "facing=north,part=top_right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=east,part=top_right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=south,part=top_right": { "model": "cobblemon-economy:block/quest_board_structure" },
+    "facing=west,part=top_right": { "model": "cobblemon-economy:block/quest_board_structure" }
+  }
+}
