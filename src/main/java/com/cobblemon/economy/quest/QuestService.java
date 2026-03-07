@@ -70,12 +70,8 @@ public final class QuestService {
             if (def == null) {
                 continue;
             }
-            QuestManager.QuestState state = manager.getQuestState(player.getUUID(), npcId, questId);
-            if (isExpired(def, state)) {
-                manager.cancelQuest(player.getUUID(), npcId, questId, nextRotationBoundaryMillis(npcDefinition));
-                player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.expired", def.name).withStyle(ChatFormatting.RED));
-                state = null;
-            }
+            QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, def,
+                    manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
             List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, def);
             QuestDisplayStatus status = resolveStatus(def, state, progress);
             if (status == QuestDisplayStatus.ACTIVE || status == QuestDisplayStatus.CLAIMABLE) {
@@ -102,12 +98,8 @@ public final class QuestService {
             if (def == null) {
                 continue;
             }
-            QuestManager.QuestState state = manager.getQuestState(player.getUUID(), npcId, questId);
-            if (isExpired(def, state)) {
-                manager.cancelQuest(player.getUUID(), npcId, questId, nextRotationBoundaryMillis(npcDefinition));
-                player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.expired", def.name).withStyle(ChatFormatting.RED));
-                state = null;
-            }
+            QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, def,
+                    manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
             List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, def);
             QuestDisplayStatus status = resolveStatus(def, state, progress);
             snapshots.add(new QuestSnapshot(questId, def, state, status, progress));
@@ -134,11 +126,8 @@ public final class QuestService {
             return false;
         }
 
-        QuestManager.QuestState state = manager.getQuestState(player.getUUID(), npcId, questId);
-        if (isExpired(quest, state)) {
-            manager.cancelQuest(player.getUUID(), npcId, questId, nextRotationBoundaryMillis(npcDefinition));
-            state = null;
-        }
+        QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, quest,
+                manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
         List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, quest);
         QuestDisplayStatus displayStatus = resolveStatus(quest, state, progress);
         if (!hasPrerequisites(player.getUUID(), npcId, quest)) {
@@ -544,6 +533,22 @@ public final class QuestService {
             progress.add(indexed.getOrDefault(i, 0));
         }
         return progress;
+    }
+
+    private static QuestManager.QuestState refreshExpiredQuestState(ServerPlayer player,
+                                                                    String npcId,
+                                                                    String questId,
+                                                                    QuestConfig.QuestDefinition quest,
+                                                                    QuestManager.QuestState state,
+                                                                    QuestNpcConfig.QuestNpcDefinition npcDefinition,
+                                                                    QuestManager manager) {
+        if (!isExpired(quest, state)) {
+            return state;
+        }
+
+        manager.cancelQuest(player.getUUID(), npcId, questId, nextRotationBoundaryMillis(npcDefinition));
+        player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.expired", quest.name).withStyle(ChatFormatting.RED));
+        return manager.getQuestState(player.getUUID(), npcId, questId);
     }
 
     private static QuestDisplayStatus resolveStatus(QuestConfig.QuestDefinition quest, QuestManager.QuestState state, List<Integer> progress) {

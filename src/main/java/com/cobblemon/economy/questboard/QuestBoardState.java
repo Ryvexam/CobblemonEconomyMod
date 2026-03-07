@@ -28,6 +28,7 @@ public class QuestBoardState {
         public Integer timeLimitMinutes;
         public BigDecimal rewardPokedollars = BigDecimal.ZERO;
         public BigDecimal rewardPco = BigDecimal.ZERO;
+        public boolean hasCommandRewards;
         public List<String> objectives = new ArrayList<>();
     }
 }

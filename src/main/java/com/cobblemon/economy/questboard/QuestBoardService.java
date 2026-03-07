@@ -77,6 +77,8 @@ public final class QuestBoardService {
                 if (snapshot.definition.rewards.pco != null) {
                     card.rewardPco = snapshot.definition.rewards.pco;
                 }
+                card.hasCommandRewards = snapshot.definition.rewards.commands != null
+                        && snapshot.definition.rewards.commands.stream().anyMatch(command -> command != null && !command.isBlank());
             }
 
             if (snapshot.definition.objectives != null) {

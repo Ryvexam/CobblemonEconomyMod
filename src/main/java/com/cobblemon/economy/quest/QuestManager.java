@@ -336,7 +336,4 @@ public class QuestManager {
         }
     }
 
-    public void cancelQuest(UUID uuid, String npcId, String questId) {
-        cancelQuest(uuid, npcId, questId, System.currentTimeMillis());
-    }
 }

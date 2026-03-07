@@ -36,7 +36,7 @@ public class QuestBoardScreen extends Screen {
     private static final int TEX_H = 162;
     private static final int GUI_W = 296;
     private static final int GUI_H = 162;
-    private static final int[] QUEST_SLOT_X = {98, 153, 203, 98, 153, 208};
+    private static final int[] QUEST_SLOT_X = {98, 153, 208, 98, 153, 208};
     private static final int[] QUEST_SLOT_Y = {32, 32, 32, 89, 89, 89};
     private static final int DETAIL_X = 14;
     private static final int DETAIL_W = 78;
@@ -44,15 +44,15 @@ public class QuestBoardScreen extends Screen {
     private static final int HEADER_ICON_X = 24;
     private static final int HEADER_TITLE_X = 30;
     private static final int HEADER_RIGHT_MARGIN = 8;
-    private static final int TIER_X = 26;
-    private static final int TIER_Y = 32;
+    private static final int TIER_X = 39;
+    private static final int TIER_Y = 31;
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
-    private static final float TEXT_DETAIL_SCALE = 0.75f;
     private static final int SELECTED_PREVIEW_ITEM_X = 49;
     private static final int SELECTED_PREVIEW_ITEM_Y = 107;
-    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.9f;
-    private static final float CARD_PREVIEW_ITEM_SCALE = 1.8f;
+    private static final int REWARD_SLOT_W = 68;
+    private static final float SELECTED_PREVIEW_ITEM_SCALE = 2.0f;
+    private static final float CARD_PREVIEW_ITEM_SCALE = 2.0f;
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
     private static final float SELECTED_PREVIEW_MODEL_SCALE = 1.10f;
     private static final int COLOR_HEADER_TEXT = 0xF7F2E5;
@@ -60,7 +60,7 @@ public class QuestBoardScreen extends Screen {
     private static final int COLOR_BODY_TEXT = 0xE5E1D7;
     private static final int COLOR_MUTED_TEXT = 0xBEB7A7;
     private static final int COLOR_ALERT_TEXT = 0xE79AA4;
-    private static final int COLOR_REWARD_TITLE = 0x6FD7C6;
+    private static final int COLOR_REWARD_TEXT = 0x5D4A2D;
     private static final long DOUBLE_CLICK_MS = 350L;
 
     private final String boardId;
@@ -76,6 +76,8 @@ public class QuestBoardScreen extends Screen {
     private long lastRightQuestClickAt = 0L;
     private int lastLeftQuestIndex = -1;
     private int lastRightQuestIndex = -1;
+    private long lastTickAt = 0L;
+    private boolean refreshQueued = false;
 
     public QuestBoardScreen(String boardId, QuestBoardState state) {
         super(Component.translatable("cobblemon-economy.quest.gui.npc", state != null ? state.boardName : boardId));
@@ -93,13 +95,21 @@ public class QuestBoardScreen extends Screen {
         ensureNearest(TIER_3);
         this.selectedIndex = Mth.clamp(this.selectedIndex, 0, Math.max(0, this.state.quests.size() - 1));
         this.cancelConfirmUntil = 0L;
+        this.lastTickAt = System.currentTimeMillis();
+        this.refreshQueued = false;
         buildModelWidgets();
     }
 
     @Override
     public void tick() {
         super.tick();
+        long now = System.currentTimeMillis();
+        long deltaMs = this.lastTickAt <= 0L ? 0L : Math.min(1000L, Math.max(0L, now - this.lastTickAt));
+        this.lastTickAt = now;
         ticksElapsed++;
+        if (!refreshQueued && tickDynamicState(deltaMs)) {
+            requestRefresh();
+        }
         int speed = 3;
         if (ticksElapsed % (2 * speed) == 0) {
             selectPointerIncrement = !selectPointerIncrement;
@@ -159,6 +169,7 @@ public class QuestBoardScreen extends Screen {
 
     private void sendAction(String questId, String action) {
         if (ClientPlayNetworking.canSend(QuestBoardActionPayload.TYPE)) {
+            this.refreshQueued = true;
             ClientPlayNetworking.send(new QuestBoardActionPayload(boardId, questId, action));
         }
     }
@@ -217,43 +228,20 @@ public class QuestBoardScreen extends Screen {
 
         QuestBoardState.QuestCard selected = getSelectedQuest();
         if (selected != null) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(left + DETAIL_X, top + 43, 0);
-            guiGraphics.pose().scale(TEXT_DETAIL_SCALE, TEXT_DETAIL_SCALE, 1.0f);
-            
-            int drawW = (int) (DETAIL_W / TEXT_DETAIL_SCALE);
-            int cursorY = 0;
-            
-            guiGraphics.drawString(this.font, ellipsize(selected.questName, drawW), 0, cursorY, COLOR_TITLE, false);
-            cursorY += 12;
-            
+            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 43, COLOR_TITLE, false);
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), drawW), 0, cursorY, COLOR_BODY_TEXT, false);
-            cursorY += 12;
+            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 54, COLOR_BODY_TEXT, false);
+            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 65, COLOR_BODY_TEXT, false);
 
-            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, drawW), 0, cursorY, COLOR_BODY_TEXT, false);
-            cursorY += 12;
-
-            if (selected.timeRemainingMs > 0) {
-                guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.time_remaining", formatDuration(selected.timeRemainingMs)).getString(), drawW), 0, cursorY, COLOR_ALERT_TEXT, false);
-                cursorY += 12;
-            } else if (selected.cooldownRemainingMs > 0) {
-                guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.cooldown_remaining", formatDuration(selected.cooldownRemainingMs)).getString(), drawW), 0, cursorY, COLOR_ALERT_TEXT, false);
-                cursorY += 12;
+            String timerText = detailTimerText(selected);
+            if (!timerText.isBlank()) {
+                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 76, COLOR_ALERT_TEXT, false);
             }
-
-            if (selected.objectives != null && !selected.objectives.isEmpty()) {
-                guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.hover_objectives").getString(), drawW), 0, cursorY, COLOR_MUTED_TEXT, false);
-            }
-            
-            guiGraphics.pose().popPose();
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
-            blitNearest(guiGraphics, tierTexture, left + TIER_X, top + TIER_Y, 0, 0, 68, 11, 68, 11);
+            blitNearest(guiGraphics, tierTexture, left + TIER_X, top + TIER_Y, 0, 0, 42, 12, 42, 12);
 
-            String rewardText = Component.translatable("cobblemon-economy.quest.reward.pokedollars.short", selected.rewardPokedollars).getString();
-            int rewardW = this.font.width(rewardText);
-            guiGraphics.drawString(this.font, rewardText, left + REWARD_SLOT_X + (68 - rewardW) / 2, top + REWARD_SLOT_Y + 2, COLOR_BODY_TEXT, false);
+            renderRewardLines(guiGraphics, selected, left, top);
         }
 
         if (selectedModelWidget != null) {
@@ -288,9 +276,29 @@ public class QuestBoardScreen extends Screen {
 
         if (hoveredQuestIndex >= 0 && hoveredQuestIndex < state.quests.size()) {
             renderQuestTooltip(guiGraphics, state.quests.get(hoveredQuestIndex), mouseX, mouseY);
-        } else if (selected != null && inside(mouseX, mouseY, left + DETAIL_X, top + 43, DETAIL_W, 60)) {
+        } else if (selected != null && inside(mouseX, mouseY, left + DETAIL_X, top + 42, 80, 96)) {
             renderQuestTooltip(guiGraphics, selected, mouseX, mouseY);
         }
+    }
+
+    private boolean tickDynamicState(long deltaMs) {
+        if (deltaMs <= 0L) {
+            return false;
+        }
+
+        boolean needsRefresh = advanceTimer(this.state.rotationRemainingMs, value -> this.state.rotationRemainingMs = value, deltaMs);
+        if (this.state.quests == null) {
+            return needsRefresh;
+        }
+
+        for (QuestBoardState.QuestCard card : this.state.quests) {
+            if (card == null) {
+                continue;
+            }
+            needsRefresh |= advanceTimer(card.timeRemainingMs, value -> card.timeRemainingMs = value, deltaMs);
+            needsRefresh |= advanceTimer(card.cooldownRemainingMs, value -> card.cooldownRemainingMs = value, deltaMs);
+        }
+        return needsRefresh;
     }
 
     @Override
@@ -422,7 +430,7 @@ public class QuestBoardScreen extends Screen {
         Item item = resolveItem(card != null ? card.previewItem : null);
         ItemStack stack = new ItemStack(item);
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(slotX + 11, slotY + 11, 0);
+        guiGraphics.pose().translate(slotX + 9, slotY + 9, 0);
         guiGraphics.pose().scale(CARD_PREVIEW_ITEM_SCALE, CARD_PREVIEW_ITEM_SCALE, 1.0f);
         guiGraphics.renderItem(stack, 0, 0);
         guiGraphics.pose().popPose();
@@ -432,7 +440,7 @@ public class QuestBoardScreen extends Screen {
         Item item = resolveItem(card != null ? card.previewItem : null);
         ItemStack stack = new ItemStack(item);
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(left + SELECTED_PREVIEW_ITEM_X, top + SELECTED_PREVIEW_ITEM_Y, 0);
+        guiGraphics.pose().translate(left + SELECTED_PREVIEW_ITEM_X - 1, top + SELECTED_PREVIEW_ITEM_Y - 1, 0);
         guiGraphics.pose().scale(SELECTED_PREVIEW_ITEM_SCALE, SELECTED_PREVIEW_ITEM_SCALE, 1.0f);
         guiGraphics.renderItem(stack, 0, 0);
         guiGraphics.pose().popPose();
@@ -512,6 +520,82 @@ public class QuestBoardScreen extends Screen {
         return clipped.isEmpty() ? suffix : clipped + suffix;
     }
 
+    private String detailTimerText(QuestBoardState.QuestCard card) {
+        if (card == null) {
+            return "";
+        }
+        if (card.timeRemainingMs > 0L) {
+            return formatDuration(card.timeRemainingMs);
+        }
+        if (card.cooldownRemainingMs > 0L) {
+            return formatDuration(card.cooldownRemainingMs);
+        }
+        return "";
+    }
+
+    private void renderRewardLines(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int left, int top) {
+        List<Component> rewardLines = buildRewardLines(card);
+        if (rewardLines.isEmpty()) {
+            return;
+        }
+
+        int startY = top + REWARD_SLOT_Y + (rewardLines.size() > 1 ? -3 : 2);
+        for (int i = 0; i < rewardLines.size(); i++) {
+            String text = ellipsize(rewardLines.get(i).getString(), REWARD_SLOT_W - 4);
+            int rewardW = this.font.width(text);
+            guiGraphics.drawString(this.font, text, left + REWARD_SLOT_X + Math.max(0, (REWARD_SLOT_W - rewardW) / 2), startY + (i * 10), COLOR_REWARD_TEXT, false);
+        }
+    }
+
+    private List<Component> buildRewardLines(QuestBoardState.QuestCard card) {
+        List<Component> lines = new ArrayList<>();
+        if (card == null) {
+            return lines;
+        }
+
+        if (card.rewardPokedollars != null && card.rewardPokedollars.compareTo(BigDecimal.ZERO) > 0) {
+            lines.add(Component.translatable("cobblemon-economy.quest.reward.pokedollars.short", formatAmount(card.rewardPokedollars)));
+        }
+        if (card.rewardPco != null && card.rewardPco.compareTo(BigDecimal.ZERO) > 0 && lines.size() < 2) {
+            lines.add(Component.translatable("cobblemon-economy.quest.reward.pco.short", formatAmount(card.rewardPco)));
+        }
+        if (card.hasCommandRewards && lines.size() < 2) {
+            lines.add(Component.translatable("cobblemon-economy.quest.reward.commands.short"));
+        }
+        if (lines.isEmpty()) {
+            lines.add(Component.literal("-"));
+        }
+        return lines;
+    }
+
+    private boolean advanceTimer(long currentValue, java.util.function.LongConsumer updater, long deltaMs) {
+        if (currentValue <= 0L) {
+            return false;
+        }
+        long nextValue = Math.max(0L, currentValue - deltaMs);
+        updater.accept(nextValue);
+        return currentValue > 0L && nextValue == 0L;
+    }
+
+    private void requestRefresh() {
+        if (!ClientPlayNetworking.canSend(QuestBoardActionPayload.TYPE)) {
+            return;
+        }
+        this.refreshQueued = true;
+        ClientPlayNetworking.send(new QuestBoardActionPayload(boardId, "", "REFRESH"));
+    }
+
+    private String formatAmount(BigDecimal amount) {
+        if (amount == null) {
+            return "0";
+        }
+        BigDecimal normalized = amount.stripTrailingZeros();
+        if (normalized.scale() < 0) {
+            normalized = normalized.setScale(0);
+        }
+        return normalized.toPlainString();
+    }
+
     private void renderQuestTooltip(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int mouseX, int mouseY) {
         if (card == null) {
             return;
@@ -534,6 +618,24 @@ public class QuestBoardScreen extends Screen {
                 }
                 tooltip.add(Component.literal("- " + objective).withStyle(ChatFormatting.DARK_GRAY));
             }
+        }
+
+        boolean hasPokedollars = card.rewardPokedollars != null && card.rewardPokedollars.compareTo(BigDecimal.ZERO) > 0;
+        boolean hasPco = card.rewardPco != null && card.rewardPco.compareTo(BigDecimal.ZERO) > 0;
+        if (hasPokedollars || hasPco) {
+            tooltip.add(Component.translatable("cobblemon-economy.quest.rewards_title").withStyle(ChatFormatting.AQUA));
+            if (hasPokedollars) {
+                tooltip.add(Component.translatable("cobblemon-economy.quest.reward.pokedollars", formatAmount(card.rewardPokedollars)).withStyle(ChatFormatting.WHITE));
+            }
+            if (hasPco) {
+                tooltip.add(Component.translatable("cobblemon-economy.quest.reward.pco", formatAmount(card.rewardPco)).withStyle(ChatFormatting.WHITE));
+            }
+        }
+        if (card.hasCommandRewards) {
+            if (!hasPokedollars && !hasPco) {
+                tooltip.add(Component.translatable("cobblemon-economy.quest.rewards_title").withStyle(ChatFormatting.AQUA));
+            }
+            tooltip.add(Component.translatable("cobblemon-economy.quest.reward.commands").withStyle(ChatFormatting.WHITE));
         }
 
         List<FormattedCharSequence> lines = tooltip.stream().map(Component::getVisualOrderText).toList();
