@@ -68,40 +68,39 @@ To make the reward rules easier to read, the generated config now uses explicit 
 - `capture_event_base_reward`
   - Base PokeDollar reward used when a capture payout is allowed.
   - Also reused as the base for fossil revive special payouts.
-- `pokedex_new_species_bonus_reward`
-  - Extra bonus only when the player adds a new species to the Pokedex.
-- `normal_capture_reward_requires_new_pokedex_entry`
-  - Default: `true`.
-  - If `true`, a normal capture gives no payout when the species was already caught before.
-- `special_capture_reward_ignores_pokedex_history`
-  - Default: `true`.
-  - If `true`, shiny / radiant / legendary / paradox captures can still pay even if the species already exists in the Pokedex.
+- `capture_multi_reward`
+  - Default: `0`.
+  - Reward for repeat non-special captures of an already known species.
+  - If you want no reward on 2nd / 3rd / 4th normal captures, leave it at `0`.
 - `capture_shiny_multiplier`
 - `capture_radiant_multiplier`
 - `capture_legendary_multiplier`
 - `capture_paradox_multiplier`
 
-Exact payout behavior with default flags:
-- First normal capture of a new species: `capture_event_base_reward` + `pokedex_new_species_bonus_reward`.
-- Re-capture of an already known normal species: no normal capture payout.
-- Re-capture of an already known shiny / radiant / legendary / paradox species: still pays if `special_capture_reward_ignores_pokedex_history` is `true`.
+Exact payout behavior with default values:
+- First normal capture of a new species: `capture_event_base_reward`.
+- Re-capture of an already known normal species: `capture_multi_reward`.
+- Re-capture of an already known shiny / radiant / legendary / paradox species: still pays through the special multiplier path.
 - Capture milestone rewards are separate and come from `milestone.json`.
-- First-time `legendary`, `mythical`, and `paradox` Pokedex entries do not receive the normal discovery bonus path; they use the special capture reward path instead.
-- First-time shiny/radiant species can still combine the special capture payout with the Pokedex discovery bonus.
+- First-time special captures use the special capture reward path and do not stack an extra normal new-species payout on top.
 
 Special multiplier rule:
 - Multipliers are direct payout factors, not `base + bonus`.
-- Example with `capture_event_base_reward = 100` and `capture_shiny_multiplier = 5`: shiny payout = `500`, not `600`.
+- Example with `capture_event_base_reward = 100` and `capture_shiny_multiplier = 5`: shiny payout = `500`.
 - If a Pokemon matches multiple special categories, factors are added together before multiplying.
 - Example: shiny `5` + legendary `10` = `x15` total special payout.
 
 Important scope note:
-- The two Pokedex-history flags above affect capture-event payouts.
+- `capture_multi_reward` only affects repeat normal captures.
 - Fossil revive rewards are handled by the fossil event path and still use `capture_event_base_reward` / special multipliers separately.
 
 Legacy keys are still read for compatibility:
 - `captureReward`
+- `capture_reward`
 - `newDiscoveryReward`
+- `pokedex_new_species_bonus_reward`
+- `normal_capture_reward_requires_new_pokedex_entry`
+- `special_capture_reward_ignores_pokedex_history`
 - `shinyMultiplier`
 - `radiantMultiplier`
 - `legendaryMultiplier`
@@ -114,16 +113,14 @@ Recommended strict Pokedex-only setup:
 ```json
 {
   "capture_event_base_reward": 100,
-  "pokedex_new_species_bonus_reward": 100,
-  "normal_capture_reward_requires_new_pokedex_entry": true,
-  "special_capture_reward_ignores_pokedex_history": false
+  "capture_multi_reward": 0
 }
 ```
 
 With that setup:
 - already-known species do not pay normal capture rewards
-- already-known shiny / radiant / legendary / paradox species also do not pay capture rewards
-- only genuinely new Pokedex species pay the normal capture reward path
+- shiny / radiant / legendary / paradox captures still pay through their multiplier path
+- only genuinely new Pokedex species pay the normal base capture reward path
 
 ### 3.2) Manual vs automatic files
 
@@ -264,8 +261,10 @@ Lifecycle rules that matter:
 - A quest can only be accepted if it is in the current visible rotation for that board.
 - Cancelled quests stay unavailable until the next board rotation.
 - Expired active quests are also pushed to the next board rotation.
+- Cancelling or expiring a quest clears its saved progress.
 - `requiresCompleted` only checks quests on the same quest-board / NPC ID.
 - Cross-board prerequisite chains are not supported.
+- Active / claimable quests stay pinned on the board first, then remaining slots are filled from the current rotation.
 
 ## 7) `quests.json` (Exact Authoring Guide)
 
@@ -299,18 +298,34 @@ Quest definition behavior:
   - `ALWAYS` = can become available again immediately after claim unless `cooldownMinutes` is set
   - `ONCE` = permanently locked after claim
 - `repeatable`:
-  - keep this aligned with `repeatPolicy`
-  - if set to `false`, the quest behaves like a one-time quest after claim
+  - optional compatibility flag
+  - if omitted, it defaults to `true` except for `ONCE`
+  - if you set `repeatable: false`, the quest behaves like a one-time quest after claim
 - `timeLimitMinutes`:
   - active quest expiry timer
   - when it expires, the quest is cancelled and pushed to the next board rotation
+  - expiry also clears objective progress for that quest
 - `cooldownMinutes`:
-  - if `> 0`, this explicit cooldown is used after claim
+  - if `> 0`, this explicit per-player cooldown is used after claim
   - if missing/`0`, availability falls back to `repeatPolicy`
 - `requiresCompleted`:
   - prerequisite quest IDs on the same board/NPC only
+  - the prerequisite is satisfied when the required quest is `COMPLETED` or `CLAIMED`
 - `rewards`:
   - `pokedollars`, `pco`, and `commands` can be combined in the same quest reward
+
+Recommended quest presets:
+- Daily rotating repeatable quest:
+  - `repeatPolicy: "DAILY"`
+  - `repeatable: true`
+  - `cooldownMinutes: 0`
+- Repeatable quest with personal cooldown:
+  - `repeatPolicy: "ALWAYS"`
+  - `repeatable: true`
+  - `cooldownMinutes: <minutes>`
+- One-time progression quest:
+  - `repeatPolicy: "ONCE"`
+  - `repeatable: false`
 
 ### Objective types
 - `capture`
@@ -446,10 +461,17 @@ Field behavior:
   - only matters when `rotationMode` is `HOURS`
   - minimum effective value is `1`
 - `questPool`: quest IDs from `quests.json`.
+  - duplicate IDs are de-duplicated automatically
+  - pool order is not preserved on the board; the active rotation is shuffled from this pool
 - `dialogues`:
   - accepted in config and kept in the file
   - the current custom quest board screen does not use these dialogue arrays as its main text source
   - treat them as optional flavor/config data, not as the authoritative board UI copy
+
+Board behavior notes:
+- The board UI has 6 card slots total.
+- If players already have active or claimable quests on that board, those cards consume slots first.
+- That means a large `questPool` does not show more than 6 cards at once.
 
 Bind an NPC to a quest profile:
 1. `/eco questnpc list`

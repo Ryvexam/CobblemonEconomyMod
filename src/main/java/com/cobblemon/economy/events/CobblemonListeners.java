@@ -30,14 +30,17 @@ import java.util.function.Consumer;
 
 public class CobblemonListeners {
     private static final Map<String, Boolean> preChangeKnowledge = new ConcurrentHashMap<>();
+    private static final Map<String, Long> recentNewSpeciesCaptures = new ConcurrentHashMap<>();
     private static final Map<String, Long> recentCaptureRewards = new ConcurrentHashMap<>();
     private static final Set<UUID> activeRaidDensPlayers = ConcurrentHashMap.newKeySet();
     private static volatile boolean listenersRegistered = false;
     private static volatile boolean raidDensApiAvailable = false;
     private static final long CAPTURE_REWARD_DEDUP_MS = 3000L;
+    private static final long NEW_SPECIES_CACHE_MS = 10000L;
     
     public static void resetListeners() {
         preChangeKnowledge.clear();
+        recentNewSpeciesCaptures.clear();
         recentCaptureRewards.clear();
         activeRaidDensPlayers.clear();
         listenersRegistered = false;
@@ -60,7 +63,7 @@ public class CobblemonListeners {
                     var speciesRecord = event.getRecord().getSpeciesDexRecord();
                     // Store if it was ALREADY caught
                     boolean wasCaught = speciesRecord.getKnowledge() == PokedexEntryProgress.CAUGHT;
-                    String key = event.getPlayerUUID().toString() + ":" + speciesRecord.getId().toString();
+                    String key = speciesKey(event.getPlayerUUID(), speciesRecord.getId().toString());
                     preChangeKnowledge.put(key, wasCaught);
                 }
             } catch (Exception e) {
@@ -69,22 +72,18 @@ public class CobblemonListeners {
             return kotlin.Unit.INSTANCE;
         });
 
-        // Reward for Pokedex updates (First catch of a species)
+        // Track brand-new Pokedex species and milestone progression
         CobblemonEvents.POKEDEX_DATA_CHANGED_POST.subscribe(Priority.NORMAL, event -> {
             // Check if the change is marking a Pokemon as CAUGHT
             if (event.getKnowledge() == PokedexEntryProgress.CAUGHT) {
-                // Verify against PRE cache to ensure it's a new catch
                 var speciesRecord = event.getRecord().getSpeciesDexRecord();
-                String key = event.getPlayerUUID().toString() + ":" + speciesRecord.getId().toString();
-                Boolean wasCaught = preChangeKnowledge.remove(key); // Remove to clean up
-
-                // If we don't know the previous state, assume it might be a re-trigger (safer to deny if unsure? or allow?)
-                // Actually, if PRE didn't fire (unlikely), we might give duplicate.
-                // But generally PRE fires.
-                // If wasCaught is TRUE, return immediately.
-                if (Boolean.TRUE.equals(wasCaught)) {
+                String key = speciesKey(event.getPlayerUUID(), speciesRecord.getId().toString());
+                Boolean wasCaught = preChangeKnowledge.remove(key);
+                if (!Boolean.FALSE.equals(wasCaught)) {
                     return kotlin.Unit.INSTANCE;
                 }
+
+                recentNewSpeciesCaptures.put(key, System.currentTimeMillis());
 
                 ServerPlayer player = CobblemonEconomy.getGameServer().getPlayerList().getPlayer(event.getPlayerUUID());
                 if (player == null) return kotlin.Unit.INSTANCE;
@@ -98,25 +97,6 @@ public class CobblemonListeners {
                 }
 
                 handleCaptureMilestones(player, uniqueCount);
- 
-                // Check if this species is a legendary, mythical or paradox to avoid double rewards
-                var species = com.cobblemon.mod.common.api.pokemon.PokemonSpecies.INSTANCE.getByIdentifier(speciesRecord.getId());
-                if (species != null) {
-                    var labels = species.getLabels();
-                    if (labels.contains("legendary") || labels.contains("mythical") || labels.contains("paradox")) {
-                        return kotlin.Unit.INSTANCE;
-                    }
-                }
-                
-                // For Pokedex discovery, we only give the base reward as it's for the species
-                BigDecimal reward = CobblemonEconomy.getConfig().newDiscoveryReward;
-                
-                if (reward.compareTo(BigDecimal.ZERO) > 0) {
-                    CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
-                    String formattedReward = reward.stripTrailingZeros().toPlainString();
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
-                        .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
-                }
             }
             return kotlin.Unit.INSTANCE;
         });
@@ -181,16 +161,17 @@ public class CobblemonListeners {
                 }
             }
 
-            if (shouldRequireNewPokedexEntryForCapture(isSpecial) && hasCaughtSpecies(player, pokemon)) {
-                return kotlin.Unit.INSTANCE;
-            }
+            boolean isFirstSpeciesCapture = isFirstSpeciesCapture(player, pokemon);
+            BigDecimal baseReward = defaultReward(CobblemonEconomy.getConfig().captureReward);
+            BigDecimal multiReward = defaultReward(CobblemonEconomy.getConfig().captureMultiReward);
+            BigDecimal reward;
 
             if (isSpecial) {
                 multiplier = currentPokemonMult;
+                reward = baseReward.multiply(multiplier);
+            } else {
+                reward = isFirstSpeciesCapture ? baseReward : multiReward;
             }
-
-            BigDecimal baseReward = CobblemonEconomy.getConfig().captureReward;
-            BigDecimal reward = baseReward.multiply(multiplier);
             
             CobblemonEconomy.LOGGER.debug("Capture reward calculation - Base: {}, Multiplier: {}, Total: {}, isSpecial: {}", 
                 baseReward, multiplier, reward, isSpecial);
@@ -199,6 +180,12 @@ public class CobblemonListeners {
                 CobblemonEconomy.getEconomyManager().addBalance(player.getUUID(), reward);
                 
                 String formattedReward = reward.stripTrailingZeros().toPlainString();
+
+                if (!isSpecial && isFirstSpeciesCapture) {
+                    player.sendSystemMessage(Component.translatable("cobblemon-economy.event.discovery.title")
+                            .append(Component.translatable("cobblemon-economy.event.discovery.reward", formattedReward).withStyle(ChatFormatting.GOLD)));
+                    return kotlin.Unit.INSTANCE;
+                }
                 
                 String translationKey = "cobblemon-economy.event.capture";
                 ChatFormatting color = ChatFormatting.GOLD;
@@ -538,25 +525,25 @@ public class CobblemonListeners {
         return -1;
     }
 
-    private static boolean shouldRequireNewPokedexEntryForCapture(boolean isSpecial) {
-        var config = CobblemonEconomy.getConfig();
-        if (config == null) {
-            return !isSpecial;
+    private static boolean isFirstSpeciesCapture(ServerPlayer player, Pokemon pokemon) {
+        long now = System.currentTimeMillis();
+        recentNewSpeciesCaptures.entrySet().removeIf(entry -> now - entry.getValue() > NEW_SPECIES_CACHE_MS);
+
+        String key = speciesKey(player.getUUID(), pokemon.getSpecies().getResourceIdentifier().toString());
+        Long recent = recentNewSpeciesCaptures.get(key);
+        if (recent != null && now - recent <= NEW_SPECIES_CACHE_MS) {
+            return true;
         }
-        return isSpecial
-                ? !config.specialCaptureRewardIgnoresPokedexHistory
-                : config.normalCaptureRewardRequiresNewPokedexEntry;
+
+        return Boolean.FALSE.equals(preChangeKnowledge.get(key));
     }
 
-    private static boolean hasCaughtSpecies(ServerPlayer player, Pokemon pokemon) {
-        try {
-            var pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
-            var speciesIdentifier = pokemon.getSpecies().getResourceIdentifier();
-            return pokedex.getHighestKnowledgeForSpecies(speciesIdentifier) == PokedexEntryProgress.CAUGHT;
-        } catch (Exception e) {
-            CobblemonEconomy.LOGGER.error("Failed to check pokedex status in capture event", e);
-            return false;
-        }
+    private static BigDecimal defaultReward(BigDecimal reward) {
+        return reward == null ? BigDecimal.ZERO : reward;
+    }
+
+    private static String speciesKey(UUID playerUuid, String speciesId) {
+        return playerUuid + ":" + speciesId.toLowerCase(Locale.ROOT);
     }
 
     private static boolean isCaughtRecord(Object record) {

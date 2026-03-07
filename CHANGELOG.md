@@ -14,9 +14,7 @@ All notable changes to this project will be documented in this file.
 - **Quest Board Visual Assets:** Updated quest tier icon color grading (tier stars) and darkened/greened quest favicon palette.
 - **Capture Reward Config Names:** Capture-related `config.json` keys are now written with explicit names.
   - `capture_event_base_reward`
-  - `pokedex_new_species_bonus_reward`
-  - `normal_capture_reward_requires_new_pokedex_entry`
-  - `special_capture_reward_ignores_pokedex_history`
+  - `capture_multi_reward`
   - `capture_shiny_multiplier`, `capture_radiant_multiplier`, `capture_legendary_multiplier`, `capture_paradox_multiplier`
   - Legacy keys remain accepted and are migrated on config rewrite.
 
@@ -30,13 +28,15 @@ All notable changes to this project will be documented in this file.
 - **Quest Board Refresh UX:** Live board refreshes now preserve the currently selected quest instead of snapping back to the first slot.
 - **Quest Board Polish:** Fixed slot alignment drift, removed blurry fractional detail scaling, tightened item preview placement, and improved reward slot rendering for PokeDollars / PCO / command rewards.
 - **Capture Reward Rule Clarity:** Capture payout behavior is now configurable and explicit.
-  - Default behavior is unchanged: normal captures require a new Pokedex entry.
-  - Special captures can still reward repeated species unless the new config flag disables it.
+  - First normal captures use `capture_event_base_reward`.
+  - Repeat normal captures use `capture_multi_reward`.
+  - Special captures still use the special multiplier path.
 
 ### Documentation
 - **CURSEFORGE.md:** Expanded quest system docs with precise JSON authoring guidance, copy-safe examples, objective key rules, and common mistakes.
 - **CURSEFORGE.md:** Clarified Pokemon preview behavior (including shiny species preview logic).
 - **CURSEFORGE.md:** Added an explicit `config.json` reward-key guide with capture/Pokedex semantics and legacy-key migration notes.
+- **CURSEFORGE.md:** Clarified quest lifecycle presets, progress reset rules, pinned active/claimable slots, and board-pool behavior so admins know exactly what is and is not configurable.
 - **README.md:** Clarified integration event sources for Cobblemon, Raid Dens, and Battle Tower-style detection.
 - **README.md:** Reworked capture reward config docs so payout rules are explicit instead of relying on ambiguous legacy key names.
 

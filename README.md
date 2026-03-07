@@ -64,10 +64,9 @@ Global settings:
 - `startingPco`
 - `battleVictoryReward`
 - `raidDenVictoryReward` (defaults to `battleVictoryReward` if missing)
-- `capture_event_base_reward` (defaults to `battleVictoryReward` if missing; base payout used when a capture reward is allowed, and reused as the base for fossil revive special payouts)
-- `pokedex_new_species_bonus_reward` (extra bonus only when the species becomes a new Pokedex entry)
-- `normal_capture_reward_requires_new_pokedex_entry` (`true` by default; normal captures only pay if that species was never caught before)
-- `special_capture_reward_ignores_pokedex_history` (`true` by default; shiny/radiant/legendary/paradox captures can still pay even if the species was already caught)
+- `capture_event_base_reward` (defaults to `battleVictoryReward` if missing; reward for a first valid capture, and reused as the base for fossil revive special payouts)
+- `capture_multi_reward` (defaults to `0`; reward for repeat non-special captures of an already known species)
+- Special captures (`shiny`, `radiant`, `legendary`/`mythical`, `paradox`) still use `capture_event_base_reward` multiplied by their configured special multiplier.
 - `battleVictoryPcoReward`
 - `battleTowerCompletionPcoBonus` (small extra PCO reward on Battle Tower wins)
 - `capture_shiny_multiplier`
@@ -78,8 +77,8 @@ Global settings:
 - `profilingThresholdMs` (minimum ms to log)
 
 Legacy compatibility:
-- Old keys like `captureReward`, `newDiscoveryReward`, `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are still accepted.
-- On the next config rewrite, Cobblemon Economy saves the explicit key names above.
+- Old keys like `captureReward`, `capture_reward`, `newDiscoveryReward`, `special_capture_reward_ignores_pokedex_history`, `normal_capture_reward_requires_new_pokedex_entry`, `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are still detected for migration.
+- On the next config rewrite, Cobblemon Economy saves `capture_event_base_reward`, `capture_multi_reward`, and the explicit multiplier key names above.
 
 Shop definition fields:
 - `title`

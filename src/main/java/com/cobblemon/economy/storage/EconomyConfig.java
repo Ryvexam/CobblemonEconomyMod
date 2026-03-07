@@ -30,8 +30,8 @@ public class EconomyConfig {
     public BigDecimal impactorToPokedollarsRate = BigDecimal.ONE;
     @SerializedName(value = "capture_event_base_reward", alternate = {"captureReward", "capture_reward"})
     public BigDecimal captureReward = null;
-    @SerializedName(value = "pokedex_new_species_bonus_reward", alternate = {"newDiscoveryReward", "new_discovery_reward"})
-    public BigDecimal newDiscoveryReward = new BigDecimal(100);
+    @SerializedName(value = "capture_multi_reward", alternate = {"captureMultiReward"})
+    public BigDecimal captureMultiReward = BigDecimal.ZERO;
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
     public BigDecimal battleTowerCompletionPcoBonus = new BigDecimal(2);
 
@@ -43,11 +43,6 @@ public class EconomyConfig {
     public BigDecimal legendaryMultiplier = new BigDecimal(10);
     @SerializedName(value = "capture_paradox_multiplier", alternate = {"paradoxMultiplier", "paradox_multiplier"})
     public BigDecimal paradoxMultiplier = new BigDecimal(3);
-    @SerializedName(value = "normal_capture_reward_requires_new_pokedex_entry", alternate = {"normalCaptureRewardRequiresNewPokedexEntry"})
-    public boolean normalCaptureRewardRequiresNewPokedexEntry = true;
-    @SerializedName(value = "special_capture_reward_ignores_pokedex_history", alternate = {"specialCaptureRewardIgnoresPokedexHistory"})
-    public boolean specialCaptureRewardIgnoresPokedexHistory = true;
-
     public boolean enableProfiling = false;
     public int profilingThresholdMs = 5;
 
@@ -186,6 +181,10 @@ public class EconomyConfig {
 
         if (config.captureReward == null) {
             config.captureReward = config.battleVictoryReward;
+        }
+
+        if (config.captureMultiReward == null) {
+            config.captureMultiReward = BigDecimal.ZERO;
         }
         
         // Validate multipliers are not null (can happen with malformed configs)
@@ -491,18 +490,22 @@ public class EconomyConfig {
 
         return rawConfigJson.contains("\"captureReward\"")
                 || rawConfigJson.contains("\"newDiscoveryReward\"")
+                || rawConfigJson.contains("\"new_discovery_reward\"")
                 || rawConfigJson.contains("\"shinyMultiplier\"")
                 || rawConfigJson.contains("\"radiantMultiplier\"")
                 || rawConfigJson.contains("\"legendaryMultiplier\"")
                 || rawConfigJson.contains("\"paradoxMultiplier\"")
+                || rawConfigJson.contains("\"pokedex_new_species_bonus_reward\"")
+                || rawConfigJson.contains("\"normal_capture_reward_requires_new_pokedex_entry\"")
+                || rawConfigJson.contains("\"normalCaptureRewardRequiresNewPokedexEntry\"")
+                || rawConfigJson.contains("\"special_capture_reward_ignores_pokedex_history\"")
+                || rawConfigJson.contains("\"specialCaptureRewardIgnoresPokedexHistory\"")
                 || !rawConfigJson.contains("\"capture_event_base_reward\"")
-                || !rawConfigJson.contains("\"pokedex_new_species_bonus_reward\"")
+                || !rawConfigJson.contains("\"capture_multi_reward\"")
                 || !rawConfigJson.contains("\"capture_shiny_multiplier\"")
                 || !rawConfigJson.contains("\"capture_radiant_multiplier\"")
                 || !rawConfigJson.contains("\"capture_legendary_multiplier\"")
-                || !rawConfigJson.contains("\"capture_paradox_multiplier\"")
-                || !rawConfigJson.contains("\"normal_capture_reward_requires_new_pokedex_entry\"")
-                || !rawConfigJson.contains("\"special_capture_reward_ignores_pokedex_history\"");
+                || !rawConfigJson.contains("\"capture_paradox_multiplier\"");
     }
 
     private static String normalizeSkinModel(String skinModel) {
