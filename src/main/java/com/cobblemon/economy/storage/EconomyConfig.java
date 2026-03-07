@@ -12,6 +12,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,15 +28,25 @@ public class EconomyConfig {
     public BigDecimal raidDenVictoryReward = null;
     public BigDecimal cobbleDollarsToPokedollarsRate = BigDecimal.ONE;
     public BigDecimal impactorToPokedollarsRate = BigDecimal.ONE;
+    @SerializedName(value = "capture_event_base_reward", alternate = {"captureReward", "capture_reward"})
     public BigDecimal captureReward = null;
+    @SerializedName(value = "pokedex_new_species_bonus_reward", alternate = {"newDiscoveryReward", "new_discovery_reward"})
     public BigDecimal newDiscoveryReward = new BigDecimal(100);
     public BigDecimal battleVictoryPcoReward = new BigDecimal(10);
     public BigDecimal battleTowerCompletionPcoBonus = new BigDecimal(2);
 
+    @SerializedName(value = "capture_shiny_multiplier", alternate = {"shinyMultiplier", "shiny_multiplier"})
     public BigDecimal shinyMultiplier = new BigDecimal(5);
+    @SerializedName(value = "capture_radiant_multiplier", alternate = {"radiantMultiplier", "radiant_multiplier"})
     public BigDecimal radiantMultiplier = new BigDecimal(6);
+    @SerializedName(value = "capture_legendary_multiplier", alternate = {"legendaryMultiplier", "legendary_multiplier"})
     public BigDecimal legendaryMultiplier = new BigDecimal(10);
+    @SerializedName(value = "capture_paradox_multiplier", alternate = {"paradoxMultiplier", "paradox_multiplier"})
     public BigDecimal paradoxMultiplier = new BigDecimal(3);
+    @SerializedName(value = "normal_capture_reward_requires_new_pokedex_entry", alternate = {"normalCaptureRewardRequiresNewPokedexEntry"})
+    public boolean normalCaptureRewardRequiresNewPokedexEntry = true;
+    @SerializedName(value = "special_capture_reward_ignores_pokedex_history", alternate = {"specialCaptureRewardIgnoresPokedexHistory"})
+    public boolean specialCaptureRewardIgnoresPokedexHistory = true;
 
     public boolean enableProfiling = false;
     public int profilingThresholdMs = 5;
@@ -110,11 +121,13 @@ public class EconomyConfig {
         boolean isNewConfig = !configFile.exists();
         boolean shopsDirty = false;
         File milestoneFile = new File(configFile.getParentFile(), "milestone.json");
+        String rawConfigJson = null;
 
         if (configFile.exists()) {
-            try (FileReader reader = new FileReader(configFile)) {
-                config = gson.fromJson(reader, EconomyConfig.class);
-            } catch (IOException e) {
+            try {
+                rawConfigJson = Files.readString(configFile.toPath());
+                config = gson.fromJson(rawConfigJson, EconomyConfig.class);
+            } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to load config", e);
             }
         }
@@ -213,7 +226,7 @@ public class EconomyConfig {
         }
 
         // --- Add defaults ONLY if it's a fresh install ---
-        boolean modified = isNewConfig;
+        boolean modified = isNewConfig || shouldRewriteCaptureRewardSettings(rawConfigJson);
 
         if (config.shops.isEmpty()) {
             // 1. General Shop
@@ -469,6 +482,27 @@ public class EconomyConfig {
 
     private static class ShopsFileModel {
         Map<String, ShopDefinition> shops = new HashMap<>();
+    }
+
+    private static boolean shouldRewriteCaptureRewardSettings(String rawConfigJson) {
+        if (rawConfigJson == null || rawConfigJson.isBlank()) {
+            return false;
+        }
+
+        return rawConfigJson.contains("\"captureReward\"")
+                || rawConfigJson.contains("\"newDiscoveryReward\"")
+                || rawConfigJson.contains("\"shinyMultiplier\"")
+                || rawConfigJson.contains("\"radiantMultiplier\"")
+                || rawConfigJson.contains("\"legendaryMultiplier\"")
+                || rawConfigJson.contains("\"paradoxMultiplier\"")
+                || !rawConfigJson.contains("\"capture_event_base_reward\"")
+                || !rawConfigJson.contains("\"pokedex_new_species_bonus_reward\"")
+                || !rawConfigJson.contains("\"capture_shiny_multiplier\"")
+                || !rawConfigJson.contains("\"capture_radiant_multiplier\"")
+                || !rawConfigJson.contains("\"capture_legendary_multiplier\"")
+                || !rawConfigJson.contains("\"capture_paradox_multiplier\"")
+                || !rawConfigJson.contains("\"normal_capture_reward_requires_new_pokedex_entry\"")
+                || !rawConfigJson.contains("\"special_capture_reward_ignores_pokedex_history\"");
     }
 
     private static String normalizeSkinModel(String skinModel) {

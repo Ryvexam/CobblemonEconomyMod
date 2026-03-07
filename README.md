@@ -64,15 +64,22 @@ Global settings:
 - `startingPco`
 - `battleVictoryReward`
 - `raidDenVictoryReward` (defaults to `battleVictoryReward` if missing)
-- `captureReward` (defaults to `battleVictoryReward` if missing)
-- `newDiscoveryReward`
+- `capture_event_base_reward` (defaults to `battleVictoryReward` if missing; base payout used when a capture reward is allowed, and reused as the base for fossil revive special payouts)
+- `pokedex_new_species_bonus_reward` (extra bonus only when the species becomes a new Pokedex entry)
+- `normal_capture_reward_requires_new_pokedex_entry` (`true` by default; normal captures only pay if that species was never caught before)
+- `special_capture_reward_ignores_pokedex_history` (`true` by default; shiny/radiant/legendary/paradox captures can still pay even if the species was already caught)
 - `battleVictoryPcoReward`
 - `battleTowerCompletionPcoBonus` (small extra PCO reward on Battle Tower wins)
-- `shinyMultiplier`
-- `legendaryMultiplier`
-- `paradoxMultiplier`
+- `capture_shiny_multiplier`
+- `capture_radiant_multiplier`
+- `capture_legendary_multiplier`
+- `capture_paradox_multiplier`
 - `enableProfiling` (logs slow operations when true)
 - `profilingThresholdMs` (minimum ms to log)
+
+Legacy compatibility:
+- Old keys like `captureReward`, `newDiscoveryReward`, `shinyMultiplier`, `radiantMultiplier`, `legendaryMultiplier`, and `paradoxMultiplier` are still accepted.
+- On the next config rewrite, Cobblemon Economy saves the explicit key names above.
 
 Shop definition fields:
 - `title`
@@ -86,7 +93,9 @@ Shop definition fields:
 
 Item definition fields:
 - `type` - `"item"` (default) or `"command"`
-- `id` - Item ID (for `type: "item"`)
+- `id` - Required stable identifier for every entry
+  - for `type: "item"`: use the real item ID
+  - for `type: "command"`: use an internal key such as `server:vote_key`
 - `name` - Display name
 - `price`
 - `nbt` (legacy NBT string)
@@ -153,6 +162,7 @@ Item with components (booster example):
 **Command execution item** (sells a command instead of an item):
 ```json
 {
+  "id": "server:vote_key",
   "type": "command",
   "command": "crate key give vote 1 %player%",
   "price": 100,
@@ -165,6 +175,9 @@ Item with components (booster example):
   }
 }
 ```
+
+Command item note:
+- `id` is still mandatory for command entries because the config loader and limit tracking use it as the entry key.
 
 **Mixed shop example** (items + loot tables + commands):
 ```json

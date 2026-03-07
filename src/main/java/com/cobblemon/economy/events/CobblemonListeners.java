@@ -181,19 +181,8 @@ public class CobblemonListeners {
                 }
             }
 
-            if (!isSpecial) {
-                try {
-                    // Check Pokedex to see if already caught
-                    var pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
-                    var speciesIdentifier = pokemon.getSpecies().getResourceIdentifier();
-                    boolean isCaught = pokedex.getHighestKnowledgeForSpecies(speciesIdentifier) == PokedexEntryProgress.CAUGHT;
-                    
-                    if (isCaught) {
-                        return kotlin.Unit.INSTANCE;
-                    }
-                } catch (Exception e) {
-                    CobblemonEconomy.LOGGER.error("Failed to check pokedex status in capture event", e);
-                }
+            if (shouldRequireNewPokedexEntryForCapture(isSpecial) && hasCaughtSpecies(player, pokemon)) {
+                return kotlin.Unit.INSTANCE;
             }
 
             if (isSpecial) {
@@ -547,6 +536,27 @@ public class CobblemonListeners {
             CobblemonEconomy.LOGGER.debug("Failed to compute unique capture count", e);
         }
         return -1;
+    }
+
+    private static boolean shouldRequireNewPokedexEntryForCapture(boolean isSpecial) {
+        var config = CobblemonEconomy.getConfig();
+        if (config == null) {
+            return !isSpecial;
+        }
+        return isSpecial
+                ? !config.specialCaptureRewardIgnoresPokedexHistory
+                : config.normalCaptureRewardRequiresNewPokedexEntry;
+    }
+
+    private static boolean hasCaughtSpecies(ServerPlayer player, Pokemon pokemon) {
+        try {
+            var pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
+            var speciesIdentifier = pokemon.getSpecies().getResourceIdentifier();
+            return pokedex.getHighestKnowledgeForSpecies(speciesIdentifier) == PokedexEntryProgress.CAUGHT;
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.error("Failed to check pokedex status in capture event", e);
+            return false;
+        }
     }
 
     private static boolean isCaughtRecord(Object record) {

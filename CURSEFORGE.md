@@ -6,7 +6,8 @@
 
 Cobblemon Economy is an all-in-one economy + shop + quest layer for Cobblemon servers.
 
-This page is a full practical guide for server admins: install, required/optional mods, shops, skins, quantity controls, quests, and JSON config examples.
+This page is a strict admin guide: install, required/optional mods, shops, skins, quantity controls, quests, JSON config examples, and current hard limits.
+If a behavior is not described here, do not assume it is supported.
 
 ## 1) Required and Optional Dependencies
 
@@ -40,6 +41,13 @@ This page is a full practical guide for server admins: install, required/optiona
 3. Edit files in `world/config/cobblemon-economy/`.
 4. Use `/eco reload` after JSON edits (full restart is safest after major changes).
 
+What `/eco reload` does:
+- Reloads `config.json`, `shops.json`, `quests.json`, `quest_npcs.json`, and `quest_boards_bindings.json`.
+
+What `/eco reload` does not do:
+- It does not replace missing dependencies.
+- It is not a substitute for a restart after adding/removing mods.
+
 ## 3) Files and What They Do
 
 Per world folder:
@@ -47,10 +55,83 @@ Per world folder:
 - `world/config/cobblemon-economy/shops.json` -> all shop definitions.
 - `world/config/cobblemon-economy/quests.json` -> all quest definitions.
 - `world/config/cobblemon-economy/quest_npcs.json` -> quest NPC board definitions.
+- `world/config/cobblemon-economy/quest_boards_bindings.json` -> block-position to quest-board ID bindings.
 - `world/config/cobblemon-economy/milestone.json` -> capture milestone rewards.
 - `world/config/cobblemon-economy/skins/*.png` -> custom NPC skins.
 - `world/config/cobblemon-economy/economy.db` -> economy database.
 - `world/config/cobblemon-economy/quests.db` -> quest state database.
+
+### 3.1) Capture reward keys in `config.json`
+
+To make the reward rules easier to read, the generated config now uses explicit capture-related keys:
+
+- `capture_event_base_reward`
+  - Base PokeDollar reward used when a capture payout is allowed.
+  - Also reused as the base for fossil revive special payouts.
+- `pokedex_new_species_bonus_reward`
+  - Extra bonus only when the player adds a new species to the Pokedex.
+- `normal_capture_reward_requires_new_pokedex_entry`
+  - Default: `true`.
+  - If `true`, a normal capture gives no payout when the species was already caught before.
+- `special_capture_reward_ignores_pokedex_history`
+  - Default: `true`.
+  - If `true`, shiny / radiant / legendary / paradox captures can still pay even if the species already exists in the Pokedex.
+- `capture_shiny_multiplier`
+- `capture_radiant_multiplier`
+- `capture_legendary_multiplier`
+- `capture_paradox_multiplier`
+
+Exact payout behavior with default flags:
+- First normal capture of a new species: `capture_event_base_reward` + `pokedex_new_species_bonus_reward`.
+- Re-capture of an already known normal species: no normal capture payout.
+- Re-capture of an already known shiny / radiant / legendary / paradox species: still pays if `special_capture_reward_ignores_pokedex_history` is `true`.
+- Capture milestone rewards are separate and come from `milestone.json`.
+- First-time `legendary`, `mythical`, and `paradox` Pokedex entries do not receive the normal discovery bonus path; they use the special capture reward path instead.
+- First-time shiny/radiant species can still combine the special capture payout with the Pokedex discovery bonus.
+
+Special multiplier rule:
+- Multipliers are direct payout factors, not `base + bonus`.
+- Example with `capture_event_base_reward = 100` and `capture_shiny_multiplier = 5`: shiny payout = `500`, not `600`.
+- If a Pokemon matches multiple special categories, factors are added together before multiplying.
+- Example: shiny `5` + legendary `10` = `x15` total special payout.
+
+Important scope note:
+- The two Pokedex-history flags above affect capture-event payouts.
+- Fossil revive rewards are handled by the fossil event path and still use `capture_event_base_reward` / special multipliers separately.
+
+Legacy keys are still read for compatibility:
+- `captureReward`
+- `newDiscoveryReward`
+- `shinyMultiplier`
+- `radiantMultiplier`
+- `legendaryMultiplier`
+- `paradoxMultiplier`
+
+When the config is rewritten, Cobblemon Economy saves the explicit key names.
+
+Recommended strict Pokedex-only setup:
+
+```json
+{
+  "capture_event_base_reward": 100,
+  "pokedex_new_species_bonus_reward": 100,
+  "normal_capture_reward_requires_new_pokedex_entry": true,
+  "special_capture_reward_ignores_pokedex_history": false
+}
+```
+
+With that setup:
+- already-known species do not pay normal capture rewards
+- already-known shiny / radiant / legendary / paradox species also do not pay capture rewards
+- only genuinely new Pokedex species pay the normal capture reward path
+
+### 3.2) Manual vs automatic files
+
+- `quest_boards_bindings.json` is normally managed by `/eco questboard bind` and `/eco questboard unbind`.
+- You can edit it manually, but the key format is `dimension;x;y;z`.
+- The bind command uses the block you are currently looking at.
+- If a placed `cobblemon-economy:quest_board` block has no explicit binding, it falls back to the first entry found in `quest_npcs.json`.
+- For predictable behavior on production servers, bind every board explicitly.
 
 ## 4) Core Commands
 
@@ -104,6 +185,26 @@ Important fields:
 - `skinModel`: `steve` or `alex` (optional, default `steve`).
 - `isSellShop`: `true` for sell mode.
 - `items`: list of items/command-items.
+- Every shop item entry must have an `id`, including `type: "command"` entries.
+- For `type: "command"`, use `id` as a stable internal key (example: `server:vote_key`), not as a real given item.
+
+Shop item behavior (exact):
+- `type: "item"`:
+  - uses `id` as the item to give/sell
+  - supports `components`
+  - supports legacy `nbt`
+  - can also use `dropTable` or `lootTable`
+- `type: "command"`:
+  - executes `command` once per quantity purchased
+  - supports `%player%` placeholder only
+  - uses `displayItem.material`, `displayItem.displayname`, and `displayItem.enchantEffect` only for the GUI icon
+  - does not give a real item to the player
+
+Not supported / do not rely on this in shops:
+- Extra placeholders beyond `%player%` in shop commands.
+- `displayItem` changing the real purchased item for `type: "item"` entries.
+- `components` or `nbt` customizing the visual icon of `type: "command"` entries.
+- Weighted `dropTable` entries. If you need weights or advanced rolls, use a Minecraft `lootTable` instead.
 
 ### 5.2 Bind a shop to an NPC
 1. Spawn NPC (`shopkeeper_spawn_egg` or `/summon cobblemon-economy:shopkeeper`).
@@ -130,6 +231,22 @@ For a sell shop:
 - players can sell matching items back.
 - supports optional sell limits/cooldowns per item.
 
+Sell matching rule:
+- Matching uses the same item and the same components/custom data.
+- Display name alone is not enough.
+- If you sell highly customized items, the player must hold the same effective item definition.
+
+### 5.6 Wildcards, loot tables, and command-item limits
+
+- Wildcards only support `namespace:*` format such as `minecraft:*` or `cobblemon:*`.
+- Wildcards pick one random item from that namespace when the shop entry is resolved.
+- Wildcards also randomize the configured price by about `-25%` to `+25%`.
+- `lootTable` rolls once per purchased quantity.
+- `dropTable` gives one random item ID per purchased quantity.
+- If both `lootTable` and `dropTable` are present on the same entry, `lootTable` wins.
+- `dropTable` entries are simple item IDs only; they do not support per-drop NBT/components/weights.
+- `dropTable`, `lootTable`, and wildcards are best used in buy shops, not deterministic sell shops.
+
 ## 6) Quest System (How It Works)
 
 Quest system uses 2 files:
@@ -142,6 +259,13 @@ Flow:
 3. Progress updates from captures/battles/raids/tower/fossil events.
 4. Quest becomes claimable when all objectives are complete.
 5. Player claims rewards.
+
+Lifecycle rules that matter:
+- A quest can only be accepted if it is in the current visible rotation for that board.
+- Cancelled quests stay unavailable until the next board rotation.
+- Expired active quests are also pushed to the next board rotation.
+- `requiresCompleted` only checks quests on the same quest-board / NPC ID.
+- Cross-board prerequisite chains are not supported.
 
 ## 7) `quests.json` (Exact Authoring Guide)
 
@@ -168,12 +292,39 @@ Top-level key must be `quests`.
 }
 ```
 
+Quest definition behavior:
+- `name`: display name shown on the board.
+- `repeatPolicy`:
+  - `DAILY` = next board rotation / next reset window
+  - `ALWAYS` = can become available again immediately after claim unless `cooldownMinutes` is set
+  - `ONCE` = permanently locked after claim
+- `repeatable`:
+  - keep this aligned with `repeatPolicy`
+  - if set to `false`, the quest behaves like a one-time quest after claim
+- `timeLimitMinutes`:
+  - active quest expiry timer
+  - when it expires, the quest is cancelled and pushed to the next board rotation
+- `cooldownMinutes`:
+  - if `> 0`, this explicit cooldown is used after claim
+  - if missing/`0`, availability falls back to `repeatPolicy`
+- `requiresCompleted`:
+  - prerequisite quest IDs on the same board/NPC only
+- `rewards`:
+  - `pokedollars`, `pco`, and `commands` can be combined in the same quest reward
+
 ### Objective types
 - `capture`
 - `fossil_revive`
 - `battle_win`
 - `raid_win`
 - `tower_win`
+
+Filter logic:
+- Within the same field, values are OR-matched.
+  - Example: `"types": ["water", "ice"]` means water OR ice.
+- Different fields stack as AND-matched.
+  - Example: `species + pokeball + shiny` means all three conditions must match.
+- `dimensions` takes priority over `dimension` if both are present.
 
 ### Capture/fossil filters
 Use any combination:
@@ -183,6 +334,22 @@ Use any combination:
 - `pokeball` (array)
 - `dimension` (single string) or `dimensions` (array)
 - `shiny` (`true`/`false`)
+
+Exact support by objective type:
+- `capture`:
+  - supports `species`, `types`, `labels`, `pokeball`, `dimension`, `dimensions`, `shiny`
+- `fossil_revive`:
+  - supports `species`, `types`, `labels`, `dimension`, `dimensions`, `shiny`
+  - `pokeball` is not available for fossils and should not be used
+- `battle_win`, `raid_win`, `tower_win`:
+  - use `count` only
+  - extra filters are ignored
+
+Quest reward commands:
+- `rewards.commands` executes as server permission level 4.
+- `%player%` is the only supported placeholder.
+- Blank command strings are ignored.
+- Command output is suppressed; use side effects/rewards, not chat-return values.
 
 ### Example: shiny Gyarados quest
 
@@ -266,14 +433,23 @@ Yes: this setup shows a **shiny Gyarados preview** on the quest board.
 
 Field behavior:
 - `maxActive`: max simultaneously active quests for that NPC board.
-- `visibleQuests`: visible slots on board (minimum effective value is 6).
+- `visibleQuests`: keep this at `6`.
+  - values below `6` are raised to `6`
+  - the current board UI only has 6 card slots, so values above `6` are not useful
 - `sharedRotation`:
   - `true` = same selection for all players.
   - `false` = per-player selection.
 - `rotationMode`:
   - `MIDNIGHT` = rotates at next local server midnight.
   - `HOURS` = rotates every `rotationHours` block.
+- `rotationHours`:
+  - only matters when `rotationMode` is `HOURS`
+  - minimum effective value is `1`
 - `questPool`: quest IDs from `quests.json`.
+- `dialogues`:
+  - accepted in config and kept in the file
+  - the current custom quest board screen does not use these dialogue arrays as its main text source
+  - treat them as optional flavor/config data, not as the authoritative board UI copy
 
 Bind an NPC to a quest profile:
 1. `/eco questnpc list`
@@ -311,6 +487,12 @@ Behavior:
 - `objectives` must be an array (`[]`) even for one objective.
 - `count` must be `>= 1`.
 - `repeatPolicy` must be `DAILY`, `ALWAYS`, or `ONCE`.
+- `repeatPolicy: "HOURLY"` is not a supported config value. Use board rotation (`rotationMode: "HOURS"`) or `cooldownMinutes` instead.
+- Do not use `visibleQuests > 6` expecting extra board pages; the current board screen is fixed to 6 visible cards.
+- Do not use `requiresCompleted` to chain quests between different board IDs.
+- Do not expect `pokeball` filters to work on `fossil_revive` objectives.
+- Do not expect `battle_win`, `raid_win`, or `tower_win` to filter by species/type/label; they are count-only objectives.
+- Do not expect shop/quest command strings to support placeholders other than `%player%`.
 - If you changed JSON and behavior does not update, run `/eco reload` or restart.
 
 ## 11) Integrations Summary
