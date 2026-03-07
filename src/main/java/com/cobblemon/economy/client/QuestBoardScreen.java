@@ -85,6 +85,29 @@ public class QuestBoardScreen extends Screen {
         this.state = state == null ? new QuestBoardState() : state;
     }
 
+    public boolean isSameBoard(String otherBoardId) {
+        return this.boardId != null && this.boardId.equals(otherBoardId);
+    }
+
+    public void copySelectionFrom(QuestBoardScreen other) {
+        if (other == null) {
+            return;
+        }
+
+        String selectedQuestId = other.getSelectedQuestId();
+        if (selectedQuestId != null && this.state.quests != null) {
+            for (int i = 0; i < this.state.quests.size(); i++) {
+                QuestBoardState.QuestCard card = this.state.quests.get(i);
+                if (card != null && selectedQuestId.equals(card.questId)) {
+                    this.selectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        this.selectedIndex = Mth.clamp(other.selectedIndex, 0, Math.max(0, this.state.quests.size() - 1));
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -182,6 +205,11 @@ public class QuestBoardScreen extends Screen {
             selectedIndex = 0;
         }
         return state.quests.get(selectedIndex);
+    }
+
+    private String getSelectedQuestId() {
+        QuestBoardState.QuestCard selected = getSelectedQuest();
+        return selected != null ? selected.questId : null;
     }
 
     @Override

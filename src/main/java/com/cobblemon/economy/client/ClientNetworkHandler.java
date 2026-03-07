@@ -57,7 +57,12 @@ public class ClientNetworkHandler {
         ClientPlayNetworking.registerGlobalReceiver(OpenQuestBoardPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> {
                 QuestBoardState state = GSON.fromJson(payload.jsonState(), QuestBoardState.class);
-                Minecraft.getInstance().setScreen(new QuestBoardScreen(payload.boardId(), state));
+                Minecraft minecraft = Minecraft.getInstance();
+                QuestBoardScreen nextScreen = new QuestBoardScreen(payload.boardId(), state);
+                if (minecraft.screen instanceof QuestBoardScreen currentScreen && currentScreen.isSameBoard(payload.boardId())) {
+                    nextScreen.copySelectionFrom(currentScreen);
+                }
+                minecraft.setScreen(nextScreen);
             });
         });
     }

@@ -91,6 +91,8 @@ public class NetworkHandler {
                     case "ACCEPT" -> QuestService.acceptQuest(player, boardId, questId, board);
                     case "CLAIM" -> QuestService.claimQuest(player, boardId, questId);
                     case "CANCEL" -> QuestService.cancelQuest(player, boardId, questId);
+                    case "REFRESH" -> {
+                    }
                     default -> {
                     }
                 }
