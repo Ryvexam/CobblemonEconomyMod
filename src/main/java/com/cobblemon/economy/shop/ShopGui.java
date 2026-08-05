@@ -19,6 +19,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -29,8 +31,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.RegistryOps;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import java.math.BigDecimal;
 import java.io.File;
@@ -50,7 +55,7 @@ public class ShopGui {
         String name;
         int quantity = 1;
         final String originalId;
-        final Map<String, String> components;
+        final Map<String, JsonElement> components;
         final EconomyConfig.ShopItemDefinition definition;
         final boolean isCommand;
 
@@ -65,6 +70,24 @@ public class ShopGui {
         }
 
         public void resolve(HolderLookup.Provider lookupProvider) {
+            try {
+                resolveInternal(lookupProvider);
+            } catch (Exception e) {
+                // A single broken entry must never prevent the whole shop from opening
+                CobblemonEconomy.LOGGER.error("Failed to resolve shop item '{}'", originalId, e);
+                if (this.item == null) {
+                    this.item = Items.BARRIER;
+                }
+                if (this.templateStack == null || this.templateStack.isEmpty()) {
+                    this.templateStack = new ItemStack(this.item);
+                }
+                if (this.name == null || this.name.isEmpty()) {
+                    this.name = originalId;
+                }
+            }
+        }
+
+        private void resolveInternal(HolderLookup.Provider lookupProvider) {
             Random rand = new Random();
 
             // Handle command type items with custom display
@@ -74,9 +97,12 @@ public class ShopGui {
             }
 
             // 1. Resolve the Item ID
+            // The id may carry vanilla /give style components: "minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]"
             String normalizedId = normalizeItemId(originalId);
-            if (originalId.contains(":*")) {
-                String namespace = originalId.split(":")[0];
+            String inlineComponents = extractInlineComponents(normalizedId);
+            normalizedId = stripInlineComponents(normalizedId);
+            if (normalizedId.contains(":*")) {
+                String namespace = normalizedId.split(":")[0];
                 List<Item> candidates = BuiltInRegistries.ITEM.stream()
                         .filter(i -> BuiltInRegistries.ITEM.getKey(i).getNamespace().equals(namespace))
                         .toList();
@@ -87,10 +113,10 @@ public class ShopGui {
                 double multiplier = 0.75 + (rand.nextDouble() * 0.5);
                 this.price = (int) Math.round(this.definition.price * multiplier);
             } else {
-                ResourceLocation loc = ResourceLocation.parse(normalizedId);
-                this.item = BuiltInRegistries.ITEM.get(loc);
-                
-                if (this.item == Items.AIR && !originalId.equals("minecraft:air")) {
+                ResourceLocation loc = ResourceLocation.tryParse(normalizedId);
+                this.item = loc == null ? Items.AIR : BuiltInRegistries.ITEM.get(loc);
+
+                if (this.item == Items.AIR && !normalizedId.equals("minecraft:air")) {
                     CobblemonEconomy.LOGGER.error("Invalid item ID: {}", originalId);
                     this.item = Items.BARRIER;
                 }
@@ -103,25 +129,26 @@ public class ShopGui {
 
             this.templateStack = new ItemStack(this.item);
 
-            // 2. Process and Apply Components
-            if (this.components != null && !this.components.isEmpty()) {
-                Map<String, JsonElement> jsonComponents = new HashMap<>();
-                for (var entry : this.components.entrySet()) {
-                    try {
-                        jsonComponents.put(entry.getKey(), JsonParser.parseString(entry.getValue()));
-                    } catch (Exception e) {
-                        CobblemonEconomy.LOGGER.error("Failed to parse JSON for component {}: {}", entry.getKey(), entry.getValue());
-                    }
-                }
+            // 2. Components declared inline on the id (vanilla /give syntax)
+            if (!inlineComponents.isEmpty()) {
+                applyInlineComponents(this.templateStack, inlineComponents, lookupProvider);
+            }
+
+            // 3. Shorthand fields + the "components" map (map entries win on conflict)
+            Map<String, JsonElement> jsonComponents = buildComponentJson(this.definition, this.components);
+            if (!jsonComponents.isEmpty()) {
                 applyComponents(this.templateStack, jsonComponents, lookupProvider);
             }
         }
 
         private void resolveCommandItem(HolderLookup.Provider lookupProvider) {
             // For command items, use displayItem config or fallback to default
+            String inlineComponents = "";
             if (definition.displayItem != null && definition.displayItem.material != null) {
-                ResourceLocation loc = ResourceLocation.parse(definition.displayItem.material);
-                this.item = BuiltInRegistries.ITEM.get(loc);
+                String material = normalizeItemId(definition.displayItem.material);
+                inlineComponents = extractInlineComponents(material);
+                ResourceLocation loc = ResourceLocation.tryParse(stripInlineComponents(material));
+                this.item = loc == null ? Items.AIR : BuiltInRegistries.ITEM.get(loc);
                 if (this.item == Items.AIR) {
                     CobblemonEconomy.LOGGER.error("Invalid display item material: {}", definition.displayItem.material);
                     this.item = Items.COMMAND_BLOCK;
@@ -143,6 +170,15 @@ public class ShopGui {
             if (definition.displayItem != null && Boolean.TRUE.equals(definition.displayItem.enchantEffect)) {
                 this.templateStack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
             }
+
+            // Command entries support the same component shorthands as normal items
+            if (!inlineComponents.isEmpty()) {
+                applyInlineComponents(this.templateStack, inlineComponents, lookupProvider);
+            }
+            Map<String, JsonElement> jsonComponents = buildComponentJson(this.definition, this.components);
+            if (!jsonComponents.isEmpty()) {
+                applyComponents(this.templateStack, jsonComponents, lookupProvider);
+            }
         }
 
             private void applyComponents(ItemStack stack, Map<String, JsonElement> componentDataMap, HolderLookup.Provider lookupProvider) {
@@ -150,13 +186,13 @@ public class ShopGui {
                     String componentId = entry.getKey();
                     JsonElement data = entry.getValue();
 
-                    // Special Handling: custom_data (SNBT)
-                    if (componentId.equals("minecraft:custom_data")) {
+                    // Special Handling: custom_data given as an SNBT string ("{foo:1}").
+                    // Written as a real JSON object it falls through to the normal codec path below.
+                    if (componentId.equals("minecraft:custom_data")
+                            && data.isJsonPrimitive() && data.getAsJsonPrimitive().isString()) {
                         try {
-                            if (data.isJsonPrimitive() && data.getAsJsonPrimitive().isString()) {
-                                CompoundTag tag = TagParser.parseTag(data.getAsString());
-                                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
-                            }
+                            CompoundTag tag = TagParser.parseTag(data.getAsString());
+                            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
                         } catch (Exception e) {
                             CobblemonEconomy.LOGGER.error("Failed to parse custom_data SNBT: {}", data, e);
                         }
@@ -183,6 +219,398 @@ public class ShopGui {
                         .ifPresent(value -> stack.set(type, value));
             }
         }
+
+    // ------------------------------------------------------------------
+    // Config -> data components helpers
+    //
+    // Goal: never force server owners to write escaped JSON inside JSON.
+    // Three equivalent ways to describe an enchanted sword:
+    //   1. "enchantments": { "sharpness": 5 }
+    //   2. "components": { "minecraft:enchantments": { "levels": { "minecraft:sharpness": 5 } } }
+    //   3. "id": "minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]"
+    // The old escaped-string form stays supported for existing configs.
+    // ------------------------------------------------------------------
+
+    /** Merges the shorthand fields and the "components" map into one id -> JSON map. Map entries win on conflict. */
+    private static Map<String, JsonElement> buildComponentJson(EconomyConfig.ShopItemDefinition def,
+                                                               Map<String, JsonElement> rawComponents) {
+        Map<String, JsonElement> out = new LinkedHashMap<>();
+        if (def != null) {
+            JsonObject enchantments = buildEnchantmentComponent(def.enchantments);
+            if (enchantments != null) {
+                out.put("minecraft:enchantments", enchantments);
+            }
+            if (def.lore != null && !def.lore.isEmpty()) {
+                JsonArray lore = new JsonArray();
+                for (String line : def.lore) {
+                    if (line != null) {
+                        lore.add(line);
+                    }
+                }
+                if (!lore.isEmpty()) {
+                    out.put("minecraft:lore", lore);
+                }
+            }
+            if (Boolean.TRUE.equals(def.unbreakable)) {
+                out.put("minecraft:unbreakable", new JsonObject());
+            }
+            if (def.customModelData != null) {
+                out.put("minecraft:custom_model_data", new JsonPrimitive(def.customModelData));
+            }
+            if (def.glint != null) {
+                out.put("minecraft:enchantment_glint_override", new JsonPrimitive(def.glint));
+            }
+        }
+
+        if (rawComponents != null) {
+            for (Map.Entry<String, JsonElement> entry : rawComponents.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isJsonNull()) {
+                    continue;
+                }
+                String key = normalizeComponentKey(entry.getKey());
+                // custom_data strings stay untouched: they are SNBT, parsed further down
+                JsonElement value = key.equals("minecraft:custom_data")
+                        ? entry.getValue()
+                        : normalizeComponentValue(entry.getValue());
+                out.put(key, value);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Accepts every reasonable way of writing enchantments and returns the vanilla component shape:
+     *   { "sharpness": 5 }                       -> { "levels": { "minecraft:sharpness": 5 } }
+     *   ["sharpness 5", "unbreaking 3"]          -> { "levels": { ... } }
+     *   [{ "id": "sharpness", "level": 5 }]      -> { "levels": { ... } }
+     *   { "levels": { "minecraft:sharpness": 5 } } -> passed through (keys normalized)
+     */
+    private static JsonObject buildEnchantmentComponent(JsonElement source) {
+        if (source == null || source.isJsonNull()) {
+            return null;
+        }
+
+        JsonObject levels = new JsonObject();
+        JsonObject extra = new JsonObject();
+
+        if (source.isJsonObject()) {
+            JsonObject obj = source.getAsJsonObject();
+            if (obj.has("levels") && obj.get("levels").isJsonObject()) {
+                for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+                    if (!entry.getKey().equals("levels")) {
+                        extra.add(entry.getKey(), entry.getValue());
+                    }
+                }
+                for (Map.Entry<String, JsonElement> entry : obj.getAsJsonObject("levels").entrySet()) {
+                    addEnchantment(levels, entry.getKey(), entry.getValue());
+                }
+            } else {
+                for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+                    addEnchantment(levels, entry.getKey(), entry.getValue());
+                }
+            }
+        } else if (source.isJsonArray()) {
+            for (JsonElement element : source.getAsJsonArray()) {
+                addEnchantmentEntry(levels, element);
+            }
+        } else {
+            addEnchantmentEntry(levels, source);
+        }
+
+        if (levels.size() == 0) {
+            CobblemonEconomy.LOGGER.warn("Ignoring empty or unreadable 'enchantments' value: {}", source);
+            return null;
+        }
+
+        JsonObject component = new JsonObject();
+        component.add("levels", levels);
+        for (Map.Entry<String, JsonElement> entry : extra.entrySet()) {
+            component.add(entry.getKey(), entry.getValue());
+        }
+        return component;
+    }
+
+    /** Handles a single list entry: "sharpness 5", "sharpness", or { "id": "sharpness", "level": 5 }. */
+    private static void addEnchantmentEntry(JsonObject levels, JsonElement element) {
+        if (element == null || element.isJsonNull()) {
+            return;
+        }
+        if (element.isJsonObject()) {
+            JsonObject obj = element.getAsJsonObject();
+            JsonElement id = obj.has("id") ? obj.get("id") : obj.get("enchantment");
+            if (id == null || !id.isJsonPrimitive()) {
+                CobblemonEconomy.LOGGER.warn("Ignoring enchantment entry without an id: {}", element);
+                return;
+            }
+            addEnchantment(levels, id.getAsString(), obj.has("level") ? obj.get("level") : obj.get("lvl"));
+            return;
+        }
+        if (!element.isJsonPrimitive()) {
+            CobblemonEconomy.LOGGER.warn("Ignoring unreadable enchantment entry: {}", element);
+            return;
+        }
+
+        String text = element.getAsString().trim();
+        if (text.isEmpty()) {
+            return;
+        }
+        // "sharpness 5" / "sharpness:5" / "sharpness"
+        String name = text;
+        String level = null;
+        int space = text.lastIndexOf(' ');
+        if (space > 0) {
+            name = text.substring(0, space).trim();
+            level = text.substring(space + 1).trim();
+        } else {
+            int lastColon = text.lastIndexOf(':');
+            if (lastColon > 0 && isInteger(text.substring(lastColon + 1))) {
+                name = text.substring(0, lastColon).trim();
+                level = text.substring(lastColon + 1).trim();
+            }
+        }
+        addEnchantment(levels, name, level == null ? null : new JsonPrimitive(level));
+    }
+
+    private static void addEnchantment(JsonObject levels, String name, JsonElement level) {
+        String id = normalizeEnchantmentId(name);
+        if (id == null) {
+            return;
+        }
+        levels.addProperty(id, readLevel(level, name));
+    }
+
+    private static int readLevel(JsonElement level, String enchantmentName) {
+        if (level == null || level.isJsonNull()) {
+            return 1;
+        }
+        if (level.isJsonPrimitive()) {
+            JsonPrimitive primitive = level.getAsJsonPrimitive();
+            if (primitive.isNumber()) {
+                return primitive.getAsInt();
+            }
+            if (primitive.isString() && isInteger(primitive.getAsString())) {
+                return Integer.parseInt(primitive.getAsString().trim());
+            }
+        }
+        CobblemonEconomy.LOGGER.warn("Unreadable level '{}' for enchantment '{}', using 1", level, enchantmentName);
+        return 1;
+    }
+
+    private static String normalizeEnchantmentId(String name) {
+        if (name == null) {
+            return null;
+        }
+        String id = unquote(name.trim()).toLowerCase(Locale.ROOT).replace(' ', '_');
+        if (id.isEmpty()) {
+            return null;
+        }
+        return id.contains(":") ? id : "minecraft:" + id;
+    }
+
+    private static String normalizeComponentKey(String key) {
+        String id = unquote(key.trim());
+        return id.contains(":") ? id : "minecraft:" + id;
+    }
+
+    /**
+     * Keeps backwards compatibility with the old "component value is an escaped JSON string" format
+     * while letting new configs write plain values. A string that clearly looks like JSON is parsed,
+     * anything else is kept as a literal string.
+     */
+    private static JsonElement normalizeComponentValue(JsonElement value) {
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+            return value;
+        }
+        String raw = value.getAsString().trim();
+        if (raw.isEmpty()) {
+            return value;
+        }
+        char first = raw.charAt(0);
+        boolean looksLikeJson = first == '{' || first == '[' || first == '"' || first == '\''
+                || raw.equals("true") || raw.equals("false") || isNumber(raw);
+        if (!looksLikeJson) {
+            return value;
+        }
+        try {
+            JsonElement parsed = JsonParser.parseString(raw);
+            return parsed == null || parsed.isJsonNull() ? value : parsed;
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
+    /** Returns the content between the first '[' and the last ']' of an item id, or "" when there is none. */
+    private static String extractInlineComponents(String itemId) {
+        if (itemId == null) {
+            return "";
+        }
+        int start = itemId.indexOf('[');
+        int end = itemId.lastIndexOf(']');
+        if (start < 0 || end <= start) {
+            return "";
+        }
+        return itemId.substring(start + 1, end).trim();
+    }
+
+    private static String stripInlineComponents(String itemId) {
+        if (itemId == null) {
+            return null;
+        }
+        int start = itemId.indexOf('[');
+        return start < 0 ? itemId.trim() : itemId.substring(0, start).trim();
+    }
+
+    /** Applies vanilla /give style components written directly on the item id. */
+    private static void applyInlineComponents(ItemStack stack, String inline, HolderLookup.Provider lookupProvider) {
+        for (String entry : splitTopLevel(inline)) {
+            if (entry.isEmpty()) {
+                continue;
+            }
+            int separator = indexOfTopLevel(entry, '=');
+            if (separator < 0 && entry.startsWith("!")) {
+                DataComponentType<?> type = findComponentType(normalizeComponentKey(entry.substring(1)));
+                if (type != null) {
+                    stack.remove(type);
+                }
+                continue;
+            }
+            if (separator <= 0) {
+                CobblemonEconomy.LOGGER.warn("Ignoring malformed inline component '{}'", entry);
+                continue;
+            }
+
+            String key = normalizeComponentKey(entry.substring(0, separator));
+            String rawValue = entry.substring(separator + 1).trim();
+            DataComponentType<?> type = findComponentType(key);
+            if (type == null) {
+                continue;
+            }
+            try {
+                Tag tag = TagParser.parseTag("{value:" + rawValue + "}").get("value");
+                if (tag == null) {
+                    CobblemonEconomy.LOGGER.error("Failed to read inline component {}: {}", key, rawValue);
+                    continue;
+                }
+                applyComponentTag(stack, type, tag, lookupProvider);
+            } catch (Exception e) {
+                CobblemonEconomy.LOGGER.error("Failed to parse inline component {}={}", key, rawValue, e);
+            }
+        }
+    }
+
+    private static DataComponentType<?> findComponentType(String componentId) {
+        ResourceLocation location = ResourceLocation.tryParse(componentId);
+        DataComponentType<?> type = location == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.get(location);
+        if (type == null) {
+            CobblemonEconomy.LOGGER.warn("Unknown component type: {}", componentId);
+        }
+        return type;
+    }
+
+    private static <T> void applyComponentTag(ItemStack stack, DataComponentType<T> type, Tag tag,
+                                              HolderLookup.Provider lookupProvider) {
+        RegistryOps<Tag> ops = lookupProvider.createSerializationContext(NbtOps.INSTANCE);
+        type.codecOrThrow().parse(ops, tag)
+                .resultOrPartial(error -> CobblemonEconomy.LOGGER.error("Failed to parse component {}: {}", type, error))
+                .ifPresent(value -> stack.set(type, value));
+    }
+
+    /** Splits on commas that are not inside quotes, braces or brackets. */
+    private static List<String> splitTopLevel(String input) {
+        List<String> parts = new ArrayList<>();
+        if (input == null || input.isBlank()) {
+            return parts;
+        }
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        char quote = 0;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (quote != 0) {
+                current.append(c);
+                if (c == '\\' && i + 1 < input.length()) {
+                    current.append(input.charAt(++i));
+                } else if (c == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                quote = c;
+                current.append(c);
+            } else if (c == '{' || c == '[') {
+                depth++;
+                current.append(c);
+            } else if (c == '}' || c == ']') {
+                depth--;
+                current.append(c);
+            } else if (c == ',' && depth == 0) {
+                parts.add(current.toString().trim());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        if (!current.toString().isBlank()) {
+            parts.add(current.toString().trim());
+        }
+        return parts;
+    }
+
+    /** Index of the first occurrence of target outside quotes, braces and brackets. */
+    private static int indexOfTopLevel(String input, char target) {
+        int depth = 0;
+        char quote = 0;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (quote != 0) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                quote = c;
+            } else if (c == '{' || c == '[') {
+                depth++;
+            } else if (c == '}' || c == ']') {
+                depth--;
+            } else if (c == target && depth == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String unquote(String value) {
+        if (value != null && value.length() >= 2) {
+            char first = value.charAt(0);
+            if ((first == '"' || first == '\'') && value.charAt(value.length() - 1) == first) {
+                return value.substring(1, value.length() - 1);
+            }
+        }
+        return value;
+    }
+
+    private static boolean isInteger(String value) {
+        try {
+            Integer.parseInt(value.trim());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean isNumber(String value) {
+        try {
+            Double.parseDouble(value.trim());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     private static String normalizeItemId(String itemId) {
         if (itemId == null || itemId.isEmpty()) {

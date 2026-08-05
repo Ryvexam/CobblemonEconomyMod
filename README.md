@@ -100,7 +100,12 @@ Item definition fields:
 - `nbt` (legacy NBT string)
 - `dropTable` (array of item ids)
 - `lootTable` (minecraft loot table id)
-- `components` (data components for items)
+- `components` (data components for items, written as normal JSON)
+- `enchantments` (shorthand, no escaping needed)
+- `lore` (shorthand, list of lines)
+- `unbreakable` (shorthand, boolean)
+- `customModelData` (shorthand, integer)
+- `glint` (shorthand, boolean fake enchant shine)
 - `buyLimit` (optional)
 - `buyCooldownMinutes` (optional, 0 means lifetime limit)
 - `sellLimit` (optional)
@@ -131,7 +136,7 @@ Example shop:
       "items": [
         { "id": "minecraft:diamond", "name": "Diamond", "price": 1000 },
         { "id": "minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]", "name": "Sharpness V", "price": 5000 },
-        { "id": "academy:booster_pack[academy:booster_pack=\"base\"]", "name": "Booster Pack", "price": 100 },
+        { "id": "academy:booster_pack[academy:booster_pack='base']", "name": "Booster Pack", "price": 100 },
         { "id": "minecraft:chest", "name": "Mystery Box", "price": 500, "dropTable": ["minecraft:diamond", "cobblemon:rare_candy"] },
         { "id": "minecraft:chest", "name": "Dungeon Loot", "price": 1000, "lootTable": "minecraft:chests/simple_dungeon" },
         { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
@@ -146,17 +151,48 @@ Item limit only:
 { "id": "cobblemon:rare_candy", "name": "Rare Candy", "price": 50, "buyLimit": 3, "buyCooldownMinutes": 1200 }
 ```
 
-Item with components (booster example):
+### Enchanted / customized items (no escaping needed)
+
+You never have to write escaped JSON like `"{\"levels\":{...}}"`. Pick whichever style you prefer.
+
+**1. Shorthand fields (simplest):**
 ```json
 {
-  "id": "academy:booster_pack",
-  "name": "Oui",
-  "price": 200,
+  "id": "minecraft:diamond_sword",
+  "name": "Champion Blade",
+  "price": 5000,
+  "enchantments": { "sharpness": 5, "unbreaking": 3, "mending": 1 },
+  "lore": ["Reward of the Champion", "Untradeable"],
+  "unbreakable": true
+}
+```
+`enchantments` also accepts a list: `["sharpness 5", "unbreaking 3"]`.
+Names without a namespace are treated as `minecraft:`, and a missing level means `1`.
+
+**2. Real JSON in `components` (full control, any component):**
+```json
+{
+  "id": "minecraft:diamond_sword",
+  "name": "Sharpness V",
+  "price": 5000,
   "components": {
-    "academy:booster_pack": "\"base\""
+    "minecraft:enchantments": { "levels": { "minecraft:sharpness": 5 } },
+    "minecraft:custom_name": { "text": "Sharpness V", "color": "gold" },
+    "academy:booster_pack": "base"
   }
 }
 ```
+
+**3. Vanilla `/give` syntax on the id** (use single quotes so JSON stays clean):
+```json
+{ "id": "minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]", "name": "Sharpness V", "price": 5000 }
+```
+
+Notes:
+- Component names without a namespace are treated as `minecraft:`.
+- If the same component is set in several ways, `components` wins over the shorthand fields, which win over the inline id syntax.
+- Old configs using escaped strings (`"minecraft:enchantments": "{\"levels\":{\"minecraft:sharpness\":5}}"`) keep working.
+- The shorthands also work on `type: "command"` entries to decorate the GUI icon.
 
 **Command execution item** (sells a command instead of an item):
 ```json

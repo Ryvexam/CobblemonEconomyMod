@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [0.0.17] - 2026-03-07
 
 ### Added
+- **Escape-Free Item Components:** Enchanted and customized shop items no longer require escaped JSON strings.
+  - `components` values can now be written as real JSON objects, arrays, numbers or plain strings (`"minecraft:enchantments": { "levels": { "minecraft:sharpness": 5 } }`).
+  - New shorthand item fields: `enchantments` (object or list, `"sharpness 5"` style accepted), `lore`, `unbreakable`, `customModelData`, `glint`.
+  - Item ids now accept vanilla `/give` component syntax, e.g. `minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]`, including `!component` removal.
+  - Component and enchantment names without a namespace default to `minecraft:`.
+  - Shorthands and `components` also decorate the GUI icon of `type: "command"` entries.
+  - Existing configs using escaped strings keep working unchanged.
+
 - **Shopkeeper Skin Model Selection:** Added optional `skinModel` support (`steve` or `alex`) for both shop NPCs and quest NPCs.
   - New config field in `shops.json` shop definitions and `quest_npcs.json` NPC definitions.
   - Synced + persisted per-entity model selection so arm model choice survives save/load and is visible to clients.
@@ -24,6 +32,7 @@ All notable changes to this project will be documented in this file.
   - Added dedicated raid objective progression path to avoid event-source ambiguity.
   - Improved raid battle classification using active raid participants tracked from `RAID_BATTLE_START`.
   - Prevented double-count edge cases between generic battle victory handling and Raid Dens event handling.
+- **Broken Shop Entries No Longer Break Shops:** An item entry with an invalid id or component now falls back to a barrier icon and logs the error instead of preventing the shop GUI from opening.
 - **Quest Rotation Locking:** Expired quests now stay cancelled/locked until the next board rotation instead of briefly reopening as available.
 - **Quest Board Refresh UX:** Live board refreshes now preserve the currently selected quest instead of snapping back to the first slot.
 - **Quest Board Polish:** Fixed slot alignment drift, removed blurry fractional detail scaling, tightened item preview placement, and improved reward slot rendering for PokeDollars / PCO / command rewards.
