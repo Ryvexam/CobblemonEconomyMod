@@ -91,8 +91,22 @@ public class EconomyConfig {
          *   "enchantments": ["sharpness 5", "unbreaking 3"]
          */
         public JsonElement enchantments;
-        /** Shorthand for minecraft:lore, one plain string per line. */
+        /** Shorthand for minecraft:lore, one line per entry (plain text or a JSON text component). */
         public List<String> lore;
+        /**
+         * Shorthand for minecraft:custom_name. Plain text or a text component object:
+         *   "customName": "Gender Swap Juice"
+         *   "customName": { "text": "Gender Swap Juice", "color": "red" }
+         */
+        @SerializedName(value = "customName", alternate = {"custom_name", "displayName", "display_name"})
+        public JsonElement customName;
+        /**
+         * Shorthand for minecraft:custom_data. Either real JSON or an SNBT string:
+         *   "customData": { "gender_swap": "to_male" }
+         *   "customData": "{gender_swap:'to_male'}"
+         */
+        @SerializedName(value = "customData", alternate = {"custom_data"})
+        public JsonElement customData;
         /** Shorthand for minecraft:unbreakable. */
         public Boolean unbreakable;
         /** Shorthand for minecraft:custom_model_data. */
@@ -119,6 +133,8 @@ public class EconomyConfig {
             this.components = null;
             this.enchantments = null;
             this.lore = null;
+            this.customName = null;
+            this.customData = null;
             this.unbreakable = null;
             this.customModelData = null;
             this.glint = null;

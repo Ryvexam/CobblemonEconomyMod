@@ -103,6 +103,8 @@ Item definition fields:
 - `components` (data components for items, written as normal JSON)
 - `enchantments` (shorthand, no escaping needed)
 - `lore` (shorthand, list of lines)
+- `customName` (shorthand, text or text component object)
+- `customData` (shorthand, JSON object or SNBT string)
 - `unbreakable` (shorthand, boolean)
 - `customModelData` (shorthand, integer)
 - `glint` (shorthand, boolean fake enchant shine)
@@ -193,6 +195,49 @@ Notes:
 - If the same component is set in several ways, `components` wins over the shorthand fields, which win over the inline id syntax.
 - Old configs using escaped strings (`"minecraft:enchantments": "{\"levels\":{\"minecraft:sharpness\":5}}"`) keep working.
 - The shorthands also work on `type: "command"` entries to decorate the GUI icon.
+
+### Custom data items (mod/datapack items)
+
+Items that other systems detect through `custom_data` can be sold and bought back.
+`customData` accepts real JSON or an SNBT string:
+
+```json
+{
+  "id": "minecraft:suspicious_stew",
+  "name": "Gender Swap Juice (F to M)",
+  "price": 2000,
+  "customName": { "text": "Gender Swap Juice (F→M)", "color": "red" },
+  "lore": ["Eat this to change the gender of your slot 1 Pokemon!"],
+  "customData": { "gender_swap": "to_male" }
+}
+```
+
+### Converting a `/give` command into a shop entry
+
+Take everything between `/give <target> ` and the item count, and put it in `id`:
+
+```
+/give @p suspicious_stew[custom_name='{"text":"Juice","color":"red"}',custom_data={gender_swap:"to_male"}] 1
+```
+becomes
+```json
+{ "id": "suspicious_stew[custom_name='{\"text\":\"Juice\",\"color\":\"red\"}',custom_data={gender_swap:\"to_male\"}]", "name": "Juice", "price": 2000 }
+```
+
+Because the `/give` syntax mixes both quote styles, that one still needs escaping — which is exactly why the
+`components` / shorthand forms above exist. Rewriting the same item with `customName`, `lore` and `customData`
+needs no backslashes at all.
+
+Two gotchas when copying a `/give` command:
+- Inside SNBT single quotes, an apostrophe ends the string. `'{"text":"you're here"}'` is invalid (in vanilla too);
+  write `your` or escape it as `you\'re`.
+- Namespaces are optional: `suspicious_stew` and `custom_name` are read as `minecraft:suspicious_stew` and `minecraft:custom_name`.
+
+### Sell shops and customized items
+
+Sell matching compares the item **and all its components**, `custom_data` included. A player can only sell an
+item back if it carries exactly the components declared on the shop entry, so define the sell entry with the
+same `components` / shorthands as the entry that gave the item.
 
 **Command execution item** (sells a command instead of an item):
 ```json

@@ -189,7 +189,8 @@ Shop item behavior (exact):
 - `type: "item"`:
   - uses `id` as the item to give/sell
   - supports `components` written as plain JSON (no escaped strings needed)
-  - supports the shorthands `enchantments`, `lore`, `unbreakable`, `customModelData`, `glint`
+  - supports the shorthands `enchantments`, `lore`, `customName`, `customData`, `unbreakable`, `customModelData`, `glint`
+  - `customData` items (mod/datapack items identified by `custom_data`) can be sold and bought back
   - supports vanilla `/give` component syntax directly on `id`, e.g. `minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]`
   - supports legacy `nbt`
   - can also use `dropTable` or `lootTable`
@@ -232,6 +233,7 @@ For a sell shop:
 
 Sell matching rule:
 - Matching uses the same item and the same components/custom data.
+- Declare the sell entry with the same `components`/shorthands as the entry that gave the item.
 - Display name alone is not enough.
 - If you sell highly customized items, the player must hold the same effective item definition.
 

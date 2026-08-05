@@ -19,7 +19,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.world.item.component.CustomData;
@@ -200,23 +202,12 @@ public class ShopGui {
                     }
 
                     // Standard Components: Look up type from registry
-                    DataComponentType<?> componentType = BuiltInRegistries.DATA_COMPONENT_TYPE.get(ResourceLocation.parse(componentId));
+                    DataComponentType<?> componentType = findComponentType(componentId);
 
                     if (componentType != null) {
-                        applyComponentHelper(stack, componentType, data, lookupProvider);
-                    } else {
-                        CobblemonEconomy.LOGGER.warn("Unknown component type: {}", componentId);
+                        applyComponentJson(stack, componentType, data, lookupProvider);
                     }
                 }
-            }
-
-            private <T> void applyComponentHelper(ItemStack stack, DataComponentType<T> type, JsonElement json, HolderLookup.Provider lookupProvider) {
-                // The Fix: Create RegistryOps so the Codec can look up Enchantments, etc.
-                RegistryOps<JsonElement> ops = lookupProvider.createSerializationContext(JsonOps.INSTANCE);
-
-                type.codecOrThrow().parse(ops, json)
-                        .resultOrPartial(error -> CobblemonEconomy.LOGGER.error("Failed to parse component {}: {}", type, error))
-                        .ifPresent(value -> stack.set(type, value));
             }
         }
 
@@ -231,6 +222,16 @@ public class ShopGui {
     // The old escaped-string form stays supported for existing configs.
     // ------------------------------------------------------------------
 
+    /**
+     * Components whose value is a text component. The vanilla /give syntax writes those as a string
+     * containing JSON ("custom_name='{\"text\":\"Hi\",\"color\":\"red\"}'"), so the string has to be
+     * turned back into a real JSON structure before the codec sees it.
+     */
+    private static final Set<String> TEXT_COMPONENTS = Set.of(
+            "minecraft:custom_name",
+            "minecraft:item_name",
+            "minecraft:lore");
+
     /** Merges the shorthand fields and the "components" map into one id -> JSON map. Map entries win on conflict. */
     private static Map<String, JsonElement> buildComponentJson(EconomyConfig.ShopItemDefinition def,
                                                                Map<String, JsonElement> rawComponents) {
@@ -244,7 +245,8 @@ public class ShopGui {
                 JsonArray lore = new JsonArray();
                 for (String line : def.lore) {
                     if (line != null) {
-                        lore.add(line);
+                        // plain text, or a JSON text component written as a string
+                        lore.add(normalizeComponentValue(new JsonPrimitive(line)));
                     }
                 }
                 if (!lore.isEmpty()) {
@@ -253,6 +255,13 @@ public class ShopGui {
             }
             if (Boolean.TRUE.equals(def.unbreakable)) {
                 out.put("minecraft:unbreakable", new JsonObject());
+            }
+            if (def.customName != null && !def.customName.isJsonNull()) {
+                out.put("minecraft:custom_name", normalizeComponentValue(def.customName));
+            }
+            if (def.customData != null && !def.customData.isJsonNull()) {
+                // A string stays a string here: it is SNBT and is parsed further down
+                out.put("minecraft:custom_data", def.customData);
             }
             if (def.customModelData != null) {
                 out.put("minecraft:custom_model_data", new JsonPrimitive(def.customModelData));
@@ -268,10 +277,20 @@ public class ShopGui {
                     continue;
                 }
                 String key = normalizeComponentKey(entry.getKey());
-                // custom_data strings stay untouched: they are SNBT, parsed further down
-                JsonElement value = key.equals("minecraft:custom_data")
-                        ? entry.getValue()
-                        : normalizeComponentValue(entry.getValue());
+                JsonElement value;
+                if (key.equals("minecraft:custom_data")) {
+                    // custom_data strings stay untouched: they are SNBT, parsed further down
+                    value = entry.getValue();
+                } else if (TEXT_COMPONENTS.contains(key) && entry.getValue().isJsonArray()) {
+                    // e.g. "minecraft:lore": ["plain line", "{\"text\":\"json line\"}"]
+                    JsonArray lines = new JsonArray();
+                    for (JsonElement line : entry.getValue().getAsJsonArray()) {
+                        lines.add(normalizeComponentValue(line));
+                    }
+                    value = lines;
+                } else {
+                    value = normalizeComponentValue(entry.getValue());
+                }
                 out.put(key, value);
             }
         }
@@ -491,7 +510,11 @@ public class ShopGui {
                     CobblemonEconomy.LOGGER.error("Failed to read inline component {}: {}", key, rawValue);
                     continue;
                 }
-                applyComponentTag(stack, type, tag, lookupProvider);
+                if (TEXT_COMPONENTS.contains(key)) {
+                    applyComponentJson(stack, type, textTagToJson(tag), lookupProvider);
+                } else {
+                    applyComponentTag(stack, type, tag, lookupProvider);
+                }
             } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to parse inline component {}={}", key, rawValue, e);
             }
@@ -505,6 +528,43 @@ public class ShopGui {
             CobblemonEconomy.LOGGER.warn("Unknown component type: {}", componentId);
         }
         return type;
+    }
+
+    /**
+     * Turns an NBT text value into JSON: strings that hold a JSON object/array (the /give style
+     * {@code custom_name='{"text":"Hi"}'}) become real JSON, plain strings stay plain text.
+     */
+    private static JsonElement textTagToJson(Tag tag) {
+        if (tag instanceof ListTag list) {
+            JsonArray array = new JsonArray();
+            for (Tag element : list) {
+                array.add(textTagToJson(element));
+            }
+            return array;
+        }
+        if (tag instanceof StringTag) {
+            String raw = tag.getAsString();
+            String trimmed = raw.trim();
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                try {
+                    return JsonParser.parseString(trimmed);
+                } catch (Exception e) {
+                    CobblemonEconomy.LOGGER.warn("Text value is not valid JSON, using it as plain text: {}", raw);
+                }
+            }
+            return new JsonPrimitive(raw);
+        }
+        return NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag);
+    }
+
+    private static <T> void applyComponentJson(ItemStack stack, DataComponentType<T> type, JsonElement json,
+                                               HolderLookup.Provider lookupProvider) {
+        // RegistryOps so the codecs can look up enchantments, effects, etc.
+        RegistryOps<JsonElement> ops = lookupProvider.createSerializationContext(JsonOps.INSTANCE);
+
+        type.codecOrThrow().parse(ops, json)
+                .resultOrPartial(error -> CobblemonEconomy.LOGGER.error("Failed to parse component {}: {}", type, error))
+                .ifPresent(value -> stack.set(type, value));
     }
 
     private static <T> void applyComponentTag(ItemStack stack, DataComponentType<T> type, Tag tag,

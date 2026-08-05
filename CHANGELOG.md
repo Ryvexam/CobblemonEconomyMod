@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
   - New shorthand item fields: `enchantments` (object or list, `"sharpness 5"` style accepted), `lore`, `unbreakable`, `customModelData`, `glint`.
   - Item ids now accept vanilla `/give` component syntax, e.g. `minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]`, including `!component` removal.
   - Component and enchantment names without a namespace default to `minecraft:`.
+  - New `customData` and `customName` shorthands so items identified by `custom_data` (mod/datapack items) can be sold and bought back.
+  - Text components (`custom_name`, `item_name`, `lore`) accept plain text, a text component object, or the `/give` style JSON string.
   - Shorthands and `components` also decorate the GUI icon of `type: "command"` entries.
   - Existing configs using escaped strings keep working unchanged.
 
