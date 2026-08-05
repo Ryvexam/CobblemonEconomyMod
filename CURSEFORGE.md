@@ -188,7 +188,9 @@ Important fields:
 Shop item behavior (exact):
 - `type: "item"`:
   - uses `id` as the item to give/sell
-  - supports `components`
+  - supports `components` written as plain JSON (no escaped strings needed)
+  - supports the shorthands `enchantments`, `lore`, `unbreakable`, `customModelData`, `glint`
+  - supports vanilla `/give` component syntax directly on `id`, e.g. `minecraft:diamond_sword[minecraft:enchantments={levels:{'minecraft:sharpness':5}}]`
   - supports legacy `nbt`
   - can also use `dropTable` or `lootTable`
 - `type: "command"`:
@@ -200,7 +202,7 @@ Shop item behavior (exact):
 Not supported / do not rely on this in shops:
 - Extra placeholders beyond `%player%` in shop commands.
 - `displayItem` changing the real purchased item for `type: "item"` entries.
-- `components` or `nbt` customizing the visual icon of `type: "command"` entries.
+- `nbt` customizing the visual icon of `type: "command"` entries (`components` and the shorthands do work on the icon).
 - Weighted `dropTable` entries. If you need weights or advanced rolls, use a Minecraft `lootTable` instead.
 
 ### 5.2 Bind a shop to an NPC

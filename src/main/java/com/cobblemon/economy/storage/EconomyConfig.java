@@ -3,6 +3,8 @@ package com.cobblemon.economy.storage;
 import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
@@ -75,7 +77,31 @@ public class EconomyConfig {
         public String nbt;
         public List<String> dropTable;
         public String lootTable; // Minecraft loot table resource location (e.g., "minecraft:chests/simple_dungeon")
-        public Map<String, String> components;
+        /**
+         * Data components. Values may be written as real JSON (recommended, no escaping needed):
+         *   "components": { "minecraft:enchantments": { "levels": { "minecraft:sharpness": 5 } } }
+         * Legacy escaped JSON strings are still accepted:
+         *   "components": { "minecraft:enchantments": "{\"levels\":{\"minecraft:sharpness\":5}}" }
+         */
+        public Map<String, JsonElement> components;
+
+        /**
+         * Shorthand for minecraft:enchantments. Accepts either an object or a list:
+         *   "enchantments": { "sharpness": 5, "unbreaking": 3 }
+         *   "enchantments": ["sharpness 5", "unbreaking 3"]
+         */
+        public JsonElement enchantments;
+        /** Shorthand for minecraft:lore, one plain string per line. */
+        public List<String> lore;
+        /** Shorthand for minecraft:unbreakable. */
+        public Boolean unbreakable;
+        /** Shorthand for minecraft:custom_model_data. */
+        @SerializedName(value = "customModelData", alternate = {"custom_model_data"})
+        public Integer customModelData;
+        /** Shorthand for minecraft:enchantment_glint_override (fake enchant shine). */
+        @SerializedName(value = "glint", alternate = {"enchantEffect", "enchant_effect", "enchanted"})
+        public Boolean glint;
+
         public Integer buyLimit;
         public Integer buyCooldownMinutes;
         public Integer sellLimit;
@@ -91,6 +117,11 @@ public class EconomyConfig {
             this.dropTable = null;
             this.lootTable = null;
             this.components = null;
+            this.enchantments = null;
+            this.lore = null;
+            this.unbreakable = null;
+            this.customModelData = null;
+            this.glint = null;
             this.buyLimit = null;
             this.buyCooldownMinutes = null;
             this.sellLimit = null;
@@ -386,7 +417,7 @@ public class EconomyConfig {
             ShopItemDefinition boosterPack = new ShopItemDefinition("academy:booster_pack", "Oui", 200);
             boosterPack.type = "item";
             boosterPack.components = new HashMap<>();
-            boosterPack.components.put("academy:booster_pack", "\"base\"");
+            boosterPack.components.put("academy:booster_pack", new JsonPrimitive("base"));
             battleRewards.items.add(boosterPack);
             battleRewards.items.add(createItem("cobblemon:ability_capsule", "Ability Capsule", 250));
             ShopItemDefinition abilityPatch = new ShopItemDefinition("cobblemon:ability_patch", "Ability Patch", 1000);
