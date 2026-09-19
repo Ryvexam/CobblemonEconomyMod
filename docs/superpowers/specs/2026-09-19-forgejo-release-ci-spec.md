@@ -25,12 +25,10 @@ Secrets:
 - `MODRINTH_TOKEN`
 - `CURSEFORGE_TOKEN`
 
-Variables:
+Public configuration file:
 
-- `MODRINTH_PROJECT_ID` — Modrinth project ID or slug.
-- `CURSEFORGE_PROJECT_ID` — numeric CurseForge project ID.
-- `CURSEFORGE_GAME_VERSION_IDS` — comma-separated CurseForge IDs for Minecraft
-  1.21.1 and Fabric, for example `minecraft-id,fabric-loader-id`.
+- `.forgejo/release-config.json` — Modrinth/CurseForge project IDs, Minecraft
+  version, loader, and numeric CurseForge game-version IDs.
 
 The workflow must fail before upload when any required value is empty.
 

@@ -190,12 +190,10 @@ Configure these Forgejo repository secrets:
 - `MODRINTH_TOKEN`
 - `CURSEFORGE_TOKEN`
 
-Configure these Forgejo repository variables:
-
-- `MODRINTH_PROJECT_ID` — Modrinth project ID or slug.
-- `CURSEFORGE_PROJECT_ID` — numeric CurseForge project ID.
-- `CURSEFORGE_GAME_VERSION_IDS` — comma-separated numeric CurseForge IDs for
-  Minecraft `1.21.1` and the Fabric loader.
+The public release configuration is versioned in
+`.forgejo/release-config.json`. It contains the Modrinth/CurseForge project
+IDs, Minecraft version, loader, and CurseForge game-version IDs. It is safe to
+mirror to GitHub and should be edited there when the publication target changes.
 
 Protect the `v*` tag pattern in Forgejo and allow only trusted release
 maintainers to create or update those tags. The workflow receives publishing

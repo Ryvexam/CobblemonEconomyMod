@@ -14,10 +14,6 @@ jobs:
     name: Build and publish ${{ forgejo.ref_name }}
     runs-on: docker
     timeout-minutes: 30
-    env:
-      MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
-      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
-      CURSEFORGE_GAME_VERSION_IDS: ${{ vars.CURSEFORGE_GAME_VERSION_IDS }}
 
     steps:
       - name: Check out the tagged source
@@ -56,10 +52,7 @@ jobs:
 
           for variable in \
             MODRINTH_TOKEN \
-            CURSEFORGE_TOKEN \
-            MODRINTH_PROJECT_ID \
-            CURSEFORGE_PROJECT_ID \
-            CURSEFORGE_GAME_VERSION_IDS; do
+            CURSEFORGE_TOKEN; do
             if [[ -z "${!variable:-}" ]]; then
               echo "Missing Forgejo secret or variable: $variable" >&2
               exit 1
@@ -68,9 +61,36 @@ jobs:
 
           command -v curl >/dev/null || { echo 'curl is required on the Forgejo runner' >&2; exit 1; }
           command -v jq >/dev/null || { echo 'jq is required on the Forgejo runner' >&2; exit 1; }
+          CONFIG_FILE=.forgejo/release-config.json
+          if [[ ! -f "$CONFIG_FILE" ]] || ! jq -e . "$CONFIG_FILE" >/dev/null; then
+            echo "Invalid or missing release configuration: $CONFIG_FILE" >&2
+            exit 1
+          fi
+
+          MINECRAFT_VERSION=$(jq -er '.minecraft_version | select(type == "string" and length > 0)' "$CONFIG_FILE")
+          LOADER=$(jq -er '.loader | select(type == "string" and length > 0)' "$CONFIG_FILE")
+          MODRINTH_PROJECT_ID=$(jq -er '.modrinth_project_id | select(type == "string" and length > 0)' "$CONFIG_FILE")
+          CURSEFORGE_PROJECT_ID=$(jq -er '.curseforge_project_id | if type == "number" then tostring elif type == "string" and length > 0 then . else error("invalid project ID") end' "$CONFIG_FILE")
+          CURSEFORGE_GAME_VERSION_IDS=$(jq -er '
+            .curseforge_game_version_ids
+            | if type == "array" and length > 0 and all(.[]; type == "number" and floor == .)
+              then map(tostring) | join(",")
+              else error("invalid game version IDs")
+              end
+          ' "$CONFIG_FILE")
+
+          if [[ "$LOADER" != fabric ]]; then
+            echo "This workflow currently supports only the Fabric loader, got: $LOADER" >&2
+            exit 1
+          fi
 
           echo "version=$VERSION" >> "$FORGEJO_OUTPUT"
           echo "tag=$TAG" >> "$FORGEJO_OUTPUT"
+          echo "minecraft_version=$MINECRAFT_VERSION" >> "$FORGEJO_OUTPUT"
+          echo "loader=$LOADER" >> "$FORGEJO_OUTPUT"
+          echo "modrinth_project_id=$MODRINTH_PROJECT_ID" >> "$FORGEJO_OUTPUT"
+          echo "curseforge_project_id=$CURSEFORGE_PROJECT_ID" >> "$FORGEJO_OUTPUT"
+          echo "curseforge_game_version_ids=$CURSEFORGE_GAME_VERSION_IDS" >> "$FORGEJO_OUTPUT"
 
       - name: Build and test the release JAR
         env:
@@ -115,17 +135,22 @@ jobs:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+          RELEASE_MINECRAFT_VERSION: ${{ steps.metadata.outputs.minecraft_version }}
+          RELEASE_LOADER: ${{ steps.metadata.outputs.loader }}
+          MODRINTH_PROJECT_ID: ${{ steps.metadata.outputs.modrinth_project_id }}
         shell: bash
         run: |
           set -euo pipefail
           DATA=$(jq -n \
             --arg project "$MODRINTH_PROJECT_ID" \
             --arg version "$RELEASE_VERSION" \
+            --arg minecraft_version "$RELEASE_MINECRAFT_VERSION" \
+            --arg loader "$RELEASE_LOADER" \
             --arg body "$(cat release-notes.md)" \
             '{project_id: $project, version_number: $version,
               version_title: ("Cobblemon Economy " + $version),
-              version_body: $body, loaders: ["fabric"],
-              game_versions: ["1.21.1"], version_type: "release",
+              version_body: $body, loaders: [$loader],
+              game_versions: [$minecraft_version], version_type: "release",
               featured: false, dependencies: [], file_parts: ["file"],
               primary_file: "file"}')
 
@@ -146,6 +171,8 @@ jobs:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+          CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
+          CURSEFORGE_GAME_VERSION_IDS: ${{ steps.metadata.outputs.curseforge_game_version_ids }}
         shell: bash
         run: |
           set -euo pipefail

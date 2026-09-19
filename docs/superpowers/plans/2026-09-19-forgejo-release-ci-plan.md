@@ -14,7 +14,8 @@
 
 - Trigger only on tags matching `v*`.
 - Build with Java 21 and `./gradlew clean test build --no-daemon --console=plain`.
-- Require `MODRINTH_TOKEN`, `CURSEFORGE_TOKEN`, `MODRINTH_PROJECT_ID`, `CURSEFORGE_PROJECT_ID`, and `CURSEFORGE_GAME_VERSION_IDS`.
+- Require `MODRINTH_TOKEN` and `CURSEFORGE_TOKEN`; read public project and
+  game-version configuration from `.forgejo/release-config.json`.
 - Publish only `build/libs/cobblemon-economy-<tag-version>.jar`.
 - Never expose tokens in workflow source, command arguments, logs, or artifacts.
 - Keep CI Forgejo-only; do not add `.github/workflows`.
@@ -34,9 +35,10 @@
 
 **Files:**
 - Create: `.forgejo/workflows/release.yml`
+- Create: `.forgejo/release-config.json`
 
 **Interfaces:**
-- Consumes Forgejo secrets/variables listed in the spec.
+- Consumes Forgejo secrets and the public JSON configuration listed in the spec.
 - Produces a tested distributable JAR and publishes it to both registries.
 
 - [x] **Step 1: Define the tag-only trigger and reproducible Java toolchain**

@@ -91,7 +91,8 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 
 - [x] Ajouter le workflow `.forgejo/workflows/release.yml`, déclenché uniquement par les tags `v*`.
 - [x] Construire avec la version issue du tag et publier le JAR principal via les API Modrinth/CurseForge.
-- [x] Limiter les tokens aux secrets Forgejo et documenter les variables requises.
+- [x] Limiter les tokens aux secrets Forgejo et documenter la configuration requise.
+- [x] Déplacer les IDs publics et la configuration de plateforme dans `.forgejo/release-config.json`.
 - [ ] Exécuter un premier tag de test avec les secrets et IDs de projets configurés sur Forgejo.
 
 ### Revue CI
