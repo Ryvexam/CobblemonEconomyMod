@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "__MOD_ID__",
+  "version": "${version}",
+  "name": "__MOD_ID__",
+  "description": "A Fabric Minecraft mod created with minecraft-agent.",
+  "authors": ["minecraft-agent"],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["__PACKAGE__.ExampleMod"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.5",
+    "minecraft": "1.21.1",
+    "fabric-api": "*"
+  }
+}
