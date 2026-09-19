@@ -291,6 +291,67 @@ Alternate namespaces also registered for compatibility:
 ```
 Jar output: `build/libs/` (use the remapped jar).
 
+## Local Minecraft agent
+
+This repository includes a local-only TypeScript CLI and MCP server in
+`tools/minecraft-agent/`. It provides a repeatable inspect → build → test →
+logs → artifacts workflow without cloud services or arbitrary shell access.
+
+```bash
+cd tools/minecraft-agent
+npm install
+npm run build
+
+# Inspect this mod without changing it
+npm run --silent cli -- inspect --project ../.. --json
+
+# Build with a bounded timeout
+npm run --silent cli -- build --project ../.. --task build --timeout 600000
+
+# List JAR artifacts and SHA-256 hashes
+npm run --silent cli -- artifact --project ../.. --json
+
+# Run a controlled dedicated-server test
+npm run --silent cli -- test --project ../.. --task runServer --timeout 900000
+```
+
+The first supported template is Fabric 1.21.1:
+
+```bash
+npm run --silent cli -- init ../my-new-mod --loader fabric --mc 1.21.1 \
+  --mod-id my-new-mod --package com.example.my_mod
+```
+
+Build logs are stored under `.minecraft-agent/runs/`. Timeouts preserve
+partial output and are reported as `timeout`, never as compilation failures.
+Minecraft server tests additionally require Java 21 and all runtime mods to be
+available locally; a missing dependency is reported as a structured
+`mod_loading` failure.
+
+### OpenCode MCP
+
+After `npm run build`, configure the local MCP server in a project-local
+`opencode.jsonc`. Use an absolute path for `dist/mcp.js`, keep `cwd` at the
+mod repository root, and do not commit machine-specific paths:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "minecraft-agent": {
+        "type": "local",
+        "command": ["node", "/absolute/path/to/tools/minecraft-agent/dist/mcp.js"],
+        "cwd": "/absolute/path/to/CobblemonEconomyMod"
+      }
+    }
+  }
+}
+```
+
+The server exposes `inspect_project`, `create_project`, `build_project`,
+`test_project`, `read_logs`, and `get_artifact`.
+
 ## Support
 Discord: https://discord.gg/zxZXcaTHwe
 
