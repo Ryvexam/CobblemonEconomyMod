@@ -40,11 +40,9 @@ public class QuestBoardScreen extends Screen {
     private static final int GUI_H = 162;
     private static final int[] QUEST_SLOT_X = {98, 153, 208, 98, 153, 208};
     private static final int[] QUEST_SLOT_Y = {32, 32, 32, 89, 89, 89};
-    private static final int DETAIL_X = 14;
-    private static final int DETAIL_W = 78;
-    private static final int DETAIL_PANEL_X = 10;
+    private static final int DETAIL_PANEL_X = 26;
     private static final int DETAIL_PANEL_Y = 39;
-    private static final int DETAIL_PANEL_W = 84;
+    private static final int DETAIL_PANEL_W = 69;
     private static final int DETAIL_PANEL_H = 84;
     private static final int HEADER_Y = 8;
     private static final int HEADER_ICON_X = 24;
@@ -285,14 +283,14 @@ public class QuestBoardScreen extends Screen {
             guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y + DETAIL_PANEL_H - 1,
                     left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
 
-            drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left + DETAIL_X, top + 44, COLOR_TITLE);
+            drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left, top + 44, COLOR_TITLE);
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
-            drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), scaledDetailWidth()), left + DETAIL_X, top + 56, statusColor(selected));
-            drawDetailText(guiGraphics, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, scaledDetailWidth()), left + DETAIL_X, top + 68, COLOR_BODY_TEXT);
+            drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), scaledDetailWidth()), left, top + 56, statusColor(selected));
+            drawDetailText(guiGraphics, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, scaledDetailWidth()), left, top + 68, COLOR_BODY_TEXT);
 
             String timerText = detailTimerText(selected);
             if (!timerText.isBlank()) {
-                drawDetailText(guiGraphics, ellipsize(timerText, scaledDetailWidth()), left + DETAIL_X, top + 80, COLOR_ALERT_TEXT);
+                drawDetailText(guiGraphics, ellipsize(timerText, scaledDetailWidth()), left, top + 80, COLOR_ALERT_TEXT);
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
@@ -328,12 +326,12 @@ public class QuestBoardScreen extends Screen {
         }
 
         if (System.currentTimeMillis() < cancelConfirmUntil) {
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.cancel_confirm").getString(), DETAIL_W), left + DETAIL_X, top + 112, COLOR_ALERT_TEXT, true);
+            drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.cancel_confirm").getString(), scaledDetailWidth()), left, top + 112, COLOR_ALERT_TEXT);
         }
 
         if (hoveredQuestIndex >= 0 && hoveredQuestIndex < state.quests.size()) {
             renderQuestTooltip(guiGraphics, state.quests.get(hoveredQuestIndex), mouseX, mouseY);
-        } else if (selected != null && inside(mouseX, mouseY, left + DETAIL_X, top + 42, 80, 96)) {
+        } else if (selected != null && inside(mouseX, mouseY, left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y, DETAIL_PANEL_W, DETAIL_PANEL_H)) {
             renderQuestTooltip(guiGraphics, selected, mouseX, mouseY);
         }
     }
@@ -551,10 +549,12 @@ public class QuestBoardScreen extends Screen {
     }
 
     private int scaledDetailWidth() {
-        return Math.max(DETAIL_W, Math.round(DETAIL_W / DETAIL_TEXT_SCALE));
+        return Math.max(1, Math.round((DETAIL_PANEL_W - 4) / DETAIL_TEXT_SCALE));
     }
 
-    private void drawDetailText(GuiGraphics guiGraphics, String text, int x, int y, int color) {
+    private void drawDetailText(GuiGraphics guiGraphics, String text, int left, int y, int color) {
+        int renderedWidth = Math.round(this.font.width(text) * DETAIL_TEXT_SCALE);
+        int x = left + DETAIL_PANEL_X + Math.max(0, (DETAIL_PANEL_W - renderedWidth) / 2);
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(x, y, 0);
         guiGraphics.pose().scale(DETAIL_TEXT_SCALE, DETAIL_TEXT_SCALE, 1.0f);
