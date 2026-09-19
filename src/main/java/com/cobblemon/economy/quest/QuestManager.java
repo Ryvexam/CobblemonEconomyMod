@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class QuestManager {
+    private final File databaseFile;
     private final String url;
 
     public QuestManager(File dbFile) {
@@ -22,6 +23,7 @@ public class QuestManager {
         } catch (ClassNotFoundException e) {
             CobblemonEconomy.LOGGER.error("SQLite JDBC driver not found for quest manager", e);
         }
+        this.databaseFile = dbFile;
         this.url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         initDatabase();
     }
@@ -63,32 +65,11 @@ public class QuestManager {
     }
 
     private void initDatabase() {
-        String stateSql = "CREATE TABLE IF NOT EXISTS quest_state (" +
-                "uuid TEXT NOT NULL," +
-                "npc_id TEXT NOT NULL," +
-                "quest_id TEXT NOT NULL," +
-                "status TEXT NOT NULL," +
-                "accepted_at INTEGER NOT NULL," +
-                "completed_at INTEGER NOT NULL," +
-                "claimed_at INTEGER NOT NULL," +
-                "available_at INTEGER NOT NULL," +
-                "PRIMARY KEY (uuid, npc_id, quest_id)" +
-                ");";
-
-        String progressSql = "CREATE TABLE IF NOT EXISTS quest_progress (" +
-                "uuid TEXT NOT NULL," +
-                "npc_id TEXT NOT NULL," +
-                "quest_id TEXT NOT NULL," +
-                "objective_index INTEGER NOT NULL," +
-                "progress INTEGER NOT NULL," +
-                "PRIMARY KEY (uuid, npc_id, quest_id, objective_index)" +
-                ");";
-
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
-            stmt.execute(stateSql);
-            stmt.execute(progressSql);
-        } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to initialize quest database", e);
+        try {
+            QuestDatabaseSchema.migrate(databaseFile);
+            CobblemonEconomy.LOGGER.info("Quest database schema ready at version {}", QuestDatabaseSchema.CURRENT_VERSION);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to migrate quest database", e);
         }
     }
 

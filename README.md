@@ -17,6 +17,27 @@ Pokédex reward handling remains compatible with Cobblemon 1.7.x: the former
 Install the matching Fabric Loader/API required by the Cobblemon version on the
 server; the economy mod itself does not require a separate 1.7 or 1.8 build.
 
+### Tested release matrix
+
+Each JAR below was tested individually on a dedicated Fabric server with
+Minecraft `1.21.1`, Fabric Loader `0.19.5`, Fabric API `0.116.17+1.21.1`,
+Cobblemon `1.8.1+1.21.1`, and Java 21. The JARs were never installed side by
+side.
+
+| Version | Start | Mod init | `/eco reload` | Shops | Quests | Clean stop |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `0.0.13` | ✅ | ✅ | ✅ | ✅ | N/A | ✅ |
+| `0.0.14` | ✅ | ✅ | ✅ | ✅ | N/A | ✅ |
+| `0.0.15` | ✅ | ✅ | ✅ | ✅ | N/A | ✅ |
+| `0.0.16` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `0.0.17` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `0.0.18` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+The complete migration sequence `0.0.13 → 0.0.14 → 0.0.15 → 0.0.16 →
+0.0.17 → 0.0.18` was also tested. Legacy balances, PCO, purchase/sell limits,
+capture counts, quest state, and quest progress were preserved. See the full
+[version and migration report](docs/version-compatibility.md).
+
 Tagged releases are built and published by Forgejo CI only. Push a version tag
 such as `v0.0.18` to run the Java 21 build and publish the JAR to Modrinth and
 CurseForge; credentials are stored only as Forgejo repository secrets.
@@ -62,13 +83,38 @@ Admin (permission level 2):
 - `/pco <player> <add|remove|set> <amount>`
 
 ## Configuration
-Config path: `world/config/cobblemon-economy/config.json`
-Shops path: `world/config/cobblemon-economy/shops.json`
-Milestones path: `world/config/cobblemon-economy/milestone.json`
-Quests path: `world/config/cobblemon-economy/quests.json`
-Quest NPCs path: `world/config/cobblemon-economy/quest_npcs.json`
+All server data is stored under `world/config/cobblemon-economy/`. The JSON
+files are intentionally separated by responsibility:
 
-Legacy compatibility: if `shops.json` is missing, shops are still loaded from `config.json` and migrated automatically.
+| File | Contents | How to edit |
+| --- | --- | --- |
+| `config.json` | Global economy settings: currency backend, starting balances, rewards, multipliers, profiling, and legacy inline shop fallback | Edit global economy values here |
+| `shops.json` | Shop IDs, NPC display settings, buy/sell modes, item entries, limits, loot tables, and command rewards | Edit shops here; this is the authoritative shop file |
+| `milestone.json` | Unique-capture milestone thresholds and rewards | Edit milestone rewards here |
+| `quests.json` | Quest IDs, objectives, prerequisites, rotation rules, and rewards | Edit quest definitions here |
+| `quest_npcs.json` | Quest NPC/board IDs, dialogue, quest pools, rotations, skins, and active-quest limits | Edit which NPC/board offers which quests here |
+| `quest_boards_bindings.json` | Dimension and block-position bindings to quest board IDs | Prefer `/eco questboard bind` and `/eco questboard unbind` |
+
+`shops.json` is the preferred source for shops. Existing servers remain
+backward-compatible: if it is missing, the mod reads the legacy `shops` object
+inside `config.json`, writes a new `shops.json`, and keeps the legacy data
+readable for older JARs. If both are present and `shops.json` contains shops,
+it is authoritative; a missing or empty separate file can still fall back to
+the legacy inline object. Shop, item, quest, NPC, and board IDs are persistent
+identifiers and must not be renamed without an explicit migration.
+
+After editing JSON, run `/eco reload`. The reload validates and rewrites only
+the affected JSON files; it does not reset SQLite balances or quest progress.
+Current writes are atomic, create `.bak` backups, and quarantine malformed files
+as `.broken-<timestamp>` before defaults are regenerated.
+
+Persistence compatibility:
+- JSON files accept the legacy field names and contain a `configVersion` when written by current versions.
+- Existing `economy.db` and `quests.db` files are migrated additively with a `.bak` backup before upgrade.
+- Invalid JSON is preserved as a timestamped `.broken-*` file before defaults are regenerated.
+- Keep shop, item, quest, NPC, and board IDs stable because they are persistent references.
+- See [`docs/persistence-compatibility.md`](docs/persistence-compatibility.md) for upgrade, downgrade, and recovery procedures.
+- See [`docs/version-compatibility.md`](docs/version-compatibility.md) for the tested `0.0.13` → current migration matrix.
 
 Milestone rules:
 - File missing: defaults are generated.
@@ -274,6 +320,9 @@ Command item note:
 - Quest database: `world/config/cobblemon-economy/quests.db`
 - Transactions: `world/config/cobblemon-economy/transactions.log`
 - Skins: `world/config/cobblemon-economy/skins/`
+
+For the full upgrade, downgrade, and recovery procedure, see
+[`docs/persistence-compatibility.md`](docs/persistence-compatibility.md).
 
 ## Integrations
 - Cobblemon (required): capture, pokedex, battle victory, and fossil events come from Cobblemon's event bus.

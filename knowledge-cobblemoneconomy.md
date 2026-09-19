@@ -4,7 +4,7 @@
 **Name:** Cobblemon Economy
 **Type:** Minecraft Fabric Mod
 **Purpose:** Adds a professional economy system to Cobblemon servers, featuring custom NPC shops, dual currency (PokeDollars & PokeCoins), and a GUI-based shopping experience.
-**Version:** 0.0.10 (Targeting Minecraft 1.21.1)
+**Version:** 0.0.18 (Targeting Minecraft 1.21.1)
 **Dependencies:** 
 - Fabric Loader
 - Fabric API
@@ -21,11 +21,23 @@
 ## Configuration
 **Main Config File:** `world/config/cobblemon-economy/config.json`
 
+**Shops File:** `world/config/cobblemon-economy/shops.json` (legacy inline
+`config.json.shops` remains supported)
+
+**JSON separation:** `config.json` contains global economy settings,
+`shops.json` contains shop definitions, `milestone.json` contains capture
+milestones, `quests.json` contains quest definitions, `quest_npcs.json`
+contains NPC/board definitions, and `quest_boards_bindings.json` maps placed
+board positions to board IDs. Shops are loaded from `shops.json` first and
+legacy inline shops are exported when the separate file is missing.
+
 ### Global Settings
 - `startingBalance`: Amount given to new players (Default: 1000).
 - `battleVictoryReward`: Money earned from wild battles.
-- `newDiscoveryReward`: Money for first-time species capture.
-- `shinyMultiplier` / `legendaryMultiplier`: Bonus multipliers for specific captures.
+- `capture_event_base_reward`: Money for a first valid capture.
+- `capture_multi_reward`: Money for repeat normal captures.
+- `capture_shiny_multiplier` / `capture_legendary_multiplier`: Bonus multipliers.
+- Legacy names such as `newDiscoveryReward` and `shinyMultiplier` remain accepted.
 
 ### Shop Configuration (`shops` object)
 Each shop needs a unique ID (e.g., `my_shop`).
@@ -48,13 +60,19 @@ Each shop needs a unique ID (e.g., `my_shop`).
 - `/pay <player> <amount>`: Transfer money.
 
 ### Admin (Permission Level 2)
-- `/eco reload`: Reload config.json.
+- `/eco reload`: Reload all JSON configuration files.
 - `/eco shop list`: Show available shop IDs.
 - `/eco shop get <id>`: Get a **Shop Setter** tool (Right-click NPC to link shop).
 - `/eco skin <name>`: Get a **Skin Setter** tool (Right-click NPC to apply skin).
 - `/eco item`: Get a **Tower Tagger** tool.
 - `/balance <player> <add/remove/set> <amount>`: Modify balance.
 - `/pco <player> <add/remove/set> <amount>`: Modify PCO.
+
+### Persistence compatibility
+- Existing `economy.db` and `quests.db` data is migrated additively with a `.bak` backup.
+- Invalid JSON is preserved as a timestamped `.broken-*` file before defaults are regenerated.
+- Keep shop, item, quest, NPC, and board IDs stable; they are persistent references.
+- See `docs/persistence-compatibility.md` for upgrade and recovery procedures.
 
 ## Common Issues & Solutions
 

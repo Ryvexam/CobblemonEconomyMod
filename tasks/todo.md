@@ -114,3 +114,4 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Harness déplacé hors du dépôt du mod vers `../minecraft-agent/`.
 - Dépôt autonome initialisé dans ce dossier : commit `49fa28a`.
 - Vérification depuis le dossier standalone : **46 tests passants**, build TypeScript passant, inspection du mod et handshake MCP validés.
+

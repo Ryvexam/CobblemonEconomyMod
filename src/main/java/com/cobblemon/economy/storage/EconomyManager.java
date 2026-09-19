@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class EconomyManager {
+    private final File databaseFile;
     private final String url;
 
     public EconomyManager(File dbFile) {
@@ -27,6 +28,7 @@ public class EconomyManager {
         } catch (ClassNotFoundException e) {
             CobblemonEconomy.LOGGER.error("SQLite JDBC driver not found!", e);
         }
+        this.databaseFile = dbFile;
         this.url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         initDatabase();
     }
@@ -36,63 +38,11 @@ public class EconomyManager {
     }
 
     private void initDatabase() {
-        String sql = "CREATE TABLE IF NOT EXISTS balances (" +
-                     "uuid TEXT PRIMARY KEY," +
-                     "balance TEXT NOT NULL," +
-                     "pco TEXT NOT NULL," +
-                     "username TEXT" +
-                     ");";
-        String limitSql = "CREATE TABLE IF NOT EXISTS purchase_limits (" +
-                          "uuid TEXT NOT NULL," +
-                          "shop_id TEXT NOT NULL," +
-                          "item_id TEXT NOT NULL," +
-                          "window_start INTEGER NOT NULL," +
-                          "count INTEGER NOT NULL," +
-                          "PRIMARY KEY (uuid, shop_id, item_id)" +
-                          ");";
-        String sellLimitSql = "CREATE TABLE IF NOT EXISTS sell_limits (" +
-                          "uuid TEXT NOT NULL," +
-                          "shop_id TEXT NOT NULL," +
-                          "item_id TEXT NOT NULL," +
-                          "window_start INTEGER NOT NULL," +
-                          "count INTEGER NOT NULL," +
-                          "PRIMARY KEY (uuid, shop_id, item_id)" +
-                          ");";
-        String captureCountSql = "CREATE TABLE IF NOT EXISTS capture_counts (" +
-                                 "uuid TEXT PRIMARY KEY," +
-                                 "count INTEGER NOT NULL" +
-                                 ");";
-        String captureMilestonesSql = "CREATE TABLE IF NOT EXISTS capture_milestones (" +
-                                      "uuid TEXT NOT NULL," +
-                                      "milestone INTEGER NOT NULL," +
-                                      "PRIMARY KEY (uuid, milestone)" +
-                                      ");";
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
-            stmt.execute(limitSql);
-            stmt.execute(sellLimitSql);
-            stmt.execute(captureCountSql);
-            stmt.execute(captureMilestonesSql);
-            ensureColumnExists(conn, "balances", "username", "TEXT");
-        } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to initialize SQLite database", e);
-        }
-    }
-
-    private void ensureColumnExists(Connection conn, String table, String column, String type) throws SQLException {
-        String pragma = "PRAGMA table_info(" + table + ")";
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(pragma)) {
-            while (rs.next()) {
-                String name = rs.getString("name");
-                if (column.equalsIgnoreCase(name)) {
-                    return;
-                }
-            }
-        }
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+        try {
+            EconomyDatabaseSchema.migrate(databaseFile);
+            CobblemonEconomy.LOGGER.info("Economy database schema ready at version {}", EconomyDatabaseSchema.CURRENT_VERSION);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to migrate economy database", e);
         }
     }
 

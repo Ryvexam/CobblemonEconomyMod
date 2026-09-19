@@ -11,7 +11,6 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -22,6 +21,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public class EconomyConfig {
+    public int configVersion = 1;
+
     @SerializedName(value = "main_currency", alternate = {"mainCurrency"})
     public String mainCurrency = "cobeco";
     public BigDecimal startingBalance = new BigDecimal(1000);
@@ -145,6 +146,7 @@ public class EconomyConfig {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         EconomyConfig config = null;
         boolean isNewConfig = !configFile.exists();
+        boolean configLoadFailed = false;
         boolean shopsDirty = false;
         File milestoneFile = new File(configFile.getParentFile(), "milestone.json");
         String rawConfigJson = null;
@@ -155,11 +157,17 @@ public class EconomyConfig {
                 config = gson.fromJson(rawConfigJson, EconomyConfig.class);
             } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to load config", e);
+                configLoadFailed = true;
+                quarantine(configFile, "broken");
             }
         }
 
         if (config == null) {
+            if (configFile.exists() && !configLoadFailed) {
+                quarantine(configFile, "broken");
+            }
             config = new EconomyConfig();
+            configLoadFailed = configFile.exists() || configLoadFailed;
         }
 
         Map<String, ShopDefinition> loadedShops = null;
@@ -168,7 +176,7 @@ public class EconomyConfig {
         }
         if ((loadedShops == null || loadedShops.isEmpty()) && config.shops != null && !config.shops.isEmpty()) {
             loadedShops = new HashMap<>(config.shops);
-            if (shopsFile != null && !shopsFile.exists()) {
+            if (shopsFile != null) {
                 shopsDirty = true;
             }
         }
@@ -256,7 +264,7 @@ public class EconomyConfig {
         }
 
         // --- Add defaults ONLY if it's a fresh install ---
-        boolean modified = isNewConfig || shouldRewriteCaptureRewardSettings(rawConfigJson);
+        boolean modified = isNewConfig || configLoadFailed || shouldRewriteCaptureRewardSettings(rawConfigJson);
 
         if (config.shops.isEmpty()) {
             // 1. General Shop
@@ -496,8 +504,8 @@ public class EconomyConfig {
 
         // Save if modified
         if (modified) {
-            try (FileWriter writer = new FileWriter(configFile)) {
-                gson.toJson(config, writer);
+            try {
+                ConfigFileStore.writeAtomically(configFile, gson, config);
             } catch (IOException e) {
                 CobblemonEconomy.LOGGER.error("Failed to save updated config", e);
             }
@@ -511,6 +519,7 @@ public class EconomyConfig {
     }
 
     private static class ShopsFileModel {
+        int configVersion = 1;
         Map<String, ShopDefinition> shops = new HashMap<>();
     }
 
@@ -563,6 +572,7 @@ public class EconomyConfig {
             return gson.fromJson(reader, new TypeToken<Map<String, ShopDefinition>>() {}.getType());
         } catch (Exception e) {
             CobblemonEconomy.LOGGER.error("Failed to load shops config", e);
+            quarantine(shopsFile, "broken");
             return null;
         }
     }
@@ -570,8 +580,8 @@ public class EconomyConfig {
     private static void saveShops(Gson gson, File shopsFile, Map<String, ShopDefinition> shops) {
         ShopsFileModel model = new ShopsFileModel();
         model.shops = shops == null ? new HashMap<>() : shops;
-        try (FileWriter writer = new FileWriter(shopsFile)) {
-            gson.toJson(model, writer);
+        try {
+            ConfigFileStore.writeAtomically(shopsFile, gson, model);
         } catch (IOException e) {
             CobblemonEconomy.LOGGER.error("Failed to save shops config", e);
         }
@@ -592,6 +602,7 @@ public class EconomyConfig {
                 }
             } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to load milestone config", e);
+                quarantine(milestoneFile, "broken");
                 shouldSave = true;
             }
         } else {
@@ -615,10 +626,21 @@ public class EconomyConfig {
     }
 
     private static void saveMilestones(Gson gson, File milestoneFile, Map<String, BigDecimal> milestones) {
-        try (FileWriter writer = new FileWriter(milestoneFile)) {
-            gson.toJson(milestones, writer);
+        try {
+            ConfigFileStore.writeAtomically(milestoneFile, gson, milestones);
         } catch (IOException e) {
             CobblemonEconomy.LOGGER.error("Failed to save milestone config", e);
+        }
+    }
+
+    private static void quarantine(File file, String reason) {
+        if (!file.exists()) {
+            return;
+        }
+        try {
+            ConfigFileStore.quarantine(file, reason);
+        } catch (IOException quarantineError) {
+            CobblemonEconomy.LOGGER.error("Failed to quarantine invalid config " + file, quarantineError);
         }
     }
 }

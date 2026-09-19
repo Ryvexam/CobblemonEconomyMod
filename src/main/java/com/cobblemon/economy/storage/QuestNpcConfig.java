@@ -7,7 +7,6 @@ import com.google.gson.annotations.SerializedName;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public class QuestNpcConfig {
+    public int configVersion = 1;
     @SerializedName(value = "quest_npcs", alternate = {"questNpcs"})
     public Map<String, QuestNpcDefinition> questNpcs = new HashMap<>();
 
@@ -47,12 +47,18 @@ public class QuestNpcConfig {
         if (file.exists()) {
             try (FileReader reader = new FileReader(file)) {
                 config = gson.fromJson(reader, QuestNpcConfig.class);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to load quest NPC config", e);
+                quarantine(file, "broken");
+                config = new QuestNpcConfig();
+                shouldSave = true;
             }
         }
 
         if (config == null) {
+            if (file.exists()) {
+                quarantine(file, "broken");
+            }
             config = new QuestNpcConfig();
             shouldSave = true;
         }
@@ -320,14 +326,25 @@ public class QuestNpcConfig {
         }
 
         if (shouldSave) {
-            try (FileWriter writer = new FileWriter(file)) {
-                gson.toJson(config, writer);
+            try {
+                ConfigFileStore.writeAtomically(file, gson, config);
             } catch (IOException e) {
                 CobblemonEconomy.LOGGER.error("Failed to save quest NPC config", e);
             }
         }
 
         return config;
+    }
+
+    private static void quarantine(File file, String reason) {
+        if (!file.exists()) {
+            return;
+        }
+        try {
+            ConfigFileStore.quarantine(file, reason);
+        } catch (IOException quarantineError) {
+            CobblemonEconomy.LOGGER.error("Failed to quarantine invalid quest NPC config", quarantineError);
+        }
     }
 
     private static String normalizeSkinModel(String skinModel) {

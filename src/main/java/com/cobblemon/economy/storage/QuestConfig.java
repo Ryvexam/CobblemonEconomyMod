@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -16,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class QuestConfig {
+    public int configVersion = 1;
     public Map<String, QuestDefinition> quests = new HashMap<>();
 
     public static class QuestDefinition {
@@ -55,12 +55,18 @@ public class QuestConfig {
         if (file.exists()) {
             try (FileReader reader = new FileReader(file)) {
                 config = gson.fromJson(reader, QuestConfig.class);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 CobblemonEconomy.LOGGER.error("Failed to load quests config", e);
+                quarantine(file, "broken");
+                config = new QuestConfig();
+                shouldSave = true;
             }
         }
 
         if (config == null) {
+            if (file.exists()) {
+                quarantine(file, "broken");
+            }
             config = new QuestConfig();
             shouldSave = true;
         }
@@ -147,14 +153,25 @@ public class QuestConfig {
         }
 
         if (shouldSave) {
-            try (FileWriter writer = new FileWriter(file)) {
-                gson.toJson(config, writer);
+            try {
+                ConfigFileStore.writeAtomically(file, gson, config);
             } catch (IOException e) {
                 CobblemonEconomy.LOGGER.error("Failed to save quests config", e);
             }
         }
 
         return config;
+    }
+
+    private static void quarantine(File file, String reason) {
+        if (!file.exists()) {
+            return;
+        }
+        try {
+            ConfigFileStore.quarantine(file, reason);
+        } catch (IOException quarantineError) {
+            CobblemonEconomy.LOGGER.error("Failed to quarantine invalid quests config", quarantineError);
+        }
     }
 
     private static Map<String, QuestDefinition> defaultQuests() {

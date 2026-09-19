@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.0.18] - 2026-09-19
+
+### Added
+- **Separated JSON configuration:** shop definitions now have a documented
+  authoritative home in `shops.json`, while `config.json` contains global
+  economy settings. Quest definitions, quest NPCs, milestones, and quest-board
+  bindings remain in their own files.
+- **Persistence compatibility layer:** economy and quest SQLite databases now use versioned, transactional migrations with `.bak` backups and safe refusal of unknown future schemas.
+- **Safe configuration writes:** JSON files are written atomically, backed up before replacement, and malformed files are quarantined before defaults are regenerated.
+- Added persistence architecture diagrams, an operator migration/recovery guide,
+  and a tested release compatibility matrix for JARs `0.0.13` through `0.0.18`.
+
 ### Fixed
 - **Cobblemon 1.7/1.8 Pokédex compatibility:** capture and discovery rewards
   now recognize both Cobblemon 1.7's `CAUGHT` status and Cobblemon 1.8+'s
@@ -17,6 +31,7 @@ All notable changes to this project will be documented in this file.
   Fabric Loader 0.17.2, and Fabric API 0.116.6+1.21.1; the published JAR
   still accepts Cobblemon 1.7.1 and newer when paired with that version's
   compatible Fabric Loader/API.
+- The release version is now `0.0.18`.
 
 ## [0.0.17] - 2026-03-07
 

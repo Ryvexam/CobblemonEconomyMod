@@ -65,7 +65,20 @@ Per world folder:
 - `world/config/cobblemon-economy/economy.db` -> economy database.
 - `world/config/cobblemon-economy/quests.db` -> quest state database.
 
-### 3.1) Capture reward keys in `config.json`
+### 3.1) Persistence and upgrades
+
+Always back up the complete `world/config/cobblemon-economy/` directory before
+upgrading. The mod preserves legacy JSON layouts and migrates version-zero
+SQLite databases additively. Existing databases receive an `.db.bak` backup
+before migration; a future schema version is refused rather than overwritten.
+Malformed JSON is copied to a timestamped `.broken-*` file before defaults are
+regenerated. Do not rename shop, item, quest, NPC, or board IDs because those
+IDs are referenced by persistent balances, limits, progression, and bindings.
+
+Full details: [`docs/persistence-compatibility.md`](docs/persistence-compatibility.md).
+Tested release matrix: [`docs/version-compatibility.md`](docs/version-compatibility.md).
+
+### 3.2) Capture reward keys in `config.json`
 
 To make the reward rules easier to read, the generated config now uses explicit capture-related keys:
 

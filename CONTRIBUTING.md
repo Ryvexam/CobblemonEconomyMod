@@ -77,6 +77,9 @@ and rewards.
 - Keep world data under `world/config/cobblemon-economy/`.
 - Use prepared SQL statements and document any schema migration before
   changing `economy.db` or `quests.db`.
+- Keep `PRAGMA user_version` migrations additive, transactional, and covered by
+  a legacy database fixture. Never rename persisted shop, item, quest, NPC, or
+  board IDs without an explicit alias migration.
 - Validate client payloads against server configuration.
 - Keep optional integrations behind their existing compatibility boundaries.
 - Add or update both `en_us.json` and `fr_fr.json` for player-facing text.
@@ -100,7 +103,9 @@ changes.
 
 Keep a backup of the whole `world/config/cobblemon-economy/` directory before
 editing production data. Treat `economy.db` and `quests.db` as persistent data,
-not disposable build output.
+not disposable build output. Database startup migrations create a same-directory
+`.bak` file automatically; malformed JSON is preserved as `.broken-*` before
+fallback defaults are written. See [`docs/persistence-compatibility.md`](docs/persistence-compatibility.md).
 
 ## Feature checklists
 
@@ -222,8 +227,8 @@ git diff --check
 git status --short
 ```
 
-Keep commits focused. Mention the target mod version (`0.0.17` at the time of
-this document) in commit messages when the change is release-related. Never
+Keep commits focused. Mention the target mod version (`0.0.18` for the current
+release) in commit messages when the change is release-related. Never
 commit a production world, database, generated run logs, or machine-specific
 OpenCode/MCP paths.
 

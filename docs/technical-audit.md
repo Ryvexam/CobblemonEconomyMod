@@ -140,19 +140,18 @@ in a way the command layer would reject.
 boundary, with explicit behavior for zero, negative, scale, and overflow
 values. Keep command validation as user feedback, not as the only guard.
 
-### TEST-01 — No automated Java/mod test suite exists
+### TEST-01 — Focused persistence/compatibility tests exist; gameplay coverage remains limited
 
-**Severity:** Medium  
-**Evidence:** There is no `src/test/`, no `*Test.java`, and no JUnit/GameTest
-configuration in `build.gradle.kts`. The 46 tests mentioned in `tasks/todo.md`
-belong to the standalone `../minecraft-agent`, not this mod.  
-**Impact:** JSON compatibility, SQLite behavior, command boundaries, quest
-progress, and reward de-duplication can regress without a fast automated signal.
-The Gradle build only proves compilation/resource processing.  
-**Recommendation:** Start with isolated tests for config loading and pure
-reward/quest matching, then add SQLite integration tests in a temporary
-directory. Add server/GameTest coverage only for behavior that cannot be
-tested at the service boundary.
+**Severity:** Low
+**Evidence:** The mod now has nine JUnit tests covering Cobblemon status
+compatibility, legacy inline shops/aliases, atomic JSON writes, SQLite schema
+migration, backups, and future-schema refusal. There is still no GameTest suite
+for full command, GUI, or reward flows.
+**Impact:** Gameplay-specific regressions can still require a dedicated-server
+smoke test or manual client interaction.
+**Recommendation:** Keep the focused fixtures, then add service-level tests for
+quest claims, shop transactions, and reward de-duplication before introducing
+asynchronous persistence.
 
 ### QUEST-01 — Quest claim grants rewards before recording the claim
 
@@ -223,8 +222,9 @@ keys are present in one locale or document but not used by the current code.
 **Severity:** Low  
 **Evidence:** Shop, economy, quest, NPC, and binding schemas are described in
 multiple Markdown files while Gson model classes provide the actual accepted
-fields. There is no generated schema or test that compares examples with the
-loaders.  
+fields. Representative legacy-loading tests now cover the highest-risk
+compatibility paths, but there is still no generated schema or exhaustive
+fixture comparison.
 **Impact:** New fields and legacy aliases can drift between code and operator
 examples.  
 **Recommendation:** Add representative JSON fixture tests for each loader and

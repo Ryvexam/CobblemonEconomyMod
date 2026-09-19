@@ -61,6 +61,22 @@ The server entrypoint is `CobblemonEconomy.onInitialize()`.
 The startup and callback wiring lives in
 `src/main/java/com/cobblemon/economy/fabric/CobblemonEconomy.java`.
 
+```mermaid
+flowchart LR
+    Fabric[Fabric entrypoint] --> Compat[Optional compatibility discovery]
+    Fabric --> Registry[Entities, blocks, payloads, commands]
+    Fabric --> Start[SERVER_STARTING]
+    Start --> Json[JSON config loaders]
+    Start --> Economy[EconomyDatabaseSchema -> EconomyManager]
+    Start --> Quest[QuestDatabaseSchema -> QuestManager]
+    Json --> Services[Shop and quest services]
+    Economy --> Services
+    Quest --> Services
+    Services --> Events[Cobblemon callbacks]
+    Services --> Network[Server-authoritative networking]
+    Services --> GUI[Server-side shop / quest GUI]
+```
+
 ## Per-world data ownership
 
 The active world is the owner of economy and quest data. The root is resolved
@@ -80,10 +96,31 @@ from `LevelResource.ROOT`, normalized to an absolute path, then extended with
 | `transactions.log` | shop/economy transaction code | Human-readable transaction history |
 | `skins/*.png` | networking/client skin flow | World-local shopkeeper and quest NPC textures |
 
-If `shops.json` is absent, `EconomyConfig.load()` can read existing shops from
-`config.json` and writes the separate shop file on the next configuration
-save. Do not manually move a world database between worlds without preserving
-the matching configuration and backup.
+If `shops.json` is absent or empty, `EconomyConfig.load()` can read existing
+shops from `config.json` and writes the separate shop file on the next
+configuration save. A non-empty `shops.json` is authoritative. Do not manually
+move a world database between worlds without preserving the matching
+configuration and backup.
+
+Configuration writes use a temporary file plus atomic replacement where
+available. Existing files are backed up as `<file>.bak`; malformed files are
+quarantined as `<file>.broken-<timestamp>` before defaults are written. SQLite
+uses independent `PRAGMA user_version` migration chains and creates a database
+backup before an upgrade. See
+[`docs/persistence-compatibility.md`](persistence-compatibility.md).
+The tested release-by-release behavior is recorded in
+[`docs/version-compatibility.md`](version-compatibility.md).
+
+```mermaid
+flowchart TD
+    Legacy[Legacy config or DB] --> Detect[Detect format/version]
+    Detect -->|JSON| JsonCompat[Read aliases and inline shops]
+    Detect -->|SQLite v0| DbBackup[Create .bak]
+    JsonCompat --> JsonWrite[Atomic JSON write + legacy mirror]
+    DbBackup --> Tx[Transactional additive migration]
+    Tx --> Current[Current runtime schema]
+    Future[Future SQLite version] --> Refuse[Refuse without modification]
+```
 
 ## Economy and currency flow
 
