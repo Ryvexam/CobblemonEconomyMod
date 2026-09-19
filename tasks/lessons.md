@@ -14,3 +14,10 @@
   excerpt or a reproducible summary, never the raw log file.
 - Before finishing a change, inspect the diff and repository status for
   accidental confidential material.
+
+## Pixel-art texture scaling
+
+- To resize a pixel-art texture without cutting it, scale the complete source
+  image uniformly around its visual center; do not pass a smaller destination
+  height to a blit call that uses the same width/height arguments for the
+  source region.

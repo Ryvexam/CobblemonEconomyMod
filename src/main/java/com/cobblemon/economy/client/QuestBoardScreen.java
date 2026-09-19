@@ -50,7 +50,7 @@ public class QuestBoardScreen extends Screen {
     private static final int HEADER_RIGHT_MARGIN = 8;
     private static final int TIER_X = 39;
     private static final int TIER_Y = 31;
-    private static final int TIER_DISPLAY_H = 8;
+    private static final float TIER_DISPLAY_SCALE = 0.75f;
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
     private static final int SELECTED_PREVIEW_ITEM_X = 51;
@@ -295,7 +295,7 @@ public class QuestBoardScreen extends Screen {
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
-            blitNearest(guiGraphics, tierTexture, left + TIER_X, top + TIER_Y, 0, 0, 42, TIER_DISPLAY_H, 42, 12);
+            renderTierStars(guiGraphics, tierTexture, left, top);
 
             renderRewardLines(guiGraphics, selected, left, top);
         }
@@ -623,6 +623,14 @@ public class QuestBoardScreen extends Screen {
                              int textureHeight) {
         ensureNearest(texture);
         guiGraphics.blit(texture, x, y, u, v, width, height, textureWidth, textureHeight);
+    }
+
+    private void renderTierStars(GuiGraphics guiGraphics, ResourceLocation texture, int left, int top) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(left + TIER_X + 21, top + TIER_Y + 6, 0);
+        guiGraphics.pose().scale(TIER_DISPLAY_SCALE, TIER_DISPLAY_SCALE, 1.0f);
+        blitNearest(guiGraphics, texture, -21, -6, 0, 0, 42, 12, 42, 12);
+        guiGraphics.pose().popPose();
     }
 
     private void ensureNearest(ResourceLocation texture) {
