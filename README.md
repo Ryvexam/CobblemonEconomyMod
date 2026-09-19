@@ -364,43 +364,6 @@ Jar output: `build/libs/` (use the remapped jar).
 
 For the complete development checklist, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## Local Minecraft agent
-
-The reusable local Minecraft agent lives in the sibling directory
-`../minecraft-agent/`. It provides a repeatable inspect → build → test → logs
-→ artifacts workflow without cloud services or arbitrary shell access.
-
-```bash
-cd ../minecraft-agent
-npm install
-npm run build
-
-# Inspect this mod without changing it
-npm run --silent cli -- inspect --project ../CobblemonEconomyMod --json
-
-# Build with a bounded timeout
-npm run --silent cli -- build --project ../CobblemonEconomyMod --task build --timeout 600000
-
-# List JAR artifacts and SHA-256 hashes
-npm run --silent cli -- artifact --project ../CobblemonEconomyMod --json
-
-# Run a controlled dedicated-server test
-npm run --silent cli -- test --project ../CobblemonEconomyMod --task runServer --timeout 900000
-```
-
-The first supported template is Fabric 1.21.1:
-
-```bash
-npm run --silent cli -- init ../my-new-mod --loader fabric --mc 1.21.1 \
-  --mod-id my-new-mod --package com.example.my_mod
-```
-
-Build logs are stored under `.minecraft-agent/runs/`. Timeouts preserve
-partial output and are reported as `timeout`, never as compilation failures.
-Minecraft server tests additionally require Java 21 and all runtime mods to be
-available locally; a missing dependency is reported as a structured
-`mod_loading` failure.
-
 ## Support
 Discord: https://discord.gg/zxZXcaTHwe
 
