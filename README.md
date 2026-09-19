@@ -304,6 +304,93 @@ Command item note:
 }
 ```
 
+## Quests
+
+Quest configuration is split into definitions, boards/NPCs, and persistent
+player state:
+
+| File | Purpose |
+| --- | --- |
+| `quests.json` | Quest IDs, objectives, prerequisites, repeat rules, timers, and rewards |
+| `quest_npcs.json` | Board/NPC IDs, quest pools, rotation, visible slots, skins, dialogue, and active-quest limits |
+| `quest_boards_bindings.json` | Dimension/block-position bindings; manage with `/eco questboard bind` and `/eco questboard unbind` |
+| `quests.db` | Player quest state and objective progress; do not edit manually |
+
+Quest lifecycle: a player opens a board, accepts a quest from its current
+rotation, completes objectives from game events, then claims the rewards.
+Supported objective types are `capture`, `fossil_revive`, `battle_win`,
+`raid_win`, and `tower_win`.
+
+Example `quests.json`:
+
+```json
+{
+  "quests": {
+    "catch_shiny_gyarados": {
+      "name": "Red Leviator",
+      "repeatPolicy": "DAILY",
+      "repeatable": true,
+      "timeLimitMinutes": 1440,
+      "requiresCompleted": [],
+      "objectives": [
+        {
+          "type": "capture",
+          "count": 1,
+          "species": ["cobblemon:gyarados"],
+          "shiny": true
+        }
+      ],
+      "rewards": {
+        "pokedollars": 15000,
+        "pco": 120,
+        "commands": []
+      }
+    }
+  }
+}
+```
+
+Quest fields and rules:
+
+- `repeatPolicy`: `DAILY` resets at the next board rotation, `ALWAYS` allows
+  replay after claiming, and `ONCE` permanently locks the quest after claiming.
+- `repeatable: false` makes a quest one-time after claiming.
+- `timeLimitMinutes` cancels an expired active quest and clears its progress.
+- `cooldownMinutes` adds a personal cooldown after claiming.
+- `requiresCompleted` accepts prerequisite quest IDs from the same board/NPC;
+  cross-board prerequisites are not supported.
+- `rewards` can combine `pokedollars`, `pco`, and server `commands`. Commands
+  run with server permission level 4 and support the `%player%` placeholder.
+- Capture filters include `species`, `types`, `labels`, `pokeball`,
+  `dimension`/`dimensions`, and `shiny`. Values in one filter are OR-matched;
+  different filters are AND-matched. Battle, raid, and tower objectives use
+  `count`.
+
+Example `quest_npcs.json`:
+
+```json
+{
+  "quest_npcs": {
+    "safari_guide": {
+      "displayName": "Safari Guide",
+      "skin": "shopkeeper",
+      "skinModel": "alex",
+      "maxActive": 2,
+      "visibleQuests": 6,
+      "sharedRotation": true,
+      "rotationMode": "MIDNIGHT",
+      "questPool": ["catch_shiny_gyarados"]
+    }
+  }
+}
+```
+
+`questPool` contains quest IDs from `quests.json`. `sharedRotation: true` uses
+the same selection for every player; `false` selects per player. Use the quest
+NPC commands to assign profiles, and `/eco reload` after editing JSON. Quest
+IDs, NPC IDs, and board bindings are persistent references and must not be
+renamed silently.
+
 ## Skins
 - Place PNGs in `world/config/cobblemon-economy/skins/`.
 - Use `/eco skin <name>` to get a Skin Setter.
