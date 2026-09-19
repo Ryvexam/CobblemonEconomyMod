@@ -9,6 +9,14 @@ Developer documentation:
 - [Contributor and operator workflow](CONTRIBUTING.md)
 - [Technical audit and follow-up priorities](docs/technical-audit.md)
 
+## Cobblemon compatibility
+
+The development build targets Cobblemon 1.8.1 on Fabric 1.21.1. Capture and
+Pokédex reward handling remains compatible with Cobblemon 1.7.x: the former
+`CAUGHT` progression name and the 1.8+ `OWNED` name are normalized internally.
+Install the matching Fabric Loader/API required by the Cobblemon version on the
+server; the economy mod itself does not require a separate 1.7 or 1.8 build.
+
 ## Features
 - Dual currencies: PokeDollars and PCO
 - NPC shopkeepers with GUI-based shops (buy and sell)

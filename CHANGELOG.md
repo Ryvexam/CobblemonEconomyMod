@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Cobblemon 1.7/1.8 Pokédex compatibility:** capture and discovery rewards
+  now recognize both Cobblemon 1.7's `CAUGHT` status and Cobblemon 1.8+'s
+  `OWNED` status without linking to a removed enum constant.
+- **Cobblemon 1.7/1.8 model preview compatibility:** quest-board Pokémon
+  previews select the appropriate `ModelWidget` constructor at runtime after
+  Cobblemon 1.8 added the block-light parameter.
+
+### Changed
+- The development dependency target is the Fabric Cobblemon 1.8.1 artifact,
+  Fabric Loader 0.17.2, and Fabric API 0.116.6+1.21.1; the published JAR
+  still accepts Cobblemon 1.7.1 and newer when paired with that version's
+  compatible Fabric Loader/API.
+
 ## [0.0.17] - 2026-03-07
 
 ### Added

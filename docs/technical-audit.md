@@ -3,22 +3,29 @@
 **Audit date:** 2026-09-19  
 **Scope:** source, build configuration, operator documentation, and available
 local verification.  
-**Method:** read-only source inspection plus repository/build checks. This
-document records findings; it does not silently change runtime behavior.
+**Method:** source inspection plus repository/build checks and local
+Minecraft-agent verification. Findings distinguish code validation from runtime
+validation requiring external mods.
 
 ## Cobblemon 1.8.1 compatibility checkpoint
 
 The upstream tag [Cobblemon 1.8.1](https://gitlab.com/cable-mc/cobblemon/-/tree/1.8.1?ref_type=tags)
 still targets Minecraft 1.21.1 and Java 21. The Fabric artifact metadata for
 that release requires at least Fabric Loader `0.17.2` and Fabric API
-`0.116.6+1.21.1`. This repository currently targets Cobblemon `1.7.1`, Fabric
-Loader `0.16.5`, and Fabric API `0.103.0+1.21.1` in `gradle.properties`.
+`0.116.6+1.21.1`. The development build now targets the Fabric artifact
+`maven.modrinth:MdwFAVRL:gBW3vLC7` (Cobblemon `1.8.1`), Fabric Loader `0.17.2`,
+and Fabric API `0.116.6+1.21.1` in `gradle.properties`. The project/version ID
+is required to distinguish Fabric from the same-numbered NeoForge artifact.
 
-Conclusion: 1.8.1 is a plausible next migration target, but it is not a safe
-one-line dependency bump. Upgrade the loader/API together, compile against the
-1.8.1 artifact, inspect Cobblemon event signatures and runtime behavior, then
-run a server smoke test with the matching dependency set. No migration is
-included in this documentation pass.
+The Pokédex event API remains usable, but its progression enum changed from
+`CAUGHT` to `OWNED`; the mod now compares the logical enum name so both 1.7.x
+and 1.8.x can run the reward flow. Cobblemon 1.8 also added a `blockLight`
+argument to the client `ModelWidget` constructor; the quest board selects the
+matching constructor reflectively at runtime. Clean compilation succeeds
+against both version-specific Fabric coordinates: `gBW3vLC7` for 1.8.1 and
+`s64m1opn` for 1.7.1. A server smoke test reaches Fabric Loader dependency
+resolution but stops before full startup because the local runtime pack is
+missing `forgeconfigapiport` required by YAWP.
 
 ## Executive summary
 
@@ -26,9 +33,8 @@ The mod has clear feature boundaries and a workable server-authoritative model:
 world-scoped persistence, `BigDecimal` currency storage, prepared SQL
 statements, guarded optional integrations, and bounded skin payloads are all
 visible in the source. The main gaps are security hardening around skin file
-resolution, synchronous persistence on hot server paths, the absence of a Java
-test suite, and documentation drift between the current implementation and
-older guides.
+resolution, synchronous persistence on hot server paths, and documentation
+drift between the current implementation and older guides.
 
 ## Evidence-based strengths
 

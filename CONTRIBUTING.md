@@ -1,7 +1,8 @@
 # Contributing to Cobblemon Economy
 
 This guide is for code, configuration, documentation, and release work on the
-Fabric 1.21.1 / Cobblemon 1.7.1 line. Read [`docs/architecture.md`](docs/architecture.md)
+Fabric 1.21.1 / Cobblemon 1.8.1 development line, with runtime compatibility
+for Cobblemon 1.7.x. Read [`docs/architecture.md`](docs/architecture.md)
 before changing a cross-cutting system.
 
 ## Prerequisites
@@ -17,6 +18,18 @@ before changing a cross-cutting system.
 The Gradle wrapper is the source of truth for build commands. Do not install a
 system Gradle version to work around a wrapper failure before inspecting the
 actual error.
+
+The compatibility build uses the Fabric Cobblemon version ID
+`gBW3vLC7` (1.8.1). To compile-check the same source against Cobblemon 1.7.1,
+override the Modrinth version ID and matching platform dependencies:
+
+```bash
+./gradlew clean compileJava --no-daemon --console=plain \
+  -Pcobblemon_version=1.7.1 \
+  -Pcobblemon_modrinth_version=s64m1opn \
+  -Ploader_version=0.16.5 \
+  -Pfabric_version=0.103.0+1.21.1
+```
 
 ## Daily development loop
 
@@ -156,9 +169,9 @@ Do not report a runtime test as passing when Cobblemon or an optional
 integration is absent/incompatible; report the classification and the missing
 dependency instead.
 
-There is currently no `src/test/` suite for the Java mod. Until one exists,
-source review, Gradle build, generated-config checks, and a disposable-server
-smoke test are complementary rather than interchangeable.
+The Java mod has a focused `src/test/` suite for compatibility predicates.
+Source review, Gradle tests/build, generated-config checks, and a
+disposable-server smoke test remain complementary rather than interchangeable.
 
 ## Documentation and review
 

@@ -10,13 +10,18 @@ the relevant section together with the code and configuration documentation.
 | --- | --- |
 | Loader | Fabric Loader `>=0.16.5` |
 | Minecraft | `1.21.1` |
-| Cobblemon | `>=1.7.1` / development configuration `1.7.1+1.21.1` |
+| Cobblemon | `>=1.7.1` / development configuration `1.8.1` |
 | Java | 21 for Minecraft runtime tasks |
 | Persistence | SQLite JDBC, balances represented as decimal strings |
 | Server GUI | Sgui for shops; custom Fabric networking for quest boards and skins |
 
 The authoritative version values are in `gradle.properties` and
 `src/main/resources/fabric.mod.json`.
+
+The published Fabric JAR supports both Cobblemon 1.7.x and 1.8.x. Servers must
+still use the matching platform dependencies: Cobblemon 1.7.x with its
+compatible Loader/API, or Cobblemon 1.8.x with Loader `0.17.2+` and Fabric API
+`0.116.6+1.21.1`.
 
 ## Package map
 

@@ -1,7 +1,7 @@
 plugins {
-    id("fabric-loom") version "1.7-SNAPSHOT"
+    id("fabric-loom") version "1.16.2"
     id("maven-publish")
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "2.3.20"
 }
 
 version = project.property("mod_version") as String
@@ -44,8 +44,9 @@ dependencies {
     modImplementation("eu.pb4:sgui:1.6.1+1.21.1")
     include("eu.pb4:sgui:1.6.1+1.21.1")
 
-    // Cobblemon from Modrinth
-    modImplementation("maven.modrinth:cobblemon:1.7.1")
+    // Cobblemon Fabric from Modrinth. The project/version IDs are intentional:
+    // using the human version number alone resolves the NeoForge artifact.
+    modImplementation("maven.modrinth:MdwFAVRL:${project.property("cobblemon_modrinth_version")}")
     
     // YAWP Integration
     modApi("curse.maven:yawp-663276:6176022")
@@ -63,6 +64,9 @@ dependencies {
     // Kyori event bus used by Impactor's API (5.0.0-SNAPSHOT extracted from Impactor jar,
     // not published to any public Maven repository)
     compileOnly(files("libs/event-api-5.0.0-SNAPSHOT.jar"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.0")
 }
 
 tasks.processResources {
@@ -82,6 +86,10 @@ java {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release.set(21)
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 tasks.jar {

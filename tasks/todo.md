@@ -69,6 +69,24 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Test réel `runServer` : **échec attendu et correctement classifié `mod_loading`** ; Cobblemon 1.7.1 et des dépendances YAWP compatibles sont absents/incompatibles dans l’environnement local.
 - `./gradlew build --no-daemon --console=plain` : **BUILD SUCCESSFUL** en 7 secondes ; avertissement non bloquant sur la version SemVer de SQLite.
 
+## Compatibilité Cobblemon 1.7/1.8
+
+- [x] Confirmer la cause du crash : `PokedexEntryProgress.CAUGHT` a été remplacé par `OWNED` en 1.8.1.
+- [x] Ajouter le prédicat indépendant de version et ses tests JUnit (`CAUGHT`, `OWNED`, statuts non propriétaires).
+- [x] Remplacer les références binaires Pokédex et adapter le constructeur `ModelWidget` 1.7/1.8 par réflexion.
+- [x] Définir le build de référence sur Cobblemon 1.8.1, Loader 0.17.2 et Fabric API 0.116.6+1.21.1.
+- [ ] Vérifier le serveur réel avec un pack de mods local Cobblemon 1.8.1 complet.
+
+### Revue
+
+- Test TDD rouge observé avant création de `PokedexProgressCompat`, puis `./gradlew test` vert.
+- La première tentative 1.8.1 a révélé que `maven.modrinth:cobblemon:1.8.1` était l’artefact NeoForge ; la coordonnée Fabric correcte est `maven.modrinth:MdwFAVRL:gBW3vLC7`.
+- Compilation Fabric 1.8.1 réelle : **BUILD SUCCESSFUL** avec `gBW3vLC7`, Loom 1.16.2, Gradle 9.4.1 et Kotlin 2.3.20.
+- Compilation Fabric 1.7.1 réelle : **BUILD SUCCESSFUL** avec `s64m1opn`, Loader 0.16.5 et Fabric API 0.103.0+1.21.1.
+- `./gradlew test build` : **BUILD SUCCESSFUL**.
+- MCP inspect/build : succès, build run `1789824822971-e116094e`.
+- MCP serveur : `mod_loading` uniquement sur `forgeconfigapiport` absent de YAWP, run `1789824832959-d68ddb14`; Fabric Loader atteint la résolution des dépendances, mais le démarrage complet reste non vérifié.
+
 ### Extraction standalone
 
 - Harness déplacé hors du dépôt du mod vers `../minecraft-agent/`.

@@ -3,7 +3,6 @@ package com.cobblemon.economy.events;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.api.Priority;
-import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import com.cobblemon.mod.common.entity.npc.NPCBattleActor;
 import com.cobblemon.mod.common.pokemon.Pokemon;
@@ -59,10 +58,10 @@ public class CobblemonListeners {
         // Capture existing status before change
         CobblemonEvents.POKEDEX_DATA_CHANGED_PRE.subscribe(Priority.NORMAL, event -> {
             try {
-                if (event.getKnowledge() == PokedexEntryProgress.CAUGHT) {
+                if (PokedexProgressCompat.isCaughtOrOwned(event.getKnowledge())) {
                     var speciesRecord = event.getRecord().getSpeciesDexRecord();
                     // Store if it was ALREADY caught
-                    boolean wasCaught = speciesRecord.getKnowledge() == PokedexEntryProgress.CAUGHT;
+                    boolean wasCaught = PokedexProgressCompat.isCaughtOrOwned(speciesRecord.getKnowledge());
                     String key = speciesKey(event.getPlayerUUID(), speciesRecord.getId().toString());
                     preChangeKnowledge.put(key, wasCaught);
                 }
@@ -74,8 +73,8 @@ public class CobblemonListeners {
 
         // Track brand-new Pokedex species and milestone progression
         CobblemonEvents.POKEDEX_DATA_CHANGED_POST.subscribe(Priority.NORMAL, event -> {
-            // Check if the change is marking a Pokemon as CAUGHT
-            if (event.getKnowledge() == PokedexEntryProgress.CAUGHT) {
+            // Check if the change is marking a Pokemon as caught/owned.
+            if (PokedexProgressCompat.isCaughtOrOwned(event.getKnowledge())) {
                 var speciesRecord = event.getRecord().getSpeciesDexRecord();
                 String key = speciesKey(event.getPlayerUUID(), speciesRecord.getId().toString());
                 Boolean wasCaught = preChangeKnowledge.remove(key);
@@ -394,7 +393,7 @@ public class CobblemonListeners {
             CobblemonEconomy.LOGGER.warn("Fossil revival event not available on this Cobblemon version.");
         }
 
-        CobblemonEconomy.LOGGER.info("Events registered for Cobblemon 1.7.1 (Pokedex Change Logic + Fossil Rewards)");
+        CobblemonEconomy.LOGGER.info("Events registered (Pokedex Change Logic + Fossil Rewards)");
     }
 
     private static void registerRaidDensCompatibility() {
@@ -553,7 +552,7 @@ public class CobblemonListeners {
         Object speciesRecord = tryInvoke(record, new String[] {"getSpeciesDexRecord"});
         Object target = speciesRecord != null ? speciesRecord : record;
         Object knowledge = tryInvoke(target, new String[] {"getKnowledge", "getHighestKnowledge"});
-        return knowledge == PokedexEntryProgress.CAUGHT;
+        return knowledge instanceof Enum<?> progress && PokedexProgressCompat.isCaughtOrOwned(progress);
     }
 
     private static boolean isRaidDenBattle(com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent event) {

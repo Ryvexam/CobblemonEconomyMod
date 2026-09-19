@@ -6,6 +6,7 @@ import com.cobblemon.economy.networking.QuestBoardActionPayload;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.client.gui.summary.widgets.ModelWidget;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.pokemon.RenderablePokemon;
 import com.cobblemon.mod.common.pokemon.Species;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
@@ -22,6 +23,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.util.Mth;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -381,7 +383,45 @@ public class QuestBoardScreen extends Screen {
         if (pokemon == null) {
             return null;
         }
-        return new ModelWidget(x, y, w, h, pokemon.asRenderablePokemon(), scale, 0.0f, 0.0, false, true);
+        RenderablePokemon renderablePokemon = pokemon.asRenderablePokemon();
+        try {
+            Constructor<ModelWidget> modernConstructor = ModelWidget.class.getConstructor(
+                    int.class,
+                    int.class,
+                    int.class,
+                    int.class,
+                    RenderablePokemon.class,
+                    float.class,
+                    float.class,
+                    double.class,
+                    boolean.class,
+                    boolean.class,
+                    int.class
+            );
+            return modernConstructor.newInstance(x, y, w, h, renderablePokemon, scale, 0.0f, 0.0, false, true, 13);
+        } catch (NoSuchMethodException ignored) {
+            try {
+                Constructor<ModelWidget> legacyConstructor = ModelWidget.class.getConstructor(
+                        int.class,
+                        int.class,
+                        int.class,
+                        int.class,
+                        RenderablePokemon.class,
+                        float.class,
+                        float.class,
+                        double.class,
+                        boolean.class,
+                        boolean.class
+                );
+                return legacyConstructor.newInstance(x, y, w, h, renderablePokemon, scale, 0.0f, 0.0, false, true);
+            } catch (ReflectiveOperationException | SecurityException e) {
+                CobblemonEconomy.LOGGER.error("Unable to create the Cobblemon model widget", e);
+                return null;
+            }
+        } catch (ReflectiveOperationException | SecurityException e) {
+            CobblemonEconomy.LOGGER.error("Unable to create the Cobblemon model widget", e);
+            return null;
+        }
     }
 
     private Pokemon buildPokemon(String speciesId, boolean shiny) {

@@ -15,7 +15,11 @@ If a behavior is not described here, do not assume it is supported.
 - Minecraft `1.21.1`
 - Fabric Loader
 - Fabric API
-- Cobblemon `1.7.1`
+- Cobblemon `1.7.1+` (the same JAR supports Cobblemon 1.7.x and 1.8.x)
+
+For Cobblemon 1.8.x, use Fabric Loader `0.17.2+` and Fabric API
+`0.116.6+1.21.1`. Cobblemon 1.7.x servers must use their matching Fabric
+Loader/API versions.
 
 ### Optional integrations
 - Cobblemon Raid Dens (raid rewards + `raid_win` objectives)
