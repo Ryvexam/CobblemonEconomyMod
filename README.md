@@ -293,26 +293,26 @@ Jar output: `build/libs/` (use the remapped jar).
 
 ## Local Minecraft agent
 
-This repository includes a local-only TypeScript CLI and MCP server in
-`tools/minecraft-agent/`. It provides a repeatable inspect → build → test →
-logs → artifacts workflow without cloud services or arbitrary shell access.
+The reusable local Minecraft agent lives in the sibling directory
+`../minecraft-agent/`. It provides a repeatable inspect → build → test → logs
+→ artifacts workflow without cloud services or arbitrary shell access.
 
 ```bash
-cd tools/minecraft-agent
+cd ../minecraft-agent
 npm install
 npm run build
 
 # Inspect this mod without changing it
-npm run --silent cli -- inspect --project ../.. --json
+npm run --silent cli -- inspect --project ../CobblemonEconomyMod --json
 
 # Build with a bounded timeout
-npm run --silent cli -- build --project ../.. --task build --timeout 600000
+npm run --silent cli -- build --project ../CobblemonEconomyMod --task build --timeout 600000
 
 # List JAR artifacts and SHA-256 hashes
-npm run --silent cli -- artifact --project ../.. --json
+npm run --silent cli -- artifact --project ../CobblemonEconomyMod --json
 
 # Run a controlled dedicated-server test
-npm run --silent cli -- test --project ../.. --task runServer --timeout 900000
+npm run --silent cli -- test --project ../CobblemonEconomyMod --task runServer --timeout 900000
 ```
 
 The first supported template is Fabric 1.21.1:
@@ -341,7 +341,7 @@ mod repository root, and do not commit machine-specific paths:
     "servers": {
       "minecraft-agent": {
         "type": "local",
-        "command": ["node", "/absolute/path/to/tools/minecraft-agent/dist/mcp.js"],
+        "command": ["node", "/absolute/path/to/minecraft-agent/dist/mcp.js"],
         "cwd": "/absolute/path/to/CobblemonEconomyMod"
       }
     }
