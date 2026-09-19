@@ -107,7 +107,7 @@
 
   Commit with `ci: publish tagged releases from Forgejo`.
 
-- [ ] **Step 2: Push the same commit to both configured push URLs**
+- [x] **Step 2: Push the same commit to both configured push URLs**
 
   Run `git push origin main`, then verify GitHub and Forgejo expose the same
   commit SHA. A tag push remains a separate deliberate release action.
