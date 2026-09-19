@@ -25,3 +25,6 @@ Thumbs.db
 # Gradle wrapper (optional, but usually kept)
 #!gradle/wrapper/gradle-wrapper.jar
 .factorypath
+tools/minecraft-agent/node_modules/
+tools/minecraft-agent/dist/
+tools/minecraft-agent/.minecraft-agent/
