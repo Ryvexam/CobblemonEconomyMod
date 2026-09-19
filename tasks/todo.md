@@ -87,6 +87,21 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - MCP inspect/build : succès, build run `1789824822971-e116094e`.
 - MCP serveur : `mod_loading` uniquement sur `forgeconfigapiport` absent de YAWP, run `1789824832959-d68ddb14`; Fabric Loader atteint la résolution des dépendances, mais le démarrage complet reste non vérifié.
 
+## CI release Forgejo
+
+- [x] Ajouter le workflow `.forgejo/workflows/release.yml`, déclenché uniquement par les tags `v*`.
+- [x] Construire avec la version issue du tag et publier le JAR principal via les API Modrinth/CurseForge.
+- [x] Limiter les tokens aux secrets Forgejo et documenter les variables requises.
+- [ ] Exécuter un premier tag de test avec les secrets et IDs de projets configurés sur Forgejo.
+
+### Revue CI
+
+- YAML Ruby parse, tous les blocs `run` passent `bash -n`, et aucun workflow GitHub n’a été ajouté.
+- Simulation du tag `v9.8.7` : sorties `version=9.8.7` et `tag=v9.8.7` correctes ; `./gradlew clean test build` produit puis sélectionne `cobblemon-economy-9.8.7.jar`.
+- Notes `Unreleased`, commande Modrinth et commande CurseForge validées avec un faux `curl`; aucun appel réel de publication n’a été effectué.
+- Ruling: utiliser `setup-java` puis installer `curl`/`jq` dans le runner Docker — l’image Forgejo par défaut n’assure pas Java 21, et cela évite de dépendre d’une image personnalisée.
+- Ruling: lancer `clean` avant le build — un workspace réutilisé peut contenir le JAR d’une version précédente et rendre la sélection ambiguë.
+
 ### Extraction standalone
 
 - Harness déplacé hors du dépôt du mod vers `../minecraft-agent/`.

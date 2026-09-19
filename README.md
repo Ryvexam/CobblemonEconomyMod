@@ -17,6 +17,10 @@ Pokédex reward handling remains compatible with Cobblemon 1.7.x: the former
 Install the matching Fabric Loader/API required by the Cobblemon version on the
 server; the economy mod itself does not require a separate 1.7 or 1.8 build.
 
+Tagged releases are built and published by Forgejo CI only. Push a version tag
+such as `v0.0.18` to run the Java 21 build and publish the JAR to Modrinth and
+CurseForge; credentials are stored only as Forgejo repository secrets.
+
 ## Features
 - Dual currencies: PokeDollars and PCO
 - NPC shopkeepers with GUI-based shops (buy and sell)

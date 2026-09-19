@@ -173,6 +173,40 @@ The Java mod has a focused `src/test/` suite for compatibility predicates.
 Source review, Gradle tests/build, generated-config checks, and a
 disposable-server smoke test remain complementary rather than interchangeable.
 
+## Forgejo release CI
+
+The release workflow is Forgejo-only and lives at
+`.forgejo/workflows/release.yml`; GitHub receives the file through the mirrored
+push but does not execute it. It triggers only for tags matching `v*`, for
+example:
+
+```bash
+git tag v0.0.18
+git push origin v0.0.18
+```
+
+Configure these Forgejo repository secrets:
+
+- `MODRINTH_TOKEN`
+- `CURSEFORGE_TOKEN`
+
+Configure these Forgejo repository variables:
+
+- `MODRINTH_PROJECT_ID` — Modrinth project ID or slug.
+- `CURSEFORGE_PROJECT_ID` — numeric CurseForge project ID.
+- `CURSEFORGE_GAME_VERSION_IDS` — comma-separated numeric CurseForge IDs for
+  Minecraft `1.21.1` and the Fabric loader.
+
+Protect the `v*` tag pattern in Forgejo and allow only trusted release
+maintainers to create or update those tags. The workflow receives publishing
+secrets only after checkout, so untrusted tag-triggered workflow changes must
+not be allowed to run.
+
+The workflow runs `./gradlew clean test build`, derives the release version from the
+tag, and publishes only the main JAR. It requires a Forgejo Docker runner with
+network access and permission to install packages; the workflow installs Java
+21, `curl`, and `jq` itself.
+
 ## Documentation and review
 
 When behavior changes, update documentation in this order:

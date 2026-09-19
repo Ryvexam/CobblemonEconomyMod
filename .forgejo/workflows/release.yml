@@ -1,0 +1,171 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ forgejo.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish ${{ forgejo.ref_name }}
+    runs-on: docker
+    timeout-minutes: 30
+    env:
+      MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+      CURSEFORGE_GAME_VERSION_IDS: ${{ vars.CURSEFORGE_GAME_VERSION_IDS }}
+
+    steps:
+      - name: Check out the tagged source
+        uses: https://code.forgejo.org/actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: https://github.com/actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install release tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install --yes --no-install-recommends curl jq
+
+      - name: Validate release configuration
+        id: metadata
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${FORGEJO_REF_NAME:?Forgejo did not provide a tag reference}"
+          TAG="$FORGEJO_REF_NAME"
+          VERSION="${TAG#v}"
+          if [[ "$TAG" != v* || ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tags must use v<semantic-version>, got: $TAG" >&2
+            exit 1
+          fi
+
+          for variable in \
+            MODRINTH_TOKEN \
+            CURSEFORGE_TOKEN \
+            MODRINTH_PROJECT_ID \
+            CURSEFORGE_PROJECT_ID \
+            CURSEFORGE_GAME_VERSION_IDS; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing Forgejo secret or variable: $variable" >&2
+              exit 1
+            fi
+          done
+
+          command -v curl >/dev/null || { echo 'curl is required on the Forgejo runner' >&2; exit 1; }
+          command -v jq >/dev/null || { echo 'jq is required on the Forgejo runner' >&2; exit 1; }
+
+          echo "version=$VERSION" >> "$FORGEJO_OUTPUT"
+          echo "tag=$TAG" >> "$FORGEJO_OUTPUT"
+
+      - name: Build and test the release JAR
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew clean test build --no-daemon --console=plain "-Pmod_version=$RELEASE_VERSION"
+
+          ARTIFACT="build/libs/cobblemon-economy-${RELEASE_VERSION}.jar"
+          if [[ ! -f "$ARTIFACT" ]]; then
+            echo "Expected release artifact was not produced: $ARTIFACT" >&2
+            find build/libs -maxdepth 1 -type f -name '*.jar' -print >&2
+            exit 1
+          fi
+          PUBLISH_CANDIDATES="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' -print)"
+          PUBLISH_COUNT="$(printf '%s\n' "$PUBLISH_CANDIDATES" | awk 'NF { count++ } END { print count + 0 }')"
+          if [[ "$PUBLISH_COUNT" -ne 1 || "$PUBLISH_CANDIDATES" != "$ARTIFACT" ]]; then
+            echo 'Expected exactly one non-sources JAR for publication' >&2
+            printf '%s\n' "$PUBLISH_CANDIDATES" >&2
+            exit 1
+          fi
+          echo "artifact=$ARTIFACT" >> "$FORGEJO_OUTPUT"
+
+      - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            /^## \[Unreleased\]/ { in_section=1; next }
+            in_section && /^## \[/ { exit }
+            in_section { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            printf 'Release %s\n' "$RELEASE_TAG" > release-notes.md
+          fi
+
+      - name: Publish to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATA=$(jq -n \
+            --arg project "$MODRINTH_PROJECT_ID" \
+            --arg version "$RELEASE_VERSION" \
+            --arg body "$(cat release-notes.md)" \
+            '{project_id: $project, version_number: $version,
+              version_title: ("Cobblemon Economy " + $version),
+              version_body: $body, loaders: ["fabric"],
+              game_versions: ["1.21.1"], version_type: "release",
+              featured: false, dependencies: [], file_parts: ["file"],
+              primary_file: "file"}')
+
+          DATA_FILE=$(mktemp)
+          HEADER_FILE=$(mktemp)
+          trap 'rm -f "$HEADER_FILE" "$DATA_FILE"' EXIT
+          printf '%s' "$DATA" > "$DATA_FILE"
+          printf 'Authorization: %s\n' "$MODRINTH_TOKEN" > "$HEADER_FILE"
+          curl --fail --silent --show-error \
+            -X POST 'https://api.modrinth.com/v2/version' \
+            -H "@$HEADER_FILE" \
+            -A "CobblemonEconomyMod/$RELEASE_VERSION (https://github.com/Ryvexam/CobblemonEconomyMod)" \
+            -F "data=<$DATA_FILE;type=application/json" \
+            -F "file=@$RELEASE_ARTIFACT"
+
+      - name: Publish to CurseForge
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GAME_VERSIONS=$(printf '%s' "$CURSEFORGE_GAME_VERSION_IDS" | tr ',' '\n' | jq -R -s 'split("\n") | map(select(length > 0)) | map(tonumber)')
+          METADATA=$(jq -n \
+            --arg version "$RELEASE_VERSION" \
+            --arg body "$(cat release-notes.md)" \
+            --argjson game_versions "$GAME_VERSIONS" \
+            '{changelog: $body, changelogType: "markdown",
+              displayName: ("Cobblemon Economy " + $version),
+              gameVersions: $game_versions, releaseType: "release",
+              isMarkedForManualRelease: false}')
+
+          METADATA_FILE=$(mktemp)
+          HEADER_FILE=$(mktemp)
+          trap 'rm -f "$HEADER_FILE" "$METADATA_FILE"' EXIT
+          printf '%s' "$METADATA" > "$METADATA_FILE"
+          printf 'X-Api-Token: %s\n' "$CURSEFORGE_TOKEN" > "$HEADER_FILE"
+          curl --fail --silent --show-error \
+            -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file" \
+            -H "@$HEADER_FILE" \
+            -F "metadata=<$METADATA_FILE;type=application/json" \
+            -F "file=@$RELEASE_ARTIFACT"
