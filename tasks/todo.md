@@ -20,6 +20,26 @@
 - Emplacement OpenCode : `~/.opencode/skills/minecraft-modding/SKILL.md`.
 - Skill découvert par OpenCode sous le nom `minecraft-modding`.
 
+## Documentation et audit Cobblemon Economy
+
+- [x] Cartographier et documenter l’architecture runtime réelle.
+- [x] Ajouter un guide contributeur/opérateur reproductible.
+- [x] Produire un audit technique séparant faits vérifiés et recommandations.
+- [x] Ajouter les liens de navigation depuis les guides existants.
+- [x] Vérifier les références, le diff et le build Gradle.
+
+Plan : `docs/superpowers/plans/2026-09-19-cobblemon-economy-documentation-plan.md`
+Spécification : `docs/superpowers/specs/2026-09-19-cobblemon-economy-documentation-spec.md`
+
+### Revue
+
+- `git diff --check` : OK.
+- Références Markdown des documents actifs : 11 liens vérifiés, aucun chemin manquant.
+- Références actives à l’ancien chemin `tools/minecraft-agent` : aucune ; les anciens plans Superpowers conservent volontairement leur historique.
+- `./gradlew build --no-daemon --console=plain` : **BUILD SUCCESSFUL** (8 tâches, 1 exécutée, 7 à jour).
+- Aucun code Java/Kotlin ou ressource runtime modifié pendant cette passe.
+- La référence Cobblemon 1.8.1 a été examinée : migration possible sur MC 1.21.1/Java 21, mais nécessite une montée coordonnée du Loader/API ; aucune migration appliquée.
+
 ## Setup agent Minecraft type Orca
 
 - [x] Choisir le périmètre initial : assistant local pour créer et maintenir des mods, sans cloud.

@@ -2,6 +2,9 @@
 
 This guide provides a concise operational model of how the mod works and how to make reliable, scalable changes.
 
+For the detailed source-linked runtime map, see [`docs/architecture.md`](docs/architecture.md).
+For the inspect → change → build → test workflow, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Purpose and scope
 - Maintain a stable Cobblemon economy system for Fabric 1.21.1.
 - Keep per-world data isolated and compatible across updates.
@@ -42,9 +45,10 @@ This guide provides a concise operational model of how the mod works and how to 
 - Transactions log: `world/config/cobblemon-economy/transactions.log`
 
 ## Config schema essentials
-- Global values: `startingBalance`, `startingPco`, `battleVictoryReward`, `captureReward`, `newDiscoveryReward`, `battleVictoryPcoReward`, `shinyMultiplier`, `legendaryMultiplier`, `paradoxMultiplier`.
+- Global values: `main_currency`, `startingBalance`, `startingPco`, `battleVictoryReward`, `raidDenVictoryReward`, `capture_event_base_reward`, `capture_multi_reward`, `battleVictoryPcoReward`, `battleTowerCompletionPcoBonus`, and the explicit `capture_*_multiplier` keys.
 - Shop entry: `title`, `currency` (POKE or PCO), `skin`, `isSellShop`, `linkedShop`, `linkedShopIcon`, `items`.
 - Item entry: `id`, `name`, `price`, optional `nbt`, optional `dropTable`, optional `lootTable`.
+- Quest data: `quests.json` contains definitions/objectives/rewards; `quest_npcs.json` contains pools/rotation/dialogue; `quest_boards_bindings.json` maps dimension/position keys to boards.
 
 ## UI and assets
 - GUI backgrounds are custom font glyphs mapped in `src/main/resources/assets/cobblemon-economy/font/default.json`.

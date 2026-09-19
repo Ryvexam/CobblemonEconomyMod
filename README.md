@@ -4,6 +4,11 @@ Cobblemon Economy is a server-focused economy and shop system for Cobblemon on F
 
 Website: https://ryvexam.fr
 
+Developer documentation:
+- [Architecture and runtime flows](docs/architecture.md)
+- [Contributor and operator workflow](CONTRIBUTING.md)
+- [Technical audit and follow-up priorities](docs/technical-audit.md)
+
 ## Features
 - Dual currencies: PokeDollars and PCO
 - NPC shopkeepers with GUI-based shops (buy and sell)
@@ -226,6 +231,7 @@ Command item note:
         { "id": "minecraft:chest", "name": "Dungeon Loot", "price": 1000, "lootTable": "minecraft:chests/simple_dungeon" },
         {
           "type": "command",
+          "id": "server:regeneration_potion",
           "command": "effect give %player% minecraft:regeneration 300 1",
           "price": 300,
           "displayItem": {
@@ -247,8 +253,13 @@ Command item note:
 
 ## Storage
 - Config: `world/config/cobblemon-economy/config.json`
+- Shops: `world/config/cobblemon-economy/shops.json`
 - Milestones: `world/config/cobblemon-economy/milestone.json`
+- Quests: `world/config/cobblemon-economy/quests.json`
+- Quest NPCs: `world/config/cobblemon-economy/quest_npcs.json`
+- Quest board bindings: `world/config/cobblemon-economy/quest_boards_bindings.json`
 - Database: `world/config/cobblemon-economy/economy.db`
+- Quest database: `world/config/cobblemon-economy/quests.db`
 - Transactions: `world/config/cobblemon-economy/transactions.log`
 - Skins: `world/config/cobblemon-economy/skins/`
 
@@ -281,15 +292,16 @@ Available placeholders (recommended namespace: `cobeco`):
 - `cobeco:pco`
 - `cobeco:pco_symbol`
 
-Alternate namespaces also registered for compatibility:
-- `cobblemon_economy:*`
-- `cobblemon-economy:*`
+Only the `cobeco` namespace is registered by the current Placeholder API
+integration.
 
 ## Build
 ```bash
 ./gradlew build
 ```
 Jar output: `build/libs/` (use the remapped jar).
+
+For the complete development checklist, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Local Minecraft agent
 

@@ -19,6 +19,8 @@ This document defines the competencies and operating standards for AI-driven wor
 - Rewards: `src/main/java/com/cobblemon/economy/events/CobblemonListeners.java` grants rewards for captures, Pokedex updates, and battle victories with duplicate prevention.
 - Skins: `src/main/java/com/cobblemon/economy/networking/NetworkHandler.java` + `src/main/java/com/cobblemon/economy/client/ClientNetworkHandler.java` implement request/response for skin textures with local cache.
 - Compatibility: YAWP and Star Academy integrations are optional via `src/main/java/com/cobblemon/economy/compat/CompatHandler.java` and `src/main/java/com/cobblemon/economy/mixin/MixinPlugin.java`.
+- Quests: `quests.json` defines objectives/rewards, `quest_npcs.json` defines pools and rotations, `quests.db` stores player state, and `quest_boards_bindings.json` maps world positions to boards.
+- Quest networking: `OpenQuestBoardPayload` sends server-built board state; `QuestBoardActionPayload` sends actions back for server-side validation.
 
 ## Reliability standards
 - Preserve per-world isolation; avoid writing economy data outside `world/config/cobblemon-economy/` unless explicitly required.
@@ -40,8 +42,11 @@ This document defines the competencies and operating standards for AI-driven wor
 - New shop capability: update `EconomyConfig.ShopDefinition`, wire behavior in `ShopGui`, and add translations.
 - New command: extend `EconomyCommands`, add translations, and verify permissions and suggestions.
 - New skin source: extend `NetworkHandler` and `ClientNetworkHandler` with sanitization and caching intact.
+- New quest objective: update `QuestConfig.CaptureObjective`, `QuestService`, board preview text/state, translations, and operator examples together.
+- Economy bugfix: add a regression test for the payout/transaction invariant before changing `EconomyManager`, `QuestManager`, or `ShopGui`; consult `docs/technical-audit.md` for known atomicity and payout risks.
 
 ## Verification checklist
 - Build: `./gradlew build`
 - Smoke test: spawn a shopkeeper, open a shop, buy/sell, verify balances and rewards.
 - Data check: confirm `economy.db` updates, `config.json` loads, and no errors in logs.
+- Documentation check: run `git diff --check`, verify source paths in `docs/architecture.md`, and distinguish mod build results from the standalone agent's test results.
