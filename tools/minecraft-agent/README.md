@@ -40,3 +40,34 @@ allowed roots. Build logs are stored in `.minecraft-agent/runs/`.
 The `runServer` and game-test commands require a compatible Java runtime and
 the Minecraft dependencies to be available locally; they may download Gradle
 dependencies on their first run.
+
+## OpenCode MCP integration
+
+Build the server once from this directory:
+
+```bash
+npm install
+npm run build
+```
+
+Add a project-local MCP entry using the absolute path printed by `pwd` (do not
+commit a machine-specific path):
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "minecraft-agent": {
+        "type": "local",
+        "command": ["node", "/absolute/path/to/CobblemonEconomyMod/tools/minecraft-agent/dist/mcp.js"],
+        "cwd": "/absolute/path/to/CobblemonEconomyMod"
+      }
+    }
+  }
+}
+```
+
+The server exposes `inspect_project`, `create_project`, `build_project`,
+`test_project`, `read_logs`, and `get_artifact`. It only accepts local paths
+under its current working directory and never exposes arbitrary shell commands.

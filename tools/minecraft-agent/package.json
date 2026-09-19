@@ -14,7 +14,7 @@
     "test:watch": "vitest --watch",
     "build": "tsc",
     "cli": "tsx src/cli.ts",
-    "mcp": "tsx src/mcp.ts"
+    "mcp": "node dist/mcp.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
