@@ -5,11 +5,13 @@ import { inspectProject } from "./core/project-inspector.js";
 import { runGradle } from "./core/gradle-runner.js";
 import { listArtifacts, copyArtifact } from "./core/artifact-manager.js";
 import { initProject } from "./core/template-manager.js";
+import { runMinecraftTest } from "./core/minecraft-runner.js";
 import { artifactCommand } from "./commands/artifact.js";
 import { buildCommand } from "./commands/build.js";
 import { initCommand } from "./commands/init.js";
 import { inspectCommand } from "./commands/inspect.js";
 import { logsCommand } from "./commands/logs.js";
+import { testCommand } from "./commands/test.js";
 import type { CommandIo, CommandRuntime } from "./commands/runtime.js";
 
 export interface CliIo {
@@ -17,7 +19,9 @@ export interface CliIo {
   stderr: (value: string) => void;
 }
 
-export type CliDependencies = Partial<CommandRuntime>;
+export interface CliDependencies extends Partial<CommandRuntime> {
+  runMinecraftTest?: typeof runMinecraftTest;
+}
 
 function defaultRuntime(overrides: CliDependencies): CommandRuntime {
   const workingDirectory = process.cwd();
@@ -37,6 +41,7 @@ export async function runCli(argv: string[], overrides: CliDependencies = {}, io
   stderr: (value) => process.stderr.write(value)
 }): Promise<number> {
   const runtime = defaultRuntime(overrides);
+  const minecraftTest = overrides.runMinecraftTest ?? runMinecraftTest;
   const commandIo: CommandIo = io;
   const program = new Command()
     .name("minecraft-agent")
@@ -69,6 +74,23 @@ export async function runCli(argv: string[], overrides: CliDependencies = {}, io
     .option("--output <directory>", "Copy artifacts to an allowed directory")
     .option("--json", "Print JSON")
     .action(async (options: { project: string; output?: string; json?: boolean }) => artifactCommand(runtime, commandIo, options.project, options.output, Boolean(options.json)));
+
+  program.command("test")
+    .option("--project <path>", "Minecraft project path", ".")
+    .option("--task <task>", "Minecraft test task", "runServer")
+    .option("--timeout <milliseconds>", "Maximum execution time", "600000")
+    .option("--port <port>", "Dedicated server port")
+    .option("--json", "Print JSON")
+    .action(async (options: { project: string; task: string; timeout: string; port?: string; json?: boolean }) => testCommand(
+      runtime,
+      minecraftTest,
+      commandIo,
+      options.project,
+      options.task as "runServer" | "runGameTestServer",
+      Number(options.timeout),
+      options.port === undefined ? undefined : Number(options.port),
+      Boolean(options.json)
+    ));
 
   program.command("init <path>")
     .option("--loader <loader>", "Loader", "fabric")

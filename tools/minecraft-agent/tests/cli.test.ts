@@ -83,4 +83,22 @@ describe("minecraft-agent CLI", () => {
     expect(await runCli(["init", target, "--loader", "fabric", "--mc", "1.21.1", "--mod-id", "new-mod", "--package", "com.example.newmod"], { allowedRoots: [root] }, output)).toBe(1);
     expect(output.errors.join(" ")).toMatch(/non-empty/i);
   });
+
+  it("forwards the Minecraft test task and timeout", async () => {
+    const project = await makeProject();
+    const output = io();
+    let received: { task: string; timeoutMs: number } | undefined;
+    const dependencies: Partial<CliDependencies> & { runMinecraftTest: NonNullable<CliDependencies["runMinecraftTest"]> } = {
+      runMinecraftTest: async (options) => {
+        received = { task: options.task, timeoutMs: options.timeoutMs };
+        return result();
+      }
+    };
+
+    const code = await runCli(["test", "--project", project, "--task", "runGameTestServer", "--timeout", "321", "--json"], { allowedRoots: [project], ...dependencies }, output);
+
+    expect(code).toBe(0);
+    expect(received).toEqual({ task: "runGameTestServer", timeoutMs: 321 });
+    expect(JSON.parse(output.output.join(""))).toMatchObject({ status: "success" });
+  });
 });

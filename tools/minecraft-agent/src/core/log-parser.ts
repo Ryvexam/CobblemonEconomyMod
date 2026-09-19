@@ -22,7 +22,7 @@ export function classifyOutput(stdout: string, stderr: string, task: string): { 
   if (/could not resolve|could not find/i.test(combined)) {
     return { phase: "dependency_resolution", errors };
   }
-  if (/mixin apply failed|mod loading|failed to load mod/i.test(combined)) {
+  if (/mixin apply failed|mod loading|failed to load mod|mod resolution failed|incompatible mods found|formattedexception/i.test(combined)) {
     return { phase: "mod_loading", errors };
   }
   if (/compilation failed|java compilation|error:\s/i.test(combined)) {
