@@ -21,3 +21,8 @@
   image uniformly around its visual center; do not pass a smaller destination
   height to a blit call that uses the same width/height arguments for the
   source region.
+
+## Minecraft GUI fill colors
+
+- `GuiGraphics.fill()` expects `AARRGGBB`; status colors stored as `RRGGBB`
+  need an explicit opaque alpha channel before being used for pixel icons.

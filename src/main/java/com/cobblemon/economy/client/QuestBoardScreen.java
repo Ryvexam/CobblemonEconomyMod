@@ -253,7 +253,7 @@ public class QuestBoardScreen extends Screen {
             }
             renderCardSurface(guiGraphics, card, sx, sy);
             if (i == selectedIndex) {
-                int selectionColor = statusColor(card);
+                int selectionColor = statusFillColor(card);
                 guiGraphics.fill(sx - 2, sy - 2, sx + 52, sy - 1, selectionColor);
                 guiGraphics.fill(sx - 2, sy + 51, sx + 52, sy + 52, selectionColor);
                 guiGraphics.fill(sx - 2, sy - 2, sx - 1, sy + 52, selectionColor);
@@ -261,7 +261,7 @@ public class QuestBoardScreen extends Screen {
                 guiGraphics.fill(sx, sy, sx + 50, sy + 50, 0x222C2115);
                 guiGraphics.drawString(this.font, ">", sx + 54, sy + 20 + selectPointerOffsetY, 0xFFE7D29F, false);
             } else if (hoveredQuestIndex == i) {
-                int hoverColor = statusColor(card);
+                int hoverColor = statusFillColor(card);
                 guiGraphics.fill(sx - 1, sy - 1, sx + 51, sy, hoverColor);
                 guiGraphics.fill(sx - 1, sy + 50, sx + 51, sy + 51, hoverColor);
                 guiGraphics.fill(sx - 1, sy - 1, sx, sy + 51, hoverColor);
@@ -510,7 +510,7 @@ public class QuestBoardScreen extends Screen {
     }
 
     private void renderCardStateMarker(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
-        int color = statusColor(card);
+        int color = statusFillColor(card);
         int iconX = slotX + 40;
         int iconY = slotY + 40;
         guiGraphics.fill(iconX, iconY, iconX + 9, iconY + 9, 0xC51A110A);
@@ -558,7 +558,7 @@ public class QuestBoardScreen extends Screen {
     }
 
     private void renderCardSurface(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
-        int color = statusColor(card);
+        int color = statusFillColor(card);
         guiGraphics.fill(slotX, slotY, slotX + 50, slotY + 50, 0x6B24170E);
         guiGraphics.fill(slotX + 2, slotY + 2, slotX + 48, slotY + 3, 0x5ADEC695);
         guiGraphics.fill(slotX + 2, slotY + 47, slotX + 48, slotY + 48, 0x7A1A110A);
@@ -589,6 +589,10 @@ public class QuestBoardScreen extends Screen {
             case "ON_COOLDOWN" -> COLOR_COOLDOWN;
             default -> COLOR_AVAILABLE;
         };
+    }
+
+    private int statusFillColor(QuestBoardState.QuestCard card) {
+        return statusColor(card) | 0xFF000000;
     }
 
     private int scaledDetailWidth() {
