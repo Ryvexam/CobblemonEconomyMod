@@ -54,9 +54,10 @@ public class QuestBoardScreen extends Screen {
     private static final int TIER_Y = 31;
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
-    private static final int SELECTED_PREVIEW_ITEM_X = 34;
+    private static final int SELECTED_PREVIEW_ITEM_X = 51;
     private static final int SELECTED_PREVIEW_ITEM_Y = 93;
     private static final int REWARD_SLOT_W = 68;
+    private static final float DETAIL_TEXT_SCALE = 0.75f;
     private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.15f;
     private static final float CARD_PREVIEW_ITEM_SCALE = 2.0f;
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
@@ -171,7 +172,7 @@ public class QuestBoardScreen extends Screen {
         QuestBoardState.QuestCard selected = getSelectedQuest();
         selectedModelWidget = selected == null || !usesPokemonPreview(selected)
                 ? null
-                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 30, top + 93, 42, 29, SELECTED_PREVIEW_MODEL_SCALE);
+                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 39, top + 93, 42, 29, SELECTED_PREVIEW_MODEL_SCALE);
     }
 
     private void onPrimaryAction() {
@@ -284,14 +285,14 @@ public class QuestBoardScreen extends Screen {
             guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y + DETAIL_PANEL_H - 1,
                     left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
 
-            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 46, COLOR_TITLE, true);
+            drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left + DETAIL_X, top + 44, COLOR_TITLE);
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 57, statusColor(selected), true);
-            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 68, COLOR_BODY_TEXT, true);
+            drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), scaledDetailWidth()), left + DETAIL_X, top + 56, statusColor(selected));
+            drawDetailText(guiGraphics, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, scaledDetailWidth()), left + DETAIL_X, top + 68, COLOR_BODY_TEXT);
 
             String timerText = detailTimerText(selected);
             if (!timerText.isBlank()) {
-                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 79, COLOR_ALERT_TEXT, true);
+                drawDetailText(guiGraphics, ellipsize(timerText, scaledDetailWidth()), left + DETAIL_X, top + 80, COLOR_ALERT_TEXT);
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
@@ -524,7 +525,7 @@ public class QuestBoardScreen extends Screen {
     }
 
     private void renderSelectedPreviewFrame(GuiGraphics guiGraphics, int left, int top) {
-        int x = left + 24;
+        int x = left + 34;
         int y = top + 91;
         int width = 52;
         int height = 32;
@@ -547,6 +548,18 @@ public class QuestBoardScreen extends Screen {
             case "ON_COOLDOWN" -> COLOR_COOLDOWN;
             default -> COLOR_AVAILABLE;
         };
+    }
+
+    private int scaledDetailWidth() {
+        return Math.max(DETAIL_W, Math.round(DETAIL_W / DETAIL_TEXT_SCALE));
+    }
+
+    private void drawDetailText(GuiGraphics guiGraphics, String text, int x, int y, int color) {
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(x, y, 0);
+        guiGraphics.pose().scale(DETAIL_TEXT_SCALE, DETAIL_TEXT_SCALE, 1.0f);
+        guiGraphics.drawString(this.font, text, 0, 0, color, true);
+        guiGraphics.pose().popPose();
     }
 
     private boolean usesPokemonPreview(QuestBoardState.QuestCard card) {
