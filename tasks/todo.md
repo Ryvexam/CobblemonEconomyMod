@@ -103,6 +103,12 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Ruling: utiliser `setup-java` puis installer `curl`/`jq` dans le runner Docker — l’image Forgejo par défaut n’assure pas Java 21, et cela évite de dépendre d’une image personnalisée.
 - Ruling: lancer `clean` avant le build — un workspace réutilisé peut contenir le JAR d’une version précédente et rendre la sélection ambiguë.
 
+### Smoke test CurseForge local
+
+- JAR ajouté : `cobblemon-economy-0.0.17.jar`, avec Cobblemon Fabric `1.8.1+1.21.1` et Fabric API `0.116.17+1.21.1`.
+- Lancement terminal Java 21 validé : Fabric Loader `0.19.5` a chargé `79 mods`, puis le log a confirmé `Launching Cobblemon 1.8.1` avec `cobblemon-economy 0.0.17`.
+- Le client a été arrêté après l’initialisation par le harness de test ; les erreurs « No data fixer registered » viennent de Cobblemon et ne sont pas un échec de chargement du mod.
+
 ### Extraction standalone
 
 - Harness déplacé hors du dépôt du mod vers `../minecraft-agent/`.
