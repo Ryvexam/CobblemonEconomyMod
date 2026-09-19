@@ -55,12 +55,12 @@ public class QuestBoardScreen extends Screen {
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
     private static final int SELECTED_PREVIEW_ITEM_X = 34;
-    private static final int SELECTED_PREVIEW_ITEM_Y = 90;
+    private static final int SELECTED_PREVIEW_ITEM_Y = 93;
     private static final int REWARD_SLOT_W = 68;
-    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.25f;
+    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.15f;
     private static final float CARD_PREVIEW_ITEM_SCALE = 2.0f;
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
-    private static final float SELECTED_PREVIEW_MODEL_SCALE = 0.85f;
+    private static final float SELECTED_PREVIEW_MODEL_SCALE = 0.75f;
     private static final int COLOR_HEADER_TEXT = 0xF7F2E5;
     private static final int COLOR_TITLE = 0xEABF4A;
     private static final int COLOR_BODY_TEXT = 0xE5E1D7;
@@ -171,7 +171,7 @@ public class QuestBoardScreen extends Screen {
         QuestBoardState.QuestCard selected = getSelectedQuest();
         selectedModelWidget = selected == null || !usesPokemonPreview(selected)
                 ? null
-                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 29, top + 88, 44, 34, SELECTED_PREVIEW_MODEL_SCALE);
+                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 30, top + 93, 42, 29, SELECTED_PREVIEW_MODEL_SCALE);
     }
 
     private void onPrimaryAction() {
@@ -284,14 +284,14 @@ public class QuestBoardScreen extends Screen {
             guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y + DETAIL_PANEL_H - 1,
                     left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
 
-            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 43, COLOR_TITLE, true);
+            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 46, COLOR_TITLE, true);
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 54, statusColor(selected), true);
-            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 65, COLOR_BODY_TEXT, true);
+            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 57, statusColor(selected), true);
+            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 68, COLOR_BODY_TEXT, true);
 
             String timerText = detailTimerText(selected);
             if (!timerText.isBlank()) {
-                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 76, COLOR_ALERT_TEXT, true);
+                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 79, COLOR_ALERT_TEXT, true);
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
@@ -525,9 +525,9 @@ public class QuestBoardScreen extends Screen {
 
     private void renderSelectedPreviewFrame(GuiGraphics guiGraphics, int left, int top) {
         int x = left + 24;
-        int y = top + 86;
+        int y = top + 91;
         int width = 52;
-        int height = 37;
+        int height = 32;
         guiGraphics.fill(x, y, x + width, y + height, 0x8C24170E);
         guiGraphics.fill(x, y, x + width, y + 1, 0xB8D1B07A);
         guiGraphics.fill(x, y + height - 1, x + width, y + height, 0x7A8A6A42);
