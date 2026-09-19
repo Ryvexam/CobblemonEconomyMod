@@ -398,7 +398,7 @@ public class QuestBoardScreen extends Screen {
                     boolean.class,
                     int.class
             );
-            return modernConstructor.newInstance(x, y, w, h, renderablePokemon, scale, 0.0f, 0.0, false, true, 13);
+            return modernConstructor.newInstance(x, y, w, h, renderablePokemon, scale, 0.0f, 0.0, false, true, 15);
         } catch (NoSuchMethodException ignored) {
             try {
                 Constructor<ModelWidget> legacyConstructor = ModelWidget.class.getConstructor(
