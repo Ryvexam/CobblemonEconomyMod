@@ -511,8 +511,50 @@ public class QuestBoardScreen extends Screen {
 
     private void renderCardStateMarker(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
         int color = statusColor(card);
-        guiGraphics.fill(slotX + 42, slotY + 42, slotX + 48, slotY + 48, 0xB51A110A);
-        guiGraphics.fill(slotX + 43, slotY + 43, slotX + 47, slotY + 47, color);
+        int iconX = slotX + 40;
+        int iconY = slotY + 40;
+        guiGraphics.fill(iconX, iconY, iconX + 9, iconY + 9, 0xC51A110A);
+
+        String status = card == null || card.status == null
+                ? "AVAILABLE"
+                : card.status.toUpperCase(Locale.ROOT);
+        switch (status) {
+            case "ACTIVE", "ON_COOLDOWN" -> renderClockIcon(guiGraphics, iconX + 1, iconY + 1, color);
+            case "CLAIMABLE", "COMPLETED" -> renderCheckIcon(guiGraphics, iconX + 1, iconY + 1, color);
+            case "LOCKED" -> renderLockIcon(guiGraphics, iconX + 1, iconY + 1, color);
+            default -> renderAvailableIcon(guiGraphics, iconX + 1, iconY + 1, color);
+        }
+    }
+
+    private void renderAvailableIcon(GuiGraphics guiGraphics, int x, int y, int color) {
+        guiGraphics.fill(x + 3, y, x + 5, y + 7, color);
+        guiGraphics.fill(x, y + 3, x + 8, y + 5, color);
+    }
+
+    private void renderClockIcon(GuiGraphics guiGraphics, int x, int y, int color) {
+        guiGraphics.fill(x + 2, y, x + 6, y + 1, color);
+        guiGraphics.fill(x + 1, y + 1, x + 2, y + 7, color);
+        guiGraphics.fill(x + 6, y + 1, x + 7, y + 7, color);
+        guiGraphics.fill(x + 2, y + 7, x + 6, y + 8, color);
+        guiGraphics.fill(x + 3, y + 2, x + 4, y + 5, color);
+        guiGraphics.fill(x + 3, y + 4, x + 6, y + 5, color);
+    }
+
+    private void renderCheckIcon(GuiGraphics guiGraphics, int x, int y, int color) {
+        guiGraphics.fill(x, y + 4, x + 2, y + 6, color);
+        guiGraphics.fill(x + 1, y + 5, x + 3, y + 7, color);
+        guiGraphics.fill(x + 2, y + 4, x + 4, y + 6, color);
+        guiGraphics.fill(x + 3, y + 3, x + 5, y + 5, color);
+        guiGraphics.fill(x + 4, y + 2, x + 6, y + 4, color);
+        guiGraphics.fill(x + 5, y + 1, x + 8, y + 3, color);
+    }
+
+    private void renderLockIcon(GuiGraphics guiGraphics, int x, int y, int color) {
+        guiGraphics.fill(x + 2, y, x + 6, y + 1, color);
+        guiGraphics.fill(x + 1, y + 1, x + 2, y + 4, color);
+        guiGraphics.fill(x + 6, y + 1, x + 7, y + 4, color);
+        guiGraphics.fill(x, y + 4, x + 8, y + 8, color);
+        guiGraphics.fill(x + 3, y + 5, x + 5, y + 7, 0xB51A110A);
     }
 
     private void renderCardSurface(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
