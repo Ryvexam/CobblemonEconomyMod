@@ -50,6 +50,7 @@ public class QuestBoardScreen extends Screen {
     private static final int HEADER_RIGHT_MARGIN = 8;
     private static final int TIER_X = 39;
     private static final int TIER_Y = 31;
+    private static final int TIER_DISPLAY_H = 8;
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
     private static final int SELECTED_PREVIEW_ITEM_X = 51;
@@ -294,7 +295,7 @@ public class QuestBoardScreen extends Screen {
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
-            blitNearest(guiGraphics, tierTexture, left + TIER_X, top + TIER_Y, 0, 0, 42, 12, 42, 12);
+            blitNearest(guiGraphics, tierTexture, left + TIER_X, top + TIER_Y, 0, 0, 42, TIER_DISPLAY_H, 42, 12);
 
             renderRewardLines(guiGraphics, selected, left, top);
         }
