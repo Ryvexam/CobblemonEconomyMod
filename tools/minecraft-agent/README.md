@@ -10,7 +10,7 @@ npm install
 npm run build
 npm test
 npm run --silent cli -- inspect --project ../..
-npm run mcp
+npm run --silent mcp
 ```
 
 The CLI and MCP server share the same local engine. They never deploy to a
@@ -71,3 +71,19 @@ commit a machine-specific path):
 The server exposes `inspect_project`, `create_project`, `build_project`,
 `test_project`, `read_logs`, and `get_artifact`. It only accepts local paths
 under its current working directory and never exposes arbitrary shell commands.
+
+## Reusing the agent with another mod
+
+The agent is not tied to Cobblemon Economy. From another mod directory, use the
+same built executable with that mod as the working directory:
+
+```bash
+cd /path/to/another-mod
+node /absolute/path/to/CobblemonEconomyMod/tools/minecraft-agent/dist/cli.js inspect --project . --json
+```
+
+For MCP, set `cwd` to the other mod and keep the command pointed at the shared
+`dist/mcp.js`. The current template manager creates Fabric 1.21.1 projects;
+inspection, Gradle builds, logs, tests, and JAR artifacts work independently of
+the mod ID. Additional loader/version templates can be added without changing
+the shared engine.

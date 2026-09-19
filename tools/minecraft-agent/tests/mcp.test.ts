@@ -44,6 +44,27 @@ describe("MCP schemas", () => {
   it("rejects oversized output requests", () => {
     expect(inspectProjectSchema.safeParse({ outputLimit: 200_001 }).success).toBe(false);
     expect(buildProjectSchema.safeParse({ task: "build", outputLimit: 0 }).success).toBe(false);
+    expect(buildProjectSchema.safeParse({ task: "clean" }).success).toBe(false);
+    expect(buildProjectSchema.safeParse({ task: "jar" }).success).toBe(true);
+  });
+
+  it("keeps truncated JSON responses within the requested limit", async () => {
+    const root = await mkdtemp(join(tmpdir(), "minecraft-agent-mcp-output-"));
+    temporaryDirectories.push(root);
+    const runtime: McpRuntime = {
+      allowedRoots: [root],
+      inspectProject: async () => ({ root, loader: "fabric", minecraftVersion: "1.21.1", javaVersion: "21", modIds: ["x".repeat(500)], gradleWrapper: null, gradleTasks: [], sourceFiles: [], diagnostics: [] }),
+      runGradle: async () => { throw new Error("unused"); },
+      runMinecraftTest: async () => { throw new Error("unused"); },
+      initProject: async () => { throw new Error("unused"); },
+      listArtifacts: async () => [],
+      copyArtifact: async () => { throw new Error("unused"); }
+    };
+
+    const result = await createInspectProjectHandler(runtime)({ project: root, outputLimit: 64 });
+
+    expect(result.content[0].text.length).toBeLessThanOrEqual(64);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ truncated: true });
   });
 });
 

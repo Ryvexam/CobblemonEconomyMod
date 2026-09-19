@@ -47,27 +47,44 @@ function detectLoader(markers: Record<Exclude<Loader, "unknown">, boolean>): { l
   return { loader: detected[0] ?? "unknown", diagnostics: detected.length === 0 ? ["Loader could not be detected."] : [] };
 }
 
-function propertyValue(properties: string, key: string): string | null {
-  const line = properties.match(new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=\\s*(.+?)\\s*$`, "m"));
-  return line?.[1] ?? null;
+function propertyValues(properties: string, key: string): string[] {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [...properties.matchAll(new RegExp(`^\\s*${escapedKey}\\s*=\\s*(.+?)\\s*$`, "gm"))].map((match) => match[1]);
 }
 
-function collectModIds(fabricJson: string): string[] {
-  if (!fabricJson) return [];
+function collectModIds(fabricJson: string): { ids: string[]; malformed: boolean } {
+  if (!fabricJson) return { ids: [], malformed: false };
   try {
     const parsed = JSON.parse(fabricJson) as { id?: unknown };
-    return typeof parsed.id === "string" && parsed.id.length > 0 ? [parsed.id] : [];
+    return { ids: typeof parsed.id === "string" && parsed.id.length > 0 ? [parsed.id] : [], malformed: false };
   } catch {
-    return [];
+    return { ids: [], malformed: true };
   }
 }
 
+function inferGradleTasks(buildFiles: string, loader: Loader): string[] {
+  const tasks = new Set(["assemble", "build", "check", "jar", "tasks", "test"]);
+  for (const match of buildFiles.matchAll(/tasks\.(?:register|create|named)\s*(?:<[^>]+>)?\s*\(\s*["']([^"']+)["']/g)) {
+    tasks.add(match[1]);
+  }
+  for (const match of buildFiles.matchAll(/\btask\s+([A-Za-z][A-Za-z0-9_-]*)/g)) {
+    tasks.add(match[1]);
+  }
+  if (loader === "fabric") {
+    tasks.add("runClient");
+    tasks.add("runServer");
+  }
+  return [...tasks].sort();
+}
+
 export async function inspectProject(root: string): Promise<ProjectInspection> {
-  const [properties, buildGradle, buildGradleKts, fabricJson, files] = await Promise.all([
+  const fabricJsonPath = join(root, "src/main/resources/fabric.mod.json");
+  const [properties, buildGradle, buildGradleKts, fabricJson, fabricJsonPresent, files] = await Promise.all([
     readIfPresent(join(root, "gradle.properties")),
     readIfPresent(join(root, "build.gradle")),
     readIfPresent(join(root, "build.gradle.kts")),
     readIfPresent(join(root, "src/main/resources/fabric.mod.json")),
+    exists(fabricJsonPath),
     collectFiles(root)
   ]);
 
@@ -78,6 +95,12 @@ export async function inspectProject(root: string): Promise<ProjectInspection> {
     neoforge: /net\.neoforged|neoforge\.mods\.toml/.test(buildFiles)
   });
   const diagnostics = [...detected.diagnostics];
+  const minecraftVersions = propertyValues(properties, "minecraft_version");
+  const distinctMinecraftVersions = [...new Set(minecraftVersions)];
+  if (distinctMinecraftVersions.length === 0) diagnostics.push("Minecraft version is missing from gradle.properties.");
+  if (distinctMinecraftVersions.length > 1) diagnostics.push("Conflicting Minecraft versions detected.");
+  const metadata = collectModIds(fabricJson);
+  if (fabricJsonPresent && metadata.malformed) diagnostics.push("fabric.mod.json is malformed.");
   const gradleWrapper = await exists(join(root, "gradlew"))
     ? join(root, "gradlew")
     : await exists(join(root, "gradlew.bat")) ? join(root, "gradlew.bat") : null;
@@ -86,11 +109,14 @@ export async function inspectProject(root: string): Promise<ProjectInspection> {
   return {
     root,
     loader: detected.loader,
-    minecraftVersion: propertyValue(properties, "minecraft_version"),
-    javaVersion: propertyValue(properties, "java_version") ?? propertyValue(properties, "org.gradle.java.home"),
-    modIds: collectModIds(fabricJson),
+    minecraftVersion: distinctMinecraftVersions[0] ?? null,
+    javaVersion: propertyValues(properties, "java_version")[0]
+      ?? propertyValues(properties, "org.gradle.java.home")[0]
+      ?? buildFiles.match(/(?:VERSION_|release\.set\()\s*([0-9]+)/)?.[1]
+      ?? null,
+    modIds: metadata.ids,
     gradleWrapper,
-    gradleTasks: [],
+    gradleTasks: inferGradleTasks(buildFiles, detected.loader),
     sourceFiles: files.filter((file) => file.startsWith("src/")),
     diagnostics
   };

@@ -1,5 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { resolveProjectRoot, type ProjectPathError } from "../core/safety-policy.js";
+import { assertLexicallyAllowedPath, resolveProjectRoot } from "../core/safety-policy.js";
 import type { ArtifactInfo, ProjectInspection, RunResult } from "../core/types.js";
 import type { GradleRunOptions } from "../core/gradle-runner.js";
 import type { InitProjectOptions } from "../core/template-manager.js";
@@ -18,6 +18,7 @@ export interface McpRuntime {
 }
 
 export const MAX_OUTPUT_LIMIT = 200_000;
+export const MIN_OUTPUT_LIMIT = 64;
 
 export type McpHandler<T> = (args: T) => Promise<CallToolResult>;
 
@@ -27,22 +28,27 @@ export function jsonResult(value: unknown, outputLimit: number): CallToolResult 
     return { content: [{ type: "text", text: serialized }] };
   }
 
-  const previewLength = Math.max(0, outputLimit - 80);
+  let preview = serialized.slice(0, Math.max(0, outputLimit - 80));
+  let truncatedPayload = JSON.stringify({ truncated: true, preview });
+  while (truncatedPayload.length > outputLimit && preview.length > 0) {
+    preview = preview.slice(0, Math.max(0, preview.length - 16));
+    truncatedPayload = JSON.stringify({ truncated: true, preview });
+  }
+  if (truncatedPayload.length > outputLimit) truncatedPayload = JSON.stringify({ truncated: true });
   return {
     content: [{
       type: "text",
-      text: JSON.stringify({ truncated: true, preview: serialized.slice(0, previewLength) })
+      text: truncatedPayload
     }],
     isError: false
   };
 }
 
-export function errorResult(error: unknown): CallToolResult {
+export function errorResult(error: unknown, outputLimit = MAX_OUTPUT_LIMIT): CallToolResult {
+  const message = error instanceof Error ? error.message : String(error);
+  const bounded = jsonResult({ error: message }, outputLimit);
   return {
-    content: [{
-      type: "text",
-      text: error instanceof Error ? error.message : String(error)
-    }],
+    content: bounded.content,
     isError: true
   };
 }
@@ -52,12 +58,14 @@ export function projectRoot(runtime: McpRuntime, project: string | undefined): s
 }
 
 export async function projectTarget(runtime: McpRuntime, target: string): Promise<string> {
+  const absoluteTarget = assertLexicallyAllowedPath(target, runtime.allowedRoots);
   try {
-    await access(target);
-    return resolveProjectRoot(target, runtime.allowedRoots);
+    await access(absoluteTarget);
+    return resolveProjectRoot(absoluteTarget, runtime.allowedRoots);
   } catch {
-    const parent = resolveProjectRoot(dirname(resolve(target)), runtime.allowedRoots);
-    return resolve(parent, target.slice(dirname(resolve(target)).length + 1));
+    const parentPath = dirname(absoluteTarget);
+    const parent = resolveProjectRoot(parentPath, runtime.allowedRoots);
+    return resolve(parent, absoluteTarget.slice(parentPath.length + 1));
   }
 }
 
@@ -65,6 +73,6 @@ export async function safely<T>(operation: () => Promise<T>, outputLimit: number
   try {
     return jsonResult(await operation(), outputLimit);
   } catch (error) {
-    return errorResult(error);
+    return errorResult(error, outputLimit);
   }
 }

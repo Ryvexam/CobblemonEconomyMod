@@ -101,4 +101,25 @@ describe("minecraft-agent CLI", () => {
     expect(received).toEqual({ task: "runGameTestServer", timeoutMs: 321 });
     expect(JSON.parse(output.output.join(""))).toMatchObject({ status: "success" });
   });
+
+  it("rejects traversal in the logs run ID", async () => {
+    const project = await makeProject();
+    await mkdir(join(project, ".minecraft-agent/runs"), { recursive: true });
+    await writeFile(join(project, ".minecraft-agent/runs/known.log"), "known log\n");
+    const output = io();
+
+    const code = await runCli(["logs", "--project", project, "--since", "../../outside", "--json"], { allowedRoots: [project] }, output);
+
+    expect(code).toBe(1);
+    expect(output.errors.join(" ")).toMatch(/run ID|not found/i);
+  });
+
+  it("rejects invalid timeout values before starting Gradle", async () => {
+    const project = await makeProject();
+    const output = io();
+    const code = await runCli(["build", "--project", project, "--timeout", "NaN", "--json"], { allowedRoots: [project] }, output);
+
+    expect(code).toBe(1);
+    expect(output.errors.join(" ")).toMatch(/timeout/i);
+  });
 });

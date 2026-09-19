@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { jsonResult, projectRoot, safely, type McpHandler, type McpRuntime } from "./common.js";
+import { MIN_OUTPUT_LIMIT, MAX_OUTPUT_LIMIT, projectRoot, safely, type McpHandler, type McpRuntime } from "./common.js";
 
 export const inspectProjectSchema = z.object({
   project: z.string().optional().default("."),
-  outputLimit: z.number().int().min(1).max(200_000).optional().default(200_000)
+  outputLimit: z.number().int().min(MIN_OUTPUT_LIMIT).max(MAX_OUTPUT_LIMIT).optional().default(MAX_OUTPUT_LIMIT)
 });
 
 export function createInspectProjectHandler(runtime: McpRuntime): McpHandler<z.infer<typeof inspectProjectSchema>> {

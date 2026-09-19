@@ -64,6 +64,25 @@ describe("Minecraft lifecycle runner", () => {
     expect(await readFile(result.logFile, "utf8")).toContain("For help");
   });
 
+  it("detects readiness split across output chunks", async () => {
+    const projectRoot = await makeProject();
+    const result = await runMinecraftTest({
+      projectRoot,
+      task: "runServer",
+      timeoutMs: 1_000,
+      runRoot: join(projectRoot, ".runs"),
+      processFactory: fakeFactory((stdout) => {
+        setImmediate(() => {
+          stdout.write("Done (1.234s)! For help, type ");
+          stdout.end('"help"\n');
+        });
+      })
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.phase).toBe("functional_test");
+  });
+
   it("times out before readiness and preserves partial output", async () => {
     const projectRoot = await makeProject();
     const result = await runMinecraftTest({

@@ -39,11 +39,12 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 
 ## Vérification finale
 
-- `npm test -- --run` dans `tools/minecraft-agent` : **37 tests passants**, 10 fichiers.
+- `npm test -- --run` dans `tools/minecraft-agent` : **46 tests passants**, 10 fichiers.
 - `npm run build` dans `tools/minecraft-agent` : **succès**.
 - `npm run --silent cli -- inspect --project ../.. --json` : **Fabric 1.21.1**, mod `cobblemon-economy` détecté, aucun fichier modifié.
 - `npm run --silent cli -- artifact --project ../.. --json` : **2 JAR détectés**, avec SHA-256 (`cobblemon-economy-0.0.17.jar` et `-sources.jar`).
 - Serveur MCP : handshake `initialize` et `tools/list` vérifiés via stdio ; six outils annoncés, aucune sortie parasite sur stdout.
+- Inspection finale : Java 21 détecté, huit tâches Gradle inférées dont `runServer`, diagnostics vides pour le projet valide.
 - `./gradlew tasks --no-daemon --console=plain` : **succès** ; `runServer` est disponible, `runGameTestServer` ne l’est pas dans ce projet.
 - Test réel `runServer` : **échec attendu et correctement classifié `mod_loading`** ; Cobblemon 1.7.1 et des dépendances YAWP compatibles sont absents/incompatibles dans l’environnement local.
 - `./gradlew build --no-daemon --console=plain` : **BUILD SUCCESSFUL** en 7 secondes ; avertissement non bloquant sur la version SemVer de SQLite.

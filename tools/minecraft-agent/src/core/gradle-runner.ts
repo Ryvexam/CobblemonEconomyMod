@@ -3,15 +3,15 @@ import { mkdir, access, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import type { Readable } from "node:stream";
-import { boundOutput, classifyOutput } from "./log-parser.js";
+import type { Readable, Writable } from "node:stream";
+import { BoundedOutput, classifyOutput } from "./log-parser.js";
 import type { RunResult } from "./types.js";
 
 const ALLOWED_TASKS = new Set([
   "assemble",
   "build",
   "check",
-  "clean",
+  "jar",
   "runClient",
   "runGameTestServer",
   "runServer",
@@ -22,8 +22,10 @@ const ALLOWED_TASKS = new Set([
 export interface ProcessHandle {
   stdout: Readable | null;
   stderr: Readable | null;
+  stdin?: Writable | null;
   on(event: "close" | "error", listener: (...args: unknown[]) => void): ProcessHandle;
   kill(signal?: NodeJS.Signals): boolean;
+  killTree?: (signal?: NodeJS.Signals) => boolean;
 }
 
 export type ProcessFactory = (command: string, args: string[], cwd: string) => ProcessHandle;
@@ -37,7 +39,19 @@ export interface GradleRunOptions {
 }
 
 function defaultProcessFactory(command: string, args: string[], cwd: string): ProcessHandle {
-  return spawn(command, args, { cwd, shell: false }) as unknown as ProcessHandle;
+  const child = spawn(command, args, { cwd, shell: false, detached: process.platform !== "win32" });
+  return Object.assign(child, {
+    killTree: (signal: NodeJS.Signals = "SIGTERM") => {
+      if (process.platform !== "win32" && child.pid) {
+        try {
+          return process.kill(-child.pid, signal);
+        } catch {
+          return child.kill(signal);
+        }
+      }
+      return child.kill(signal);
+    }
+  }) as unknown as ProcessHandle;
 }
 
 async function findWrapper(projectRoot: string): Promise<{ command: string; args: string[] }> {
@@ -52,9 +66,9 @@ async function findWrapper(projectRoot: string): Promise<{ command: string; args
   }
 }
 
-function collectStream(stream: Readable | null, chunks: string[]): void {
+function collectStream(stream: Readable | null, output: BoundedOutput): void {
   stream?.on("data", (chunk: Buffer | string) => {
-    chunks.push(chunk.toString());
+    output.append(chunk.toString());
   });
 }
 
@@ -68,37 +82,43 @@ export async function runGradle(options: GradleRunOptions): Promise<RunResult> {
   const runId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const logFile = join(options.runRoot, `${runId}.log`);
   const startedAt = Date.now();
-  const stdoutChunks: string[] = [];
-  const stderrChunks: string[] = [];
+  const stdout = new BoundedOutput();
+  const stderr = new BoundedOutput();
   const processFactory = options.processFactory ?? defaultProcessFactory;
   const process = processFactory(wrapper.command, ["--no-daemon", "--console=plain", options.task], options.projectRoot);
 
-  collectStream(process.stdout, stdoutChunks);
-  collectStream(process.stderr, stderrChunks);
+  collectStream(process.stdout, stdout);
+  collectStream(process.stderr, stderr);
 
   return new Promise<RunResult>((resolve) => {
     let timedOut = false;
     let settled = false;
+    let forceTimer: NodeJS.Timeout | undefined;
     const timeout = setTimeout(() => {
       timedOut = true;
       process.kill("SIGTERM");
+      forceTimer = setTimeout(() => {
+        (process.killTree ?? process.kill.bind(process))("SIGKILL");
+        finish(null);
+      }, 250);
     }, options.timeoutMs);
 
     const finish = (exitCode: number | null) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      const stdout = boundOutput(stdoutChunks.join(""));
-      const stderr = boundOutput(stderrChunks.join(""));
-      const classification = classifyOutput(stdout, stderr, options.task);
+      if (forceTimer) clearTimeout(forceTimer);
+      const stdoutText = stdout.toString();
+      const stderrText = stderr.toString();
+      const classification = classifyOutput(stdoutText, stderrText, options.task);
       const result: RunResult = {
         runId,
         status: timedOut ? "timeout" : exitCode === 0 ? "success" : "process_failure",
-        phase: classification.phase,
+        phase: timedOut ? "unknown" : classification.phase,
         exitCode: timedOut ? null : exitCode,
         durationMs: Date.now() - startedAt,
-        stdout,
-        stderr,
+        stdout: stdoutText,
+        stderr: stderrText,
         errors: classification.errors,
         logFile
       };
@@ -111,7 +131,7 @@ export async function runGradle(options: GradleRunOptions): Promise<RunResult> {
     });
     process.on("error", (...args: unknown[]) => {
       const [error] = args;
-      stderrChunks.push(error instanceof Error ? error.message : String(error));
+      stderr.append(error instanceof Error ? error.message : String(error));
       finish(1);
     });
   });

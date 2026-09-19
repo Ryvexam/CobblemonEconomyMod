@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { projectTarget, safely, type McpHandler, type McpRuntime } from "./common.js";
+import { MIN_OUTPUT_LIMIT, MAX_OUTPUT_LIMIT, projectTarget, safely, type McpHandler, type McpRuntime } from "./common.js";
 
 export const createProjectSchema = z.object({
   target: z.string().min(1),
@@ -7,7 +7,7 @@ export const createProjectSchema = z.object({
   minecraftVersion: z.literal("1.21.1"),
   modId: z.string().min(1),
   packageName: z.string().min(1),
-  outputLimit: z.number().int().min(1).max(200_000).optional().default(200_000)
+  outputLimit: z.number().int().min(MIN_OUTPUT_LIMIT).max(MAX_OUTPUT_LIMIT).optional().default(MAX_OUTPUT_LIMIT)
 });
 
 export function createCreateProjectHandler(runtime: McpRuntime): McpHandler<z.infer<typeof createProjectSchema>> {

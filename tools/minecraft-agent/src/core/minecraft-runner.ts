@@ -4,7 +4,7 @@ import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { Readable } from "node:stream";
-import { boundOutput, classifyOutput } from "./log-parser.js";
+import { BoundedOutput, classifyOutput } from "./log-parser.js";
 import type { ProcessHandle } from "./gradle-runner.js";
 import type { RunResult } from "./types.js";
 
@@ -22,7 +22,19 @@ export type MinecraftProcessFactory = (command: string, args: string[], cwd: str
 const READY_PATTERN = /Done \([^)]*\)! For help, type "help"/;
 
 function defaultProcessFactory(command: string, args: string[], cwd: string): ProcessHandle {
-  return spawn(command, args, { cwd, shell: false }) as unknown as ProcessHandle;
+  const child = spawn(command, args, { cwd, shell: false, detached: process.platform !== "win32" });
+  return Object.assign(child, {
+    killTree: (signal: NodeJS.Signals = "SIGTERM") => {
+      if (process.platform !== "win32" && child.pid) {
+        try {
+          return process.kill(-child.pid, signal);
+        } catch {
+          return child.kill(signal);
+        }
+      }
+      return child.kill(signal);
+    }
+  }) as unknown as ProcessHandle;
 }
 
 async function findWrapper(projectRoot: string): Promise<string> {
@@ -37,10 +49,10 @@ async function findWrapper(projectRoot: string): Promise<string> {
   }
 }
 
-function collectStream(stream: Readable | null, chunks: string[], onChunk: (value: string) => void): void {
+function collectStream(stream: Readable | null, output: BoundedOutput, onChunk: (value: string) => void): void {
   stream?.on("data", (chunk: Buffer | string) => {
     const value = chunk.toString();
-    chunks.push(value);
+    output.append(value);
     onChunk(value);
   });
 }
@@ -56,8 +68,9 @@ export async function runMinecraftTest(options: MinecraftTestOptions): Promise<R
   const runId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const logFile = join(runRoot, `${runId}.log`);
   const startedAt = Date.now();
-  const stdoutChunks: string[] = [];
-  const stderrChunks: string[] = [];
+  const stdout = new BoundedOutput();
+  const stderr = new BoundedOutput();
+  const readinessOutput = new BoundedOutput(4_096);
   const processFactory = options.processFactory ?? defaultProcessFactory;
   const args = ["--no-daemon", "--console=plain", options.task];
   if (options.port !== undefined) args.push(`-PminecraftAgentPort=${options.port}`);
@@ -68,26 +81,28 @@ export async function runMinecraftTest(options: MinecraftTestOptions): Promise<R
     let timedOut = false;
     let settled = false;
     let shutdownTimer: NodeJS.Timeout | undefined;
+    let forceTimer: NodeJS.Timeout | undefined;
 
     const finish = (exitCode: number | null) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
       if (shutdownTimer) clearTimeout(shutdownTimer);
-      const stdout = boundOutput(stdoutChunks.join(""));
-      const stderr = boundOutput(stderrChunks.join(""));
-      const classification = classifyOutput(stdout, stderr, options.task);
+      if (forceTimer) clearTimeout(forceTimer);
+      const stdoutText = stdout.toString();
+      const stderrText = stderr.toString();
+      const classification = classifyOutput(stdoutText, stderrText, options.task);
       const phase = classification.phase !== "server_startup" && classification.phase !== "unknown"
         ? classification.phase
         : ready ? "functional_test" : "server_startup";
       const result: RunResult = {
         runId,
         status: timedOut ? "timeout" : ready && exitCode === 0 ? "success" : "process_failure",
-        phase,
+        phase: timedOut ? "unknown" : phase,
         exitCode: timedOut ? null : exitCode,
         durationMs: Date.now() - startedAt,
-        stdout,
-        stderr,
+        stdout: stdoutText,
+        stderr: stderrText,
         errors: classification.errors,
         logFile
       };
@@ -97,25 +112,37 @@ export async function runMinecraftTest(options: MinecraftTestOptions): Promise<R
     const timeout = setTimeout(() => {
       timedOut = true;
       process.kill("SIGTERM");
-      shutdownTimer = setTimeout(() => process.kill("SIGKILL"), 250);
+      forceTimer = setTimeout(() => {
+        (process.killTree ?? process.kill.bind(process))("SIGKILL");
+        finish(null);
+      }, 250);
     }, options.timeoutMs);
 
     const onOutput = (value: string) => {
-      if (!ready && READY_PATTERN.test(value)) {
+      readinessOutput.append(value);
+      if (!ready && READY_PATTERN.test(readinessOutput.toString())) {
         ready = true;
-        process.kill("SIGINT");
-        shutdownTimer = setTimeout(() => process.kill("SIGKILL"), 3_000);
+        if (process.stdin && !process.stdin.destroyed) {
+          process.stdin.write("stop\n");
+          shutdownTimer = setTimeout(() => process.kill("SIGINT"), 1_000);
+        } else {
+          process.kill("SIGINT");
+        }
+        forceTimer = setTimeout(() => {
+          (process.killTree ?? process.kill.bind(process))("SIGKILL");
+          finish(null);
+        }, 3_000);
       }
     };
-    collectStream(process.stdout, stdoutChunks, onOutput);
-    collectStream(process.stderr, stderrChunks, onOutput);
+    collectStream(process.stdout, stdout, onOutput);
+    collectStream(process.stderr, stderr, onOutput);
     process.on("close", (...args: unknown[]) => {
       const [exitCode] = args;
       finish(typeof exitCode === "number" ? exitCode : null);
     });
     process.on("error", (...args: unknown[]) => {
       const [error] = args;
-      stderrChunks.push(error instanceof Error ? error.message : String(error));
+      stderr.append(error instanceof Error ? error.message : String(error));
       finish(1);
     });
   });

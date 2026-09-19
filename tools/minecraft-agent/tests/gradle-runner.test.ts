@@ -102,4 +102,36 @@ describe("Gradle runner", () => {
     expect(result.phase).not.toBe("compilation");
     expect(result.stdout).toContain("Resolving dependencies");
   });
+
+  it("forces an unresponsive process to end and keeps timeout phase unknown", async () => {
+    const projectRoot = await makeProject();
+    const signals: NodeJS.Signals[] = [];
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const events = new EventEmitter();
+    const result = await runGradle({
+      projectRoot,
+      task: "build",
+      timeoutMs: 10,
+      runRoot: join(projectRoot, ".runs"),
+      processFactory: () => ({
+        stdout,
+        stderr,
+        on: (event: "close" | "error", listener: (...args: unknown[]) => void) => {
+          events.on(event, listener);
+          return this;
+        },
+        kill: (signal: NodeJS.Signals = "SIGTERM") => {
+          signals.push(signal);
+          return true;
+        }
+      })
+    });
+    stdout.write("Compilation failed before the process became unresponsive\n");
+
+    expect(result.status).toBe("timeout");
+    expect(result.phase).toBe("unknown");
+    expect(result.exitCode).toBeNull();
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
 });

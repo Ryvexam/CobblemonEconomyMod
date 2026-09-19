@@ -2,6 +2,25 @@ import type { RunPhase } from "./types.js";
 
 export const MAX_STREAM_OUTPUT = 200_000;
 
+export class BoundedOutput {
+  private readonly chunks: string[] = [];
+  private size = 0;
+
+  constructor(private readonly limit = MAX_STREAM_OUTPUT) {}
+
+  append(value: string): void {
+    if (this.size >= this.limit) return;
+    const remaining = this.limit - this.size;
+    const chunk = value.slice(0, remaining);
+    this.chunks.push(chunk);
+    this.size += chunk.length;
+  }
+
+  toString(): string {
+    return this.chunks.join("");
+  }
+}
+
 export function boundOutput(output: string): string {
   return output.length <= MAX_STREAM_OUTPUT ? output : output.slice(0, MAX_STREAM_OUTPUT);
 }

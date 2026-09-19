@@ -69,4 +69,28 @@ describe("project inspection", () => {
     expect(inspection.loader).toBe("unknown");
     expect(inspection.diagnostics.join(" ")).toMatch(/conflicting/i);
   });
+
+  it("reports missing Minecraft metadata and inferred Gradle tasks", async () => {
+    const root = await makeProject({
+      "build.gradle.kts": 'plugins { id("fabric-loom") version "1.7-SNAPSHOT" }\ntasks.register("qualityCheck") {}'
+    });
+
+    const inspection = await inspectProject(root);
+
+    expect(inspection.minecraftVersion).toBeNull();
+    expect(inspection.diagnostics.join(" ")).toMatch(/minecraft version/i);
+    expect(inspection.gradleTasks).toContain("qualityCheck");
+  });
+
+  it("reports malformed Fabric metadata instead of silently ignoring it", async () => {
+    const root = await makeProject({
+      "gradle.properties": "minecraft_version=1.21.1\n",
+      "build.gradle.kts": 'plugins { id("fabric-loom") version "1.7-SNAPSHOT" }',
+      "src/main/resources/fabric.mod.json": "{not-json"
+    });
+
+    const inspection = await inspectProject(root);
+
+    expect(inspection.diagnostics.join(" ")).toMatch(/fabric\.mod\.json.*malformed/i);
+  });
 });

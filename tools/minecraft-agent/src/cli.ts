@@ -23,6 +23,14 @@ export interface CliDependencies extends Partial<CommandRuntime> {
   runMinecraftTest?: typeof runMinecraftTest;
 }
 
+function positiveInteger(value: string, label: string, maximum: number): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > maximum) {
+    throw new Error(`${label} must be an integer between 1 and ${maximum}`);
+  }
+  return parsed;
+}
+
 function defaultRuntime(overrides: CliDependencies): CommandRuntime {
   const workingDirectory = process.cwd();
   const repositoryRoot = resolve(workingDirectory, "../..");
@@ -61,13 +69,14 @@ export async function runCli(argv: string[], overrides: CliDependencies = {}, io
     .option("--task <task>", "Allowlisted Gradle task", "build")
     .option("--timeout <milliseconds>", "Maximum execution time", "600000")
     .option("--json", "Print JSON")
-    .action(async (options: { project: string; task: string; timeout: string; json?: boolean }) => buildCommand(runtime, commandIo, options.project, options.task, Number(options.timeout), Boolean(options.json)));
+    .action(async (options: { project: string; task: string; timeout: string; json?: boolean }) => buildCommand(runtime, commandIo, options.project, options.task, positiveInteger(options.timeout, "Timeout", 3_600_000), Boolean(options.json)));
 
   program.command("logs")
     .option("--project <path>", "Minecraft project path", ".")
     .option("--since <run-id>", "Read one run by ID")
+    .option("--limit <characters>", "Maximum log characters", "200000")
     .option("--json", "Print JSON")
-    .action(async (options: { project: string; since?: string; json?: boolean }) => logsCommand(runtime, commandIo, options.project, options.since, Boolean(options.json)));
+    .action(async (options: { project: string; since?: string; limit: string; json?: boolean }) => logsCommand(runtime, commandIo, options.project, options.since, positiveInteger(options.limit, "Log limit", 200_000), Boolean(options.json)));
 
   program.command("artifact")
     .option("--project <path>", "Minecraft project path", ".")
@@ -87,8 +96,8 @@ export async function runCli(argv: string[], overrides: CliDependencies = {}, io
       commandIo,
       options.project,
       options.task as "runServer" | "runGameTestServer",
-      Number(options.timeout),
-      options.port === undefined ? undefined : Number(options.port),
+      positiveInteger(options.timeout, "Timeout", 3_600_000),
+      options.port === undefined ? undefined : positiveInteger(options.port, "Port", 65_535),
       Boolean(options.json)
     ));
 
