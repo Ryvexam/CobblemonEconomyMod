@@ -45,7 +45,7 @@ public class QuestBoardScreen extends Screen {
     private static final int DETAIL_PANEL_X = 10;
     private static final int DETAIL_PANEL_Y = 39;
     private static final int DETAIL_PANEL_W = 84;
-    private static final int DETAIL_PANEL_H = 72;
+    private static final int DETAIL_PANEL_H = 84;
     private static final int HEADER_Y = 8;
     private static final int HEADER_ICON_X = 24;
     private static final int HEADER_TITLE_X = 30;
@@ -55,12 +55,12 @@ public class QuestBoardScreen extends Screen {
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
     private static final int SELECTED_PREVIEW_ITEM_X = 34;
-    private static final int SELECTED_PREVIEW_ITEM_Y = 80;
+    private static final int SELECTED_PREVIEW_ITEM_Y = 90;
     private static final int REWARD_SLOT_W = 68;
-    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.5f;
+    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.25f;
     private static final float CARD_PREVIEW_ITEM_SCALE = 2.0f;
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
-    private static final float SELECTED_PREVIEW_MODEL_SCALE = 1.10f;
+    private static final float SELECTED_PREVIEW_MODEL_SCALE = 0.85f;
     private static final int COLOR_HEADER_TEXT = 0xF7F2E5;
     private static final int COLOR_TITLE = 0xEABF4A;
     private static final int COLOR_BODY_TEXT = 0xE5E1D7;
@@ -171,7 +171,7 @@ public class QuestBoardScreen extends Screen {
         QuestBoardState.QuestCard selected = getSelectedQuest();
         selectedModelWidget = selected == null || !usesPokemonPreview(selected)
                 ? null
-                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 27, top + 78, 48, 44, SELECTED_PREVIEW_MODEL_SCALE);
+                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 29, top + 88, 44, 34, SELECTED_PREVIEW_MODEL_SCALE);
     }
 
     private void onPrimaryAction() {
@@ -525,9 +525,9 @@ public class QuestBoardScreen extends Screen {
 
     private void renderSelectedPreviewFrame(GuiGraphics guiGraphics, int left, int top) {
         int x = left + 24;
-        int y = top + 76;
+        int y = top + 86;
         int width = 52;
-        int height = 47;
+        int height = 37;
         guiGraphics.fill(x, y, x + width, y + height, 0x8C24170E);
         guiGraphics.fill(x, y, x + width, y + 1, 0xB8D1B07A);
         guiGraphics.fill(x, y + height - 1, x + width, y + height, 0x7A8A6A42);
