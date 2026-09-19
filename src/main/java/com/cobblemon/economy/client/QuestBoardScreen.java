@@ -42,6 +42,10 @@ public class QuestBoardScreen extends Screen {
     private static final int[] QUEST_SLOT_Y = {32, 32, 32, 89, 89, 89};
     private static final int DETAIL_X = 14;
     private static final int DETAIL_W = 78;
+    private static final int DETAIL_PANEL_X = 10;
+    private static final int DETAIL_PANEL_Y = 39;
+    private static final int DETAIL_PANEL_W = 84;
+    private static final int DETAIL_PANEL_H = 72;
     private static final int HEADER_Y = 8;
     private static final int HEADER_ICON_X = 24;
     private static final int HEADER_TITLE_X = 30;
@@ -50,10 +54,10 @@ public class QuestBoardScreen extends Screen {
     private static final int TIER_Y = 31;
     private static final int REWARD_SLOT_X = 26;
     private static final int REWARD_SLOT_Y = 124;
-    private static final int SELECTED_PREVIEW_ITEM_X = 49;
-    private static final int SELECTED_PREVIEW_ITEM_Y = 107;
+    private static final int SELECTED_PREVIEW_ITEM_X = 34;
+    private static final int SELECTED_PREVIEW_ITEM_Y = 80;
     private static final int REWARD_SLOT_W = 68;
-    private static final float SELECTED_PREVIEW_ITEM_SCALE = 2.0f;
+    private static final float SELECTED_PREVIEW_ITEM_SCALE = 1.5f;
     private static final float CARD_PREVIEW_ITEM_SCALE = 2.0f;
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
     private static final float SELECTED_PREVIEW_MODEL_SCALE = 1.10f;
@@ -63,6 +67,12 @@ public class QuestBoardScreen extends Screen {
     private static final int COLOR_MUTED_TEXT = 0xBEB7A7;
     private static final int COLOR_ALERT_TEXT = 0xE79AA4;
     private static final int COLOR_REWARD_TEXT = 0x5D4A2D;
+    private static final int COLOR_AVAILABLE = 0xEABF4A;
+    private static final int COLOR_ACTIVE = 0x82B5D8;
+    private static final int COLOR_CLAIMABLE = 0x8AD49A;
+    private static final int COLOR_COMPLETED = 0xBEB7A7;
+    private static final int COLOR_LOCKED = 0xD17F86;
+    private static final int COLOR_COOLDOWN = 0xB7A4D8;
     private static final long DOUBLE_CLICK_MS = 350L;
 
     private final String boardId;
@@ -161,7 +171,7 @@ public class QuestBoardScreen extends Screen {
         QuestBoardState.QuestCard selected = getSelectedQuest();
         selectedModelWidget = selected == null || !usesPokemonPreview(selected)
                 ? null
-                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 38, top + 82, 54, 54, SELECTED_PREVIEW_MODEL_SCALE);
+                : createModelWidget(selected.previewSpecies, selected.previewShiny, left + 27, top + 78, 48, 44, SELECTED_PREVIEW_MODEL_SCALE);
     }
 
     private void onPrimaryAction() {
@@ -230,8 +240,8 @@ public class QuestBoardScreen extends Screen {
         int refreshX = left + GUI_W - HEADER_RIGHT_MARGIN - refreshWidth;
         int titleMaxWidth = Math.max(40, refreshX - (left + HEADER_TITLE_X) - 6);
         String title = ellipsize(this.state.boardName == null ? this.boardId : this.state.boardName, titleMaxWidth);
-        guiGraphics.drawString(this.font, title, left + HEADER_TITLE_X, top + HEADER_Y, COLOR_HEADER_TEXT, false);
-        guiGraphics.drawString(this.font, refresh, refreshX, top + HEADER_Y, COLOR_HEADER_TEXT, false);
+        guiGraphics.drawString(this.font, title, left + HEADER_TITLE_X, top + HEADER_Y, COLOR_HEADER_TEXT, true);
+        guiGraphics.drawString(this.font, refresh, refreshX, top + HEADER_Y, COLOR_HEADER_TEXT, true);
 
         int hoveredQuestIndex = -1;
         for (int i = 0; i < Math.min(QUEST_SLOT_X.length, state.quests.size()); i++) {
@@ -241,31 +251,47 @@ public class QuestBoardScreen extends Screen {
             if (inside(mouseX, mouseY, sx, sy, 50, 50)) {
                 hoveredQuestIndex = i;
             }
+            renderCardSurface(guiGraphics, card, sx, sy);
             if (i == selectedIndex) {
-                guiGraphics.fill(sx - 2, sy - 2, sx + 52, sy - 1, 0xBFD8C097);
-                guiGraphics.fill(sx - 2, sy + 51, sx + 52, sy + 52, 0xBFD8C097);
-                guiGraphics.fill(sx - 2, sy - 2, sx - 1, sy + 52, 0xBFD8C097);
-                guiGraphics.fill(sx + 51, sy - 2, sx + 52, sy + 52, 0xBFD8C097);
+                int selectionColor = statusColor(card);
+                guiGraphics.fill(sx - 2, sy - 2, sx + 52, sy - 1, selectionColor);
+                guiGraphics.fill(sx - 2, sy + 51, sx + 52, sy + 52, selectionColor);
+                guiGraphics.fill(sx - 2, sy - 2, sx - 1, sy + 52, selectionColor);
+                guiGraphics.fill(sx + 51, sy - 2, sx + 52, sy + 52, selectionColor);
                 guiGraphics.fill(sx, sy, sx + 50, sy + 50, 0x222C2115);
                 guiGraphics.drawString(this.font, ">", sx + 54, sy + 20 + selectPointerOffsetY, 0xFFE7D29F, false);
+            } else if (hoveredQuestIndex == i) {
+                int hoverColor = statusColor(card);
+                guiGraphics.fill(sx - 1, sy - 1, sx + 51, sy, hoverColor);
+                guiGraphics.fill(sx - 1, sy + 50, sx + 51, sy + 51, hoverColor);
+                guiGraphics.fill(sx - 1, sy - 1, sx, sy + 51, hoverColor);
+                guiGraphics.fill(sx + 50, sy - 1, sx + 51, sy + 51, hoverColor);
             }
             if (i < cardWidgets.size() && cardWidgets.get(i) != null) {
                 cardWidgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
             } else {
                 renderCardPreviewItem(guiGraphics, card, sx, sy);
             }
+            renderCardStateMarker(guiGraphics, card, sx, sy);
         }
 
         QuestBoardState.QuestCard selected = getSelectedQuest();
         if (selected != null) {
-            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 43, COLOR_TITLE, false);
+            guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y,
+                    left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A24170E);
+            guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y,
+                    left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + 1, 0xB8D1B07A);
+            guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y + DETAIL_PANEL_H - 1,
+                    left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
+
+            guiGraphics.drawString(this.font, ellipsize(selected.questName, DETAIL_W), left + DETAIL_X, top + 43, COLOR_TITLE, true);
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 54, COLOR_BODY_TEXT, false);
-            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 65, COLOR_BODY_TEXT, false);
+            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), DETAIL_W), left + DETAIL_X, top + 54, statusColor(selected), true);
+            guiGraphics.drawString(this.font, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, DETAIL_W), left + DETAIL_X, top + 65, COLOR_BODY_TEXT, true);
 
             String timerText = detailTimerText(selected);
             if (!timerText.isBlank()) {
-                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 76, COLOR_ALERT_TEXT, false);
+                guiGraphics.drawString(this.font, ellipsize(timerText, DETAIL_W), left + DETAIL_X, top + 76, COLOR_ALERT_TEXT, true);
             }
 
             ResourceLocation tierTexture = resolveTierTexture(selected.rewardPokedollars);
@@ -275,8 +301,10 @@ public class QuestBoardScreen extends Screen {
         }
 
         if (selectedModelWidget != null) {
+            renderSelectedPreviewFrame(guiGraphics, left, top);
             selectedModelWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         } else if (selected != null) {
+            renderSelectedPreviewFrame(guiGraphics, left, top);
             renderSelectedPreviewItem(guiGraphics, selected, left, top);
         }
 
@@ -291,17 +319,15 @@ public class QuestBoardScreen extends Screen {
         }
 
         if (interactionHint != null && !interactionHint.isBlank()) {
-            int hintY = top + GUI_H + 6;
-            if (hintY + 9 > this.height) {
-                hintY = Math.max(4, top - 12);
-            }
+            int hintY = top + GUI_H - 10;
             String hintText = ellipsize(interactionHint, GUI_W - 4);
             int hintX = left + (GUI_W - this.font.width(hintText)) / 2;
+            guiGraphics.fill(left + 10, hintY - 2, left + GUI_W - 10, hintY + 9, 0xA51E140D);
             guiGraphics.drawString(this.font, hintText, hintX, hintY, COLOR_BODY_TEXT, true);
         }
 
         if (System.currentTimeMillis() < cancelConfirmUntil) {
-            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.cancel_confirm").getString(), 126), left + 153, top + 136, COLOR_ALERT_TEXT, false);
+            guiGraphics.drawString(this.font, ellipsize(Component.translatable("cobblemon-economy.quest.cancel_confirm").getString(), DETAIL_W), left + DETAIL_X, top + 112, COLOR_ALERT_TEXT, true);
         }
 
         if (hoveredQuestIndex >= 0 && hoveredQuestIndex < state.quests.size()) {
@@ -481,6 +507,46 @@ public class QuestBoardScreen extends Screen {
         ResourceLocation minecraft = ResourceLocation.fromNamespaceAndPath("minecraft", shortId);
         item = BuiltInRegistries.ITEM.get(minecraft);
         return item != null && item != Items.AIR ? item : Items.BARRIER;
+    }
+
+    private void renderCardStateMarker(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
+        int color = statusColor(card);
+        guiGraphics.fill(slotX + 42, slotY + 42, slotX + 48, slotY + 48, 0xB51A110A);
+        guiGraphics.fill(slotX + 43, slotY + 43, slotX + 47, slotY + 47, color);
+    }
+
+    private void renderCardSurface(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
+        int color = statusColor(card);
+        guiGraphics.fill(slotX, slotY, slotX + 50, slotY + 50, 0x6B24170E);
+        guiGraphics.fill(slotX + 2, slotY + 2, slotX + 48, slotY + 3, 0x5ADEC695);
+        guiGraphics.fill(slotX + 2, slotY + 47, slotX + 48, slotY + 48, 0x7A1A110A);
+        guiGraphics.fill(slotX + 2, slotY + 47, slotX + 48, slotY + 49, color);
+    }
+
+    private void renderSelectedPreviewFrame(GuiGraphics guiGraphics, int left, int top) {
+        int x = left + 24;
+        int y = top + 76;
+        int width = 52;
+        int height = 47;
+        guiGraphics.fill(x, y, x + width, y + height, 0x8C24170E);
+        guiGraphics.fill(x, y, x + width, y + 1, 0xB8D1B07A);
+        guiGraphics.fill(x, y + height - 1, x + width, y + height, 0x7A8A6A42);
+        guiGraphics.fill(x, y, x + 1, y + height, 0x7A8A6A42);
+        guiGraphics.fill(x + width - 1, y, x + width, y + height, 0x7A8A6A42);
+    }
+
+    private int statusColor(QuestBoardState.QuestCard card) {
+        String status = card == null || card.status == null
+                ? "AVAILABLE"
+                : card.status.toUpperCase(Locale.ROOT);
+        return switch (status) {
+            case "ACTIVE" -> COLOR_ACTIVE;
+            case "CLAIMABLE" -> COLOR_CLAIMABLE;
+            case "COMPLETED" -> COLOR_COMPLETED;
+            case "LOCKED" -> COLOR_LOCKED;
+            case "ON_COOLDOWN" -> COLOR_COOLDOWN;
+            default -> COLOR_AVAILABLE;
+        };
     }
 
     private boolean usesPokemonPreview(QuestBoardState.QuestCard card) {
