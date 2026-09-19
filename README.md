@@ -401,30 +401,6 @@ Minecraft server tests additionally require Java 21 and all runtime mods to be
 available locally; a missing dependency is reported as a structured
 `mod_loading` failure.
 
-### OpenCode MCP
-
-After `npm run build`, configure the local MCP server in a project-local
-`opencode.jsonc`. Use an absolute path for `dist/mcp.js`, keep `cwd` at the
-mod repository root, and do not commit machine-specific paths:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "servers": {
-      "minecraft-agent": {
-        "type": "local",
-        "command": ["node", "/absolute/path/to/minecraft-agent/dist/mcp.js"],
-        "cwd": "/absolute/path/to/CobblemonEconomyMod"
-      }
-    }
-  }
-}
-```
-
-The server exposes `inspect_project`, `create_project`, `build_project`,
-`test_project`, `read_logs`, and `get_artifact`.
-
 ## Support
 Discord: https://discord.gg/zxZXcaTHwe
 
