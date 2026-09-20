@@ -64,7 +64,9 @@ public class QuestBoardScreen extends Screen {
     private static final float CARD_PREVIEW_MODEL_SCALE = 0.80f;
     private static final float SELECTED_PREVIEW_MODEL_SCALE = 0.75f;
     private static final int COLOR_HEADER_TEXT = 0xF7F2E5;
-    private static final int COLOR_TITLE = 0xEABF4A;
+    private static final int COLOR_QUEST_TIER_1 = 0xB8B8B8;
+    private static final int COLOR_QUEST_TIER_2 = 0xEABF4A;
+    private static final int COLOR_QUEST_TIER_3 = 0xC77DFF;
     private static final int COLOR_BODY_TEXT = 0xE5E1D7;
     private static final int COLOR_MUTED_TEXT = 0xBEB7A7;
     private static final int COLOR_ALERT_TEXT = 0xE79AA4;
@@ -235,7 +237,7 @@ public class QuestBoardScreen extends Screen {
         int top = top();
         guiGraphics.fill(left, top, left + GUI_W, top + GUI_H, 0xFF1A120A);
         blitNearest(guiGraphics, BACKGROUND, left, top, 0, 0, GUI_W, GUI_H, TEX_W, TEX_H);
-        blitNearest(guiGraphics, FAVICON, left + HEADER_ICON_X, top + HEADER_TITLE_Y + 1, 0, 0, 7, 7, 7, 7);
+        blitNearest(guiGraphics, FAVICON, left + HEADER_ICON_X, top + HEADER_TITLE_Y, 0, 0, 7, 7, 7, 7);
 
         String refresh = formatDuration(this.state.rotationRemainingMs);
         int refreshWidth = Math.round(this.font.width(refresh) * HEADER_TEXT_SCALE);
@@ -288,7 +290,7 @@ public class QuestBoardScreen extends Screen {
             guiGraphics.fill(left + DETAIL_PANEL_X, top + DETAIL_PANEL_Y + DETAIL_PANEL_H - 1,
                     left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
 
-            drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left, top + 44, COLOR_TITLE);
+            drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left, top + 44, questDifficultyColor(selected));
             String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
             drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), scaledDetailWidth()), left, top + 56, statusColor(selected));
             drawDetailText(guiGraphics, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, scaledDetailWidth()), left, top + 68, COLOR_BODY_TEXT);
@@ -660,16 +662,37 @@ public class QuestBoardScreen extends Screen {
     }
 
     private ResourceLocation resolveTierTexture(BigDecimal reward) {
-        if (reward == null) {
-            return TIER_1;
+        return switch (questTier(reward)) {
+            case 3 -> TIER_3;
+            case 2 -> TIER_2;
+            default -> TIER_1;
+        };
+    }
+
+    private int questTier(BigDecimal reward) {
+        if (reward != null && reward.compareTo(new BigDecimal("10000")) >= 0) {
+            return 3;
         }
-        if (reward.compareTo(new BigDecimal("10000")) >= 0) {
-            return TIER_3;
+        if (reward != null && reward.compareTo(new BigDecimal("5000")) >= 0) {
+            return 2;
         }
-        if (reward.compareTo(new BigDecimal("5000")) >= 0) {
-            return TIER_2;
-        }
-        return TIER_1;
+        return 1;
+    }
+
+    private int questDifficultyColor(QuestBoardState.QuestCard card) {
+        return switch (questTier(card == null ? null : card.rewardPokedollars)) {
+            case 3 -> COLOR_QUEST_TIER_3;
+            case 2 -> COLOR_QUEST_TIER_2;
+            default -> COLOR_QUEST_TIER_1;
+        };
+    }
+
+    private ChatFormatting questDifficultyFormatting(QuestBoardState.QuestCard card) {
+        return switch (questTier(card == null ? null : card.rewardPokedollars)) {
+            case 3 -> ChatFormatting.LIGHT_PURPLE;
+            case 2 -> ChatFormatting.GOLD;
+            default -> ChatFormatting.GRAY;
+        };
     }
 
     private void blitNearest(GuiGraphics guiGraphics,
@@ -819,7 +842,7 @@ public class QuestBoardScreen extends Screen {
         }
 
         List<Component> tooltip = new ArrayList<>();
-        tooltip.add(Component.literal(card.questName == null ? "Quest" : card.questName).withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal(card.questName == null ? "Quest" : card.questName).withStyle(questDifficultyFormatting(card)));
 
         String statusKey = card.status == null ? "available" : card.status.toLowerCase(Locale.ROOT);
         tooltip.add(Component.translatable("cobblemon-economy.quest.status." + statusKey).withStyle(ChatFormatting.GRAY));
