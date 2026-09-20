@@ -63,3 +63,4 @@
 - Send upload metadata as a multipart form string (or file contents), never as a multipart file attachment; changelog semicolons can otherwise corrupt inline `curl -F` parsing.
 - Check every paginated file response before deciding that a release version is missing, otherwise an old release can be uploaded twice.
 - CurseForge mod uploads require at least one environment-group version; for Minecraft mods include the Client (`9638`) and/or Server (`9639`) IDs in addition to the Minecraft and loader IDs.
+- CurseForge publication is asynchronous: the public file list can remain behind for hours. Treat a successful upload request as accepted and do not retry the same tag merely because the file is not visible yet.

@@ -130,9 +130,15 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 
 - Le contrôle des fichiers utilise `/v1/mods/{id}/files`, parcourt toutes les pages et ignore une version déjà présente.
 - Les IDs `11779`, `7499`, `9638` et `9639` sont vérifiés comme correspondant respectivement à Minecraft `1.21.1`, Fabric, Client et Server via `/api/game/versions` avec `X-Api-Token`.
-- Le contrôle d’existence utilise l’API publique `/api/v1/mods/{id}/files`, car la clé Core `/v1` renvoie `403` avec le token d’upload configuré.
+- Le contrôle d’existence utilise l’API Core `/v1/mods/{id}/files` avec la clé développeur `CURSEFORGE_API_KEY`, afin d’inclure les fichiers en attente ou rejetés.
 - L’upload utilise `/api/projects/{id}/upload-file`, `X-Api-Token`, `--form-string metadata=...` et le JAR en multipart binaire.
-- Le secret Forgejo requis reste `CURSEFORGE_TOKEN`; sa valeur est envoyée sous `x-api-key` pour l’API Core et sous `X-Api-Token` pour l’API d’upload.
+- Les secrets Forgejo sont séparés : `CURSEFORGE_API_KEY` pour la lecture Core et `CURSEFORGE_TOKEN` pour l’upload legacy.
+
+### Politique de publication CurseForge
+
+- [x] Limiter la publication au workflow déclenché par un tag de version `v*`.
+- [x] Considérer une requête d’upload HTTP `2xx` comme acceptée sans attendre la modération asynchrone.
+- [x] Ne pas retoucher ni relancer le tag `v0.0.18` après son upload accepté.
 
 ### Smoke test CurseForge local
 
