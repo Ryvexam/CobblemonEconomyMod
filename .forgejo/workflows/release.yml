@@ -148,7 +148,31 @@ jobs:
             printf 'Release %s\n' "$RELEASE_TAG" > release-notes.md
           fi
 
+      - name: Check existing Modrinth version
+        id: modrinth_version
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          MODRINTH_PROJECT_ID: ${{ steps.metadata.outputs.modrinth_project_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSIONS_FILE=$(mktemp)
+          trap 'rm -f "$VERSIONS_FILE"' EXIT
+          curl --fail --silent --show-error \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}/version" > "$VERSIONS_FILE"
+
+          if jq -e --arg version "$RELEASE_VERSION" \
+              'any(.[]; .version_number == $version)' "$VERSIONS_FILE" >/dev/null; then
+            echo "publish=false" >> "$FORGEJO_OUTPUT"
+            echo "Modrinth $RELEASE_VERSION already exists; skipping upload."
+          else
+            echo "publish=true" >> "$FORGEJO_OUTPUT"
+          fi
+
       - name: Publish to Modrinth
+        if: steps.modrinth_version.outputs.publish == 'true'
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
@@ -184,7 +208,36 @@ jobs:
             -F "data=<$DATA_FILE;type=application/json" \
             -F "file=@$RELEASE_ARTIFACT"
 
+      - name: Check existing CurseForge file
+        id: curseforge_version
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES_FILE=$(mktemp)
+          trap 'rm -f "$FILES_FILE"' EXIT
+          curl --fail --silent --show-error \
+            -G "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/files" \
+            -H "X-Api-Token: $CURSEFORGE_TOKEN" \
+            --data-urlencode 'index=0' \
+            --data-urlencode 'pageSize=50' > "$FILES_FILE"
+
+          if jq -e \
+              --arg display_name "Cobblemon Economy $RELEASE_VERSION" \
+              --arg file_name "cobblemon-economy-$RELEASE_VERSION.jar" \
+              'any(.data[]; .displayName == $display_name or .fileName == $file_name)' \
+              "$FILES_FILE" >/dev/null; then
+            echo "publish=false" >> "$FORGEJO_OUTPUT"
+            echo "CurseForge $RELEASE_VERSION already exists; skipping upload."
+          else
+            echo "publish=true" >> "$FORGEJO_OUTPUT"
+          fi
+
       - name: Publish to CurseForge
+        if: steps.curseforge_version.outputs.publish == 'true'
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
