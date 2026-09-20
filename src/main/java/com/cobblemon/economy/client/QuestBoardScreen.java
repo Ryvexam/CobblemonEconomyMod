@@ -11,10 +11,12 @@ import com.cobblemon.mod.common.pokemon.RenderablePokemon;
 import com.cobblemon.mod.common.pokemon.Species;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -22,15 +24,21 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.resources.PlayerSkin;
+import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-import com.mojang.authlib.properties.PropertyMap;
 import net.minecraft.util.Mth;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.Team;
 
 import java.math.BigDecimal;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 
 public class QuestBoardScreen extends Screen {
@@ -90,6 +98,7 @@ public class QuestBoardScreen extends Screen {
     private long cancelConfirmUntil = 0L;
     private ModelWidget selectedModelWidget;
     private final List<ModelWidget> cardWidgets = new ArrayList<>();
+    private final Map<Integer, TrainerPreviewPlayer> trainerPreviewPlayers = new HashMap<>();
     private int ticksElapsed = 0;
     private int selectPointerOffsetY = 0;
     private boolean selectPointerIncrement = false;
@@ -141,6 +150,7 @@ public class QuestBoardScreen extends Screen {
         this.cancelConfirmUntil = 0L;
         this.lastTickAt = System.currentTimeMillis();
         this.refreshQueued = false;
+        this.trainerPreviewPlayers.clear();
         buildModelWidgets();
     }
 
@@ -279,6 +289,8 @@ public class QuestBoardScreen extends Screen {
             }
             if (i < cardWidgets.size() && cardWidgets.get(i) != null) {
                 cardWidgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
+            } else if (usesTrainerPreview(card)) {
+                renderTrainerPreview(guiGraphics, card, sx + 1, sy + 1, sx + 49, sy + 49, 15, mouseX, mouseY);
             } else {
                 renderCardPreviewItem(guiGraphics, card, sx, sy);
             }
@@ -314,6 +326,9 @@ public class QuestBoardScreen extends Screen {
         if (selectedModelWidget != null) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
             selectedModelWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+        } else if (usesTrainerPreview(selected)) {
+            renderSelectedPreviewFrame(guiGraphics, left, top);
+            renderTrainerPreview(guiGraphics, selected, left + 35, top + 92, left + 85, top + 122, 10, mouseX, mouseY);
         } else if (selected != null) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
             renderSelectedPreviewItem(guiGraphics, selected, left, top);
@@ -661,14 +676,53 @@ public class QuestBoardScreen extends Screen {
     }
 
     private ItemStack createPreviewStack(QuestBoardState.QuestCard card) {
-        ItemStack stack = new ItemStack(resolveItem(card != null ? card.previewItem : null));
-        if (card != null && "BATTLE".equalsIgnoreCase(card.previewKind) && stack.is(Items.PLAYER_HEAD)) {
-            applyTrainerProfile(stack, card.questId);
-        }
-        return stack;
+        return new ItemStack(resolveItem(card != null ? card.previewItem : null));
     }
 
-    private void applyTrainerProfile(ItemStack stack, String questId) {
+    private boolean usesTrainerPreview(QuestBoardState.QuestCard card) {
+        return card != null
+                && "BATTLE".equalsIgnoreCase(card.previewKind)
+                && this.minecraft != null
+                && this.minecraft.level != null;
+    }
+
+    private void renderTrainerPreview(GuiGraphics guiGraphics,
+                                      QuestBoardState.QuestCard card,
+                                      int x1,
+                                      int y1,
+                                      int x2,
+                                      int y2,
+                                      int scale,
+                                      int mouseX,
+                                      int mouseY) {
+        TrainerPreviewPlayer player = getTrainerPreviewPlayer(card.questId);
+        if (player == null) {
+            return;
+        }
+        InventoryScreen.renderEntityInInventoryFollowsMouse(
+                guiGraphics,
+                x1,
+                y1,
+                x2,
+                y2,
+                scale,
+                0.0f,
+                mouseX,
+                mouseY,
+                player
+        );
+    }
+
+    private TrainerPreviewPlayer getTrainerPreviewPlayer(String questId) {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return null;
+        }
+        int index = trainerProfileIndex(questId);
+        return this.trainerPreviewPlayers.computeIfAbsent(index,
+                ignored -> new TrainerPreviewPlayer(this.minecraft.level, createTrainerProfile(index)));
+    }
+
+    private GameProfile createTrainerProfile(int index) {
         String[] textures = {
                 "e3RleHR1cmVzOntTS0lOOnt1cmw6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzI5YTg1MDE1Y2VmMjU2NjIyMGZhYTY2ZWRlYTlhYTg5M2M4OGE3NmMxOTZkMDkyYzA1ZmI2ZDcwMjE0MjRjMyJ9fX0=",
                 "e3RleHR1cmVzOntTS0lOOnt1cmw6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2JiN2M0MDkyZWJmMmViMjI3Y2NmMDJjMjRmNTk2YjU0YzUwMzc0YTIyZDEwNTVhMzFhMWQ3N2MwZGUzYWUyOSJ9fX0=",
@@ -679,15 +733,37 @@ public class QuestBoardScreen extends Screen {
                 "fbd1d8da-1288-5597-88ea-20d820e0eae0",
                 "bb13a321-95e6-5753-b2bd-b74d9b638890"
         };
-        int index = Math.floorMod(questId == null ? 0 : questId.hashCode(), textures.length);
-        PropertyMap properties = new PropertyMap();
-        properties.put("textures", new Property("textures", textures[index]));
-        ResolvableProfile profile = new ResolvableProfile(
-                java.util.Optional.empty(),
-                java.util.Optional.of(java.util.UUID.fromString(ids[index])),
-                properties
-        );
-        stack.set(DataComponents.PROFILE, profile);
+        GameProfile profile = new GameProfile(java.util.UUID.fromString(ids[index]), "CobEcoTrainer" + index);
+        profile.getProperties().put("textures", new Property("textures", textures[index]));
+        return profile;
+    }
+
+    private int trainerProfileIndex(String questId) {
+        return Math.floorMod(questId == null ? 0 : questId.hashCode(), 3);
+    }
+
+    private static final class TrainerPreviewPlayer extends RemotePlayer {
+        private static final PlayerTeam HIDDEN_NAME_TEAM = createHiddenNameTeam();
+
+        private TrainerPreviewPlayer(ClientLevel level, GameProfile profile) {
+            super(level, profile);
+        }
+
+        @Override
+        public PlayerSkin getSkin() {
+            return Minecraft.getInstance().getSkinManager().getInsecureSkin(getGameProfile());
+        }
+
+        @Override
+        public PlayerTeam getTeam() {
+            return HIDDEN_NAME_TEAM;
+        }
+
+        private static PlayerTeam createHiddenNameTeam() {
+            PlayerTeam team = new PlayerTeam(new Scoreboard(), "cobblemon_economy_preview");
+            team.setNameTagVisibility(Team.Visibility.NEVER);
+            return team;
+        }
     }
 
     private String normalizeToken(String raw) {
