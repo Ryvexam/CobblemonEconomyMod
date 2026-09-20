@@ -307,7 +307,7 @@ jobs:
         run: |
           set -euo pipefail
           GAME_VERSIONS=$(printf '%s' "$CURSEFORGE_GAME_VERSION_IDS" | tr ',' '\n' | jq -R -s 'split("\n") | map(select(length > 0)) | map(tonumber)')
-          METADATA=$(jq -n \
+          METADATA=$(jq -c -n \
             --arg version "$RELEASE_VERSION" \
             --arg body "$(cat release-notes.md)" \
             --argjson game_versions "$GAME_VERSIONS" \
@@ -316,11 +316,18 @@ jobs:
               gameVersions: $game_versions, releaseType: "release",
               isMarkedForManualRelease: false}')
 
-          HEADER_FILE=$(mktemp)
-          trap 'rm -f "$HEADER_FILE"' EXIT
-          printf 'X-Api-Token: %s\n' "$CURSEFORGE_TOKEN" > "$HEADER_FILE"
-          curl --fail-with-body --silent --show-error \
+          RESPONSE_FILE=$(mktemp)
+          trap 'rm -f "$RESPONSE_FILE"' EXIT
+          HTTP_STATUS=$(curl --silent --show-error \
+            --output "$RESPONSE_FILE" \
+            --write-out '%{http_code}' \
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file" \
-            -H "@$HEADER_FILE" \
+            -H "X-Api-Token: $CURSEFORGE_TOKEN" \
             --form-string "metadata=$METADATA" \
-            -F "file=@$RELEASE_ARTIFACT;type=application/java-archive"
+            -F "file=@$RELEASE_ARTIFACT;type=application/java-archive" || true)
+          echo "CurseForge upload HTTP ${HTTP_STATUS}"
+          cat "$RESPONSE_FILE"
+          if [[ "$HTTP_STATUS" != 2* ]]; then
+            echo "CurseForge upload failed with HTTP ${HTTP_STATUS}" >&2
+            exit 1
+          fi
