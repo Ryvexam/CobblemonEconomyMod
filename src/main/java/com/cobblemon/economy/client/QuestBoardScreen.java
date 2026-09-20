@@ -47,8 +47,9 @@ public class QuestBoardScreen extends Screen {
     private static final int HEADER_TITLE_Y = 10;
     private static final int HEADER_TIMER_Y = 10;
     private static final int HEADER_ICON_X = 24;
-    private static final int HEADER_TITLE_X = 30;
-    private static final int HEADER_RIGHT_MARGIN = 12;
+    private static final int HEADER_TITLE_X = 34;
+    private static final int HEADER_RIGHT_MARGIN = 16;
+    private static final float HEADER_TEXT_SCALE = 0.75f;
     private static final int TIER_X = 39;
     private static final int TIER_Y = 31;
     private static final float TIER_DISPLAY_SCALE = 0.75f;
@@ -237,12 +238,13 @@ public class QuestBoardScreen extends Screen {
         blitNearest(guiGraphics, FAVICON, left + HEADER_ICON_X, top + HEADER_TITLE_Y + 1, 0, 0, 7, 7, 7, 7);
 
         String refresh = formatDuration(this.state.rotationRemainingMs);
-        int refreshWidth = this.font.width(refresh);
+        int refreshWidth = Math.round(this.font.width(refresh) * HEADER_TEXT_SCALE);
         int refreshX = left + GUI_W - HEADER_RIGHT_MARGIN - refreshWidth;
-        int titleMaxWidth = Math.max(40, refreshX - (left + HEADER_TITLE_X) - 6);
+        int titleRenderedWidth = Math.max(40, refreshX - (left + HEADER_TITLE_X) - 6);
+        int titleMaxWidth = Math.max(1, Math.round(titleRenderedWidth / HEADER_TEXT_SCALE));
         String title = ellipsize(this.state.boardName == null ? this.boardId : this.state.boardName, titleMaxWidth);
-        guiGraphics.drawString(this.font, title, left + HEADER_TITLE_X, top + HEADER_TITLE_Y, COLOR_HEADER_TEXT, true);
-        guiGraphics.drawString(this.font, refresh, refreshX, top + HEADER_TIMER_Y, COLOR_HEADER_TEXT, true);
+        drawScaledText(guiGraphics, title, left + HEADER_TITLE_X, top + HEADER_TITLE_Y, COLOR_HEADER_TEXT, HEADER_TEXT_SCALE);
+        drawScaledText(guiGraphics, refresh, refreshX, top + HEADER_TIMER_Y, COLOR_HEADER_TEXT, HEADER_TEXT_SCALE);
 
         int hoveredQuestIndex = -1;
         for (int i = 0; i < Math.min(QUEST_SLOT_X.length, state.quests.size()); i++) {
@@ -611,9 +613,13 @@ public class QuestBoardScreen extends Screen {
     private void drawDetailText(GuiGraphics guiGraphics, String text, int left, int y, int color) {
         int renderedWidth = Math.round(this.font.width(text) * DETAIL_TEXT_SCALE);
         int x = left + DETAIL_PANEL_X + Math.max(0, (DETAIL_PANEL_W - renderedWidth) / 2);
+        drawScaledText(guiGraphics, text, x, y, color, DETAIL_TEXT_SCALE);
+    }
+
+    private void drawScaledText(GuiGraphics guiGraphics, String text, int x, int y, int color, float scale) {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(x, y, 0);
-        guiGraphics.pose().scale(DETAIL_TEXT_SCALE, DETAIL_TEXT_SCALE, 1.0f);
+        guiGraphics.pose().scale(scale, scale, 1.0f);
         guiGraphics.drawString(this.font, text, 0, 0, color, true);
         guiGraphics.pose().popPose();
     }
