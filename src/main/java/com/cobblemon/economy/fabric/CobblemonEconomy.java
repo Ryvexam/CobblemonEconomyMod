@@ -84,6 +84,12 @@ public class CobblemonEconomy implements ModInitializer {
             new SpawnEggItem(SHOPKEEPER, 0xEEBA10, 0xFFFFFF, new Item.Properties())
     );
 
+    public static final Item TRAINER_HEAD = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "trainer_head"),
+            new Item(new Item.Properties())
+    );
+
     public static final Block QUEST_BOARD_BLOCK = Registry.register(
             BuiltInRegistries.BLOCK,
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "quest_board"),

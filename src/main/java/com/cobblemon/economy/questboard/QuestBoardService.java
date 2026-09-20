@@ -106,7 +106,7 @@ public final class QuestBoardService {
             if (card.previewItem == null || card.previewItem.isBlank()) {
                 card.previewItem = switch (card.previewKind) {
                     case "RAID" -> selectPreviewItem("minecraft:totem_of_undying", "minecraft:end_crystal", "minecraft:nether_star");
-                    case "BATTLE" -> "minecraft:player_head";
+                    case "BATTLE" -> "cobblemon-economy:trainer_head";
                     case "TOWER" -> "minecraft:iron_sword";
                     case "FOSSIL" -> selectPreviewItem("cobblemon:fossil", "cobblemon:dome_fossil", "minecraft:nautilus_shell");
                     default -> selectPreviewItem("cobblemon:poke_ball", "minecraft:ender_pearl");
@@ -222,7 +222,7 @@ public final class QuestBoardService {
             }
             case "battle_win" -> {
                 card.previewKind = "BATTLE";
-                card.previewItem = "minecraft:player_head";
+                card.previewItem = "cobblemon-economy:trainer_head";
             }
             case "tower_win" -> {
                 card.previewKind = "TOWER";
