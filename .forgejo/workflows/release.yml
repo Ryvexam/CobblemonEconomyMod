@@ -117,11 +117,10 @@ jobs:
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
         shell: bash
         run: |
           set -euo pipefail
-          for variable in MODRINTH_TOKEN CURSEFORGE_TOKEN CURSEFORGE_API_KEY; do
+          for variable in MODRINTH_TOKEN CURSEFORGE_TOKEN; do
             if [[ -z "${!variable:-}" ]]; then
               echo "Missing Forgejo secret: $variable" >&2
               exit 1
@@ -130,7 +129,7 @@ jobs:
 
       - name: Validate CurseForge game versions
         env:
-          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           CURSEFORGE_GAME_ID: ${{ steps.metadata.outputs.curseforge_game_id }}
           CURSEFORGE_GAME_VERSION_IDS: ${{ steps.metadata.outputs.curseforge_game_version_ids }}
           RELEASE_MINECRAFT_VERSION: ${{ steps.metadata.outputs.minecraft_version }}
@@ -142,7 +141,7 @@ jobs:
           trap 'rm -f "$VERSIONS_FILE"' EXIT
           curl --fail --silent --show-error \
             -H 'Accept: application/json' \
-            -H "x-api-key: $CURSEFORGE_API_KEY" \
+            -H "x-api-key: $CURSEFORGE_TOKEN" \
             "https://api.curseforge.com/v2/games/${CURSEFORGE_GAME_ID}/versions" > "$VERSIONS_FILE"
 
           GAME_VERSION_IDS=$(printf '%s' "$CURSEFORGE_GAME_VERSION_IDS" | tr ',' '\n' | jq -R -s 'split("\n") | map(select(length > 0)) | map(tonumber)')
@@ -257,7 +256,7 @@ jobs:
       - name: Check existing CurseForge file
         id: curseforge_version
         env:
-          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
         shell: bash
@@ -272,7 +271,7 @@ jobs:
             curl --fail --silent --show-error \
               -G "https://api.curseforge.com/v1/mods/${CURSEFORGE_PROJECT_ID}/files" \
               -H 'Accept: application/json' \
-              -H "x-api-key: $CURSEFORGE_API_KEY" \
+              -H "x-api-key: $CURSEFORGE_TOKEN" \
               --data-urlencode "index=$INDEX" \
               --data-urlencode "pageSize=$PAGE_SIZE" > "$FILES_FILE"
 

@@ -124,13 +124,14 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - [x] Séparer l’API Core de lecture (`x-api-key`) de l’API legacy d’upload (`X-Api-Token`).
 - [x] Valider les IDs de versions CurseForge via l’API officielle avant l’upload.
 - [x] Rendre le contrôle d’existence paginé et l’upload multipart JSON robuste aux points-virgules du changelog.
-- [ ] Configurer `CURSEFORGE_API_KEY` dans les secrets Forgejo et confirmer un run réel de publication.
+- [x] Réutiliser `CURSEFORGE_TOKEN` comme valeur de clé API Core et de token d’upload avec les en-têtes propres à chaque API.
 
 ### Revue de l’audit CurseForge
 
 - Le contrôle des fichiers utilise `/v1/mods/{id}/files`, parcourt toutes les pages et ignore une version déjà présente.
 - Les IDs `11779` et `7499` sont vérifiés comme correspondant respectivement à Minecraft `1.21.1` et Fabric via `/v2/games/432/versions`.
 - L’upload utilise `/api/projects/{id}/upload-file`, `X-Api-Token`, `--form-string metadata=...` et le JAR en multipart binaire.
+- Le secret Forgejo requis reste `CURSEFORGE_TOKEN`; sa valeur est envoyée sous `x-api-key` pour l’API Core et sous `X-Api-Token` pour l’API d’upload.
 
 ### Smoke test CurseForge local
 

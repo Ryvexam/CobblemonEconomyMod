@@ -59,6 +59,6 @@
 
 ## CurseForge release API
 
-- CurseForge's Core API for reading files and game versions uses a developer `x-api-key`; the legacy upload API uses the separate `X-Api-Token` credential.
+- CurseForge's Core API for reading files and game versions uses the `x-api-key` header, while the legacy upload API uses `X-Api-Token`; in this project both headers intentionally carry the existing `CURSEFORGE_TOKEN` secret.
 - Send upload metadata as a multipart form string (or file contents), never as a multipart file attachment; changelog semicolons can otherwise corrupt inline `curl -F` parsing.
 - Check every paginated file response before deciding that a release version is missing, otherwise an old release can be uploaded twice.
