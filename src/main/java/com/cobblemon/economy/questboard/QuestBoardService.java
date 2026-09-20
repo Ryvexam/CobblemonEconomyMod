@@ -233,6 +233,9 @@ public final class QuestBoardService {
                 card.previewItem = selectPreviewItem("cobblemon:fossil", "cobblemon:dome_fossil", "minecraft:nautilus_shell");
             }
             default -> {
+                if ("BATTLE".equals(card.previewKind)) {
+                    return;
+                }
                 card.previewKind = "CAPTURE";
                 if (card.previewItem == null || card.previewItem.isBlank()) {
                     card.previewItem = selectPreviewItem("cobblemon:poke_ball", "minecraft:ender_pearl");

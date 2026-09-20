@@ -280,7 +280,7 @@ public class QuestBoardScreen extends Screen {
             if (i < cardWidgets.size() && cardWidgets.get(i) != null) {
                 cardWidgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
             } else if (usesTrainerPreview(card)) {
-                renderTrainerPreview(guiGraphics, card, sx + 1, sy + 1, sx + 49, sy + 49, 22, mouseX, mouseY);
+                renderTrainerPreview(guiGraphics, card, sx + 1, sy + 1, sx + 49, sy + 49, 17, mouseX, mouseY);
             } else {
                 renderCardPreviewItem(guiGraphics, card, sx, sy);
             }
@@ -318,7 +318,7 @@ public class QuestBoardScreen extends Screen {
             selectedModelWidget.render(guiGraphics, mouseX, mouseY, partialTick);
         } else if (usesTrainerPreview(selected)) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
-            renderTrainerPreview(guiGraphics, selected, left + 35, top + 92, left + 85, top + 122, 14, mouseX, mouseY);
+            renderTrainerPreview(guiGraphics, selected, left + 35, top + 92, left + 85, top + 122, 11, mouseX, mouseY);
         } else if (selected != null) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
             renderSelectedPreviewItem(guiGraphics, selected, left, top);
