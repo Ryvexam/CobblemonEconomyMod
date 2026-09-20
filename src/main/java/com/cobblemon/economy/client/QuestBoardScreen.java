@@ -44,10 +44,11 @@ public class QuestBoardScreen extends Screen {
     private static final int DETAIL_PANEL_Y = 39;
     private static final int DETAIL_PANEL_W = 69;
     private static final int DETAIL_PANEL_H = 84;
-    private static final int HEADER_Y = 8;
+    private static final int HEADER_TITLE_Y = 10;
+    private static final int HEADER_TIMER_Y = 10;
     private static final int HEADER_ICON_X = 24;
     private static final int HEADER_TITLE_X = 30;
-    private static final int HEADER_RIGHT_MARGIN = 8;
+    private static final int HEADER_RIGHT_MARGIN = 12;
     private static final int TIER_X = 39;
     private static final int TIER_Y = 31;
     private static final float TIER_DISPLAY_SCALE = 0.75f;
@@ -233,15 +234,15 @@ public class QuestBoardScreen extends Screen {
         int top = top();
         guiGraphics.fill(left, top, left + GUI_W, top + GUI_H, 0xFF1A120A);
         blitNearest(guiGraphics, BACKGROUND, left, top, 0, 0, GUI_W, GUI_H, TEX_W, TEX_H);
-        blitNearest(guiGraphics, FAVICON, left + HEADER_ICON_X, top + HEADER_Y + 1, 0, 0, 7, 7, 7, 7);
+        blitNearest(guiGraphics, FAVICON, left + HEADER_ICON_X, top + HEADER_TITLE_Y + 1, 0, 0, 7, 7, 7, 7);
 
         String refresh = formatDuration(this.state.rotationRemainingMs);
         int refreshWidth = this.font.width(refresh);
         int refreshX = left + GUI_W - HEADER_RIGHT_MARGIN - refreshWidth;
         int titleMaxWidth = Math.max(40, refreshX - (left + HEADER_TITLE_X) - 6);
         String title = ellipsize(this.state.boardName == null ? this.boardId : this.state.boardName, titleMaxWidth);
-        guiGraphics.drawString(this.font, title, left + HEADER_TITLE_X, top + HEADER_Y, COLOR_HEADER_TEXT, true);
-        guiGraphics.drawString(this.font, refresh, refreshX, top + HEADER_Y, COLOR_HEADER_TEXT, true);
+        guiGraphics.drawString(this.font, title, left + HEADER_TITLE_X, top + HEADER_TITLE_Y, COLOR_HEADER_TEXT, true);
+        guiGraphics.drawString(this.font, refresh, refreshX, top + HEADER_TIMER_Y, COLOR_HEADER_TEXT, true);
 
         int hoveredQuestIndex = -1;
         for (int i = 0; i < Math.min(QUEST_SLOT_X.length, state.quests.size()); i++) {
