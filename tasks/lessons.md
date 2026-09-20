@@ -52,3 +52,7 @@
 
 - Keep the public changelog focused on changes that affect players: gameplay, UI, content, compatibility, and player-visible fixes.
 - Do not list CI/CD, release automation, database migrations, or other implementation details in player-facing release notes.
+
+## Forgejo artifacts
+
+- Forgejo runners cannot use the standard `actions/upload-artifact@v4` implementation; use Forgejo's patched `https://code.forgejo.org/forgejo/upload-artifact@v4` action instead.

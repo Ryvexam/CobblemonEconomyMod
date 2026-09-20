@@ -209,3 +209,8 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - `./gradlew clean test build --no-daemon --console=plain` : **BUILD SUCCESSFUL**, 22 tests passants.
 - Compilation Cobblemon 1.7.1 : **BUILD SUCCESSFUL**.
 - Chargement client Minecraft 1.21.1 avec `cobblemon-economy 0.0.18` : réussi ; vérification visuelle du board interrompue par la syntaxe de commande de test, sans erreur du mod.
+
+### Correction CI Forgejo
+
+- Le premier run Forgejo a compilé correctement le JAR, puis a échoué uniquement sur `actions/upload-artifact@v4` (`GHESNotSupportedError`).
+- Les workflows utilisent maintenant l’action Forgejo patchée `code.forgejo.org/forgejo/upload-artifact@v4`, conformément à la documentation Forgejo.
