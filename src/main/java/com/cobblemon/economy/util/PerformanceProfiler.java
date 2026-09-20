@@ -1,11 +1,19 @@
 package com.cobblemon.economy.util;
 
-import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public final class PerformanceProfiler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PerformanceProfiler.class);
+    private static volatile EconomyConfig config;
+
     private PerformanceProfiler() {
+    }
+
+    public static void configure(EconomyConfig economyConfig) {
+        config = economyConfig;
     }
 
     public static long start() {
@@ -26,7 +34,7 @@ public final class PerformanceProfiler {
             return;
         }
         String suffix = details == null || details.isBlank() ? "" : " | " + details;
-        CobblemonEconomy.LOGGER.info("[Perf] {} took {} ms{}", name, elapsedMs, suffix);
+        LOGGER.info("[Perf] {} took {} ms{}", name, elapsedMs, suffix);
     }
 
     public static String format(String key, Object value) {
@@ -40,15 +48,15 @@ public final class PerformanceProfiler {
     }
 
     private static boolean isEnabled() {
-        EconomyConfig config = CobblemonEconomy.getConfig();
-        return config != null && config.enableProfiling;
+        EconomyConfig current = config;
+        return current != null && current.enableProfiling;
     }
 
     private static int getThresholdMs() {
-        EconomyConfig config = CobblemonEconomy.getConfig();
-        if (config == null || config.profilingThresholdMs <= 0) {
+        EconomyConfig current = config;
+        if (current == null || current.profilingThresholdMs <= 0) {
             return 1;
         }
-        return config.profilingThresholdMs;
+        return current.profilingThresholdMs;
     }
 }

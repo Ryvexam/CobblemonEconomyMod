@@ -1,6 +1,7 @@
 package com.cobblemon.economy.quest;
 
-import com.cobblemon.economy.fabric.CobblemonEconomy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.sql.Connection;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class QuestManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuestManager.class);
     private final File databaseFile;
     private final String url;
 
@@ -21,7 +23,7 @@ public class QuestManager {
         try {
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {
-            CobblemonEconomy.LOGGER.error("SQLite JDBC driver not found for quest manager", e);
+            LOGGER.error("SQLite JDBC driver not found for quest manager", e);
         }
         this.databaseFile = dbFile;
         this.url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
@@ -61,13 +63,17 @@ public class QuestManager {
     }
 
     private Connection connect() throws SQLException {
-        return DriverManager.getConnection(url);
+        Connection connection = DriverManager.getConnection(url);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA busy_timeout = 5000");
+        }
+        return connection;
     }
 
     private void initDatabase() {
         try {
             QuestDatabaseSchema.migrate(databaseFile);
-            CobblemonEconomy.LOGGER.info("Quest database schema ready at version {}", QuestDatabaseSchema.CURRENT_VERSION);
+            LOGGER.info("Quest database schema ready at version {}", QuestDatabaseSchema.CURRENT_VERSION);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to migrate quest database", e);
         }
@@ -93,7 +99,7 @@ public class QuestManager {
                 ));
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to load quest states for " + uuid, e);
+            LOGGER.error("Failed to load quest states for " + uuid, e);
         }
         return states;
     }
@@ -118,7 +124,7 @@ public class QuestManager {
                 );
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to load quest state for " + uuid + " quest " + questId, e);
+            LOGGER.error("Failed to load quest state for " + uuid + " quest " + questId, e);
         }
         return null;
     }
@@ -133,7 +139,7 @@ public class QuestManager {
                 return rs.getInt("c");
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to count active quests for " + uuid, e);
+            LOGGER.error("Failed to count active quests for " + uuid, e);
         }
         return 0;
     }
@@ -178,7 +184,7 @@ public class QuestManager {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to accept quest for " + uuid + " quest " + questId, e);
+            LOGGER.error("Failed to accept quest for " + uuid + " quest " + questId, e);
             return false;
         }
     }
@@ -202,7 +208,7 @@ public class QuestManager {
                 ));
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to load active quests for " + uuid, e);
+            LOGGER.error("Failed to load active quests for " + uuid, e);
         }
         return states;
     }
@@ -219,7 +225,7 @@ public class QuestManager {
                 progress.add(new ObjectiveProgress(rs.getInt("objective_index"), rs.getInt("progress")));
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to load objective progress for " + uuid + " quest " + questId, e);
+            LOGGER.error("Failed to load objective progress for " + uuid + " quest " + questId, e);
         }
         return progress;
     }
@@ -236,27 +242,34 @@ public class QuestManager {
                 return rs.getInt("progress");
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to read objective progress", e);
+            LOGGER.error("Failed to read objective progress", e);
         }
         return 0;
     }
 
     public int incrementObjectiveProgress(UUID uuid, String npcId, String questId, int objectiveIndex, int incrementBy, int targetCount) {
-        int current = getObjectiveProgress(uuid, npcId, questId, objectiveIndex);
-        int next = Math.min(targetCount, current + Math.max(0, incrementBy));
-        String sql = "INSERT INTO quest_progress(uuid, npc_id, quest_id, objective_index, progress) VALUES(?, ?, ?, ?, ?) " +
-                "ON CONFLICT(uuid, npc_id, quest_id, objective_index) DO UPDATE SET progress = excluded.progress";
+        int safeIncrement = Math.max(0, incrementBy);
+        int safeTarget = Math.max(0, targetCount);
+        String sql = "INSERT INTO quest_progress(uuid, npc_id, quest_id, objective_index, progress) " +
+                "VALUES(?, ?, ?, ?, MIN(?, ?)) " +
+                "ON CONFLICT(uuid, npc_id, quest_id, objective_index) DO UPDATE SET " +
+                "progress = MIN(?, quest_progress.progress + ?) RETURNING progress";
         try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, uuid.toString());
             stmt.setString(2, npcId);
             stmt.setString(3, questId);
             stmt.setInt(4, objectiveIndex);
-            stmt.setInt(5, next);
-            stmt.executeUpdate();
+            stmt.setInt(5, safeTarget);
+            stmt.setInt(6, safeIncrement);
+            stmt.setInt(7, safeTarget);
+            stmt.setInt(8, safeIncrement);
+            try (ResultSet result = stmt.executeQuery()) {
+                return result.next() ? result.getInt("progress") : 0;
+            }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to increment objective progress", e);
+            LOGGER.error("Failed to increment objective progress", e);
+            return getObjectiveProgress(uuid, npcId, questId, objectiveIndex);
         }
-        return next;
     }
 
     public void markQuestCompleted(UUID uuid, String npcId, String questId) {
@@ -268,12 +281,13 @@ public class QuestManager {
             stmt.setString(4, questId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to mark quest completed", e);
+            LOGGER.error("Failed to mark quest completed", e);
         }
     }
 
-    public void markQuestClaimed(UUID uuid, String npcId, String questId, long availableAt) {
-        String sql = "UPDATE quest_state SET status = 'CLAIMED', claimed_at = ?, available_at = ? WHERE uuid = ? AND npc_id = ? AND quest_id = ?";
+    public boolean claimCompletedQuest(UUID uuid, String npcId, String questId, long availableAt) {
+        String sql = "UPDATE quest_state SET status = 'CLAIMED', claimed_at = ?, available_at = ? " +
+                "WHERE uuid = ? AND npc_id = ? AND quest_id = ? AND status = 'COMPLETED'";
         try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             long now = System.currentTimeMillis();
             stmt.setLong(1, now);
@@ -281,9 +295,10 @@ public class QuestManager {
             stmt.setString(3, uuid.toString());
             stmt.setString(4, npcId);
             stmt.setString(5, questId);
-            stmt.executeUpdate();
+            return stmt.executeUpdate() == 1;
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to mark quest claimed", e);
+            LOGGER.error("Failed to mark quest claimed", e);
+            return false;
         }
     }
 
@@ -313,7 +328,7 @@ public class QuestManager {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to cancel quest", e);
+            LOGGER.error("Failed to cancel quest", e);
         }
     }
 

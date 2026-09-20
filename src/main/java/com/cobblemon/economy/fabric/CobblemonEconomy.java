@@ -55,6 +55,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import com.cobblemon.economy.util.PerformanceProfiler;
 
 public class CobblemonEconomy implements ModInitializer {
     public static final String MOD_ID = "cobblemon-economy";
@@ -142,6 +143,7 @@ public class CobblemonEconomy implements ModInitializer {
             if (!skinsDir.exists()) skinsDir.mkdirs();
 
             config = EconomyConfig.load(new File(modDirectory, "config.json"), new File(modDirectory, "shops.json"));
+            PerformanceProfiler.configure(config);
             questConfig = QuestConfig.load(new File(modDirectory, "quests.json"));
             questNpcConfig = QuestNpcConfig.load(new File(modDirectory, "quest_npcs.json"));
             questBoardBindings = QuestBoardBindings.load(new File(modDirectory, "quest_boards_bindings.json"));
@@ -338,6 +340,7 @@ public class CobblemonEconomy implements ModInitializer {
     public static void reloadConfig() {
         if (modDirectory != null) {
             config = EconomyConfig.load(new File(modDirectory, "config.json"), new File(modDirectory, "shops.json"));
+            PerformanceProfiler.configure(config);
             questConfig = QuestConfig.load(new File(modDirectory, "quests.json"));
             questNpcConfig = QuestNpcConfig.load(new File(modDirectory, "quest_npcs.json"));
             questBoardBindings = QuestBoardBindings.load(new File(modDirectory, "quest_boards_bindings.json"));

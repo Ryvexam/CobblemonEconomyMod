@@ -1061,25 +1061,20 @@ public class ShopGui {
             return;
         }
 
-        // Inventory full check WIP (not working properly yet)
-        // // Check if inventory is full
-        // boolean inventoryFull = true;
-        // for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-        //     ItemStack slot = player.getInventory().getItem(i);
-        //     if (slot.isEmpty() || slot.getCount() < slot.getMaxStackSize()) {
-        //         inventoryFull = false;
-        //         break;
-        //     }
-        // }
-        // if (inventoryFull) {
-        //     player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.inventory_full").withStyle(ChatFormatting.RED));
-        //     return;
-        // }
-
         BigDecimal price = BigDecimal.valueOf(resolved.price).multiply(BigDecimal.valueOf(resolved.quantity));
+        PurchaseDelivery delivery;
+        try {
+            delivery = preparePurchase(player, resolved);
+        } catch (Exception error) {
+            CobblemonEconomy.LOGGER.error("Invalid purchase delivery for shop {} item {}", shopId, definition.id, error);
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.delivery_error").withStyle(ChatFormatting.RED));
+            return;
+        }
+
         boolean success = isPco ? economyManager.subtractPco(player.getUUID(), price) : economyManager.subtractBalance(player.getUUID(), price);
 
         if (success) {
+            boolean limitConsumed = false;
             if (limitStatus.enabled) {
                 boolean consumed = economyManager.consumePurchaseLimit(
                         player.getUUID(),
@@ -1098,148 +1093,16 @@ public class ShopGui {
                     player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.limit_reached").withStyle(ChatFormatting.RED));
                     return;
                 }
+                limitConsumed = true;
             }
 
-            // Handle command type items
-            if (resolved.isCommand) {
-                if (definition.command != null && !definition.command.isEmpty()) {
-                    for (int i = 0; i < resolved.quantity; i++) {
-                        String cmd = definition.command.replace("%player%", player.getGameProfile().getName());
-                        // Execute command as OP using server command source
-                        player.server.getCommands().performPrefixedCommand(
-                            player.server.createCommandSourceStack()
-                                .withPermission(4) // OP permission level
-                                .withSuppressedOutput(),
-                            cmd
-                        );
-                    }
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
-                    player.playNotifySound(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.0f);
-                    logTransaction(player, resolved, isPco, false, resolved.quantity, price);
-                    resolved.resolve(player.registryAccess());
-                    return;
-                } else {
-                    player.sendSystemMessage(Component.literal("No command configured for this item").withStyle(ChatFormatting.RED));
-                    // Refund
-                    if (isPco) {
-                        economyManager.addPco(player.getUUID(), price);
-                    } else {
-                        economyManager.addBalance(player.getUUID(), price);
-                    }
-                    return;
-                }
-            }
-
-            ItemStack stackToGive;
-
-            // Check for Minecraft Loot Table (native loot table system)
-            // This uses Minecraft's built-in loot table JSON files (e.g., "minecraft:chests/simple_dungeon")
-            if (resolved.definition.lootTable != null && !resolved.definition.lootTable.isEmpty()) {
-                // Use Minecraft's native loot table system
-                // For each quantity, we roll the loot table once
-                for (int i = 0; i < resolved.quantity; i++) {
-                    try {
-                        ServerLevel level = player.serverLevel();
-                        ResourceLocation lootTableId = ResourceLocation.parse(resolved.definition.lootTable);
-                        ResourceKey<LootTable> lootTableKey = ResourceKey.create(Registries.LOOT_TABLE, lootTableId);
-
-                        LootTable lootTable = level.getServer().reloadableRegistries()
-                            .getLootTable(lootTableKey);
-
-                        if (lootTable == LootTable.EMPTY) {
-                            CobblemonEconomy.LOGGER.warn("Loot table not found: " + resolved.definition.lootTable);
-                            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_error").withStyle(ChatFormatting.RED));
-                            continue;
-                        }
-
-                        // Build loot parameters with player context
-                        // Using GIFT context which requires THIS_ENTITY and ORIGIN
-                        LootParams lootParams = new LootParams.Builder(level)
-                            .withParameter(LootContextParams.THIS_ENTITY, player)
-                            .withParameter(LootContextParams.ORIGIN, player.position())
-                            .withLuck(player.getLuck())
-                            .create(LootContextParamSets.GIFT);
-
-                        // Generate random loot from the table
-                        List<ItemStack> loot = lootTable.getRandomItems(lootParams);
-
-                        if (loot.isEmpty()) {
-                            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_empty").withStyle(ChatFormatting.YELLOW));
-                        } else {
-                            for (ItemStack lootStack : loot) {
-                                if (!player.getInventory().add(lootStack.copy())) {
-                                    player.drop(lootStack.copy(), false);
-                                }
-                                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", lootStack.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
-                            }
-                        }
-                    } catch (Exception e) {
-                        CobblemonEconomy.LOGGER.error("Failed to generate loot from table: " + resolved.definition.lootTable, e);
-                        player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_error").withStyle(ChatFormatting.RED));
-                    }
-                }
-            }
-            // Check for Lootbox/DropTable (simple list of item IDs - legacy/simple approach)
-            else if (resolved.definition.dropTable != null && !resolved.definition.dropTable.isEmpty()) {
-                // For lootboxes, we give ONE random item per purchase count? Or one bulk?
-                // Typically lootboxes are opened one by one.
-                // If quantity > 1, we should probably give 'quantity' items.
-                // But resolved.definition.dropTable means the item IS a lootbox in concept (or rather, buying it gives the drop).
-
-                // Let's iterate for quantity
-                for (int i = 0; i < resolved.quantity; i++) {
-                    String randomId = resolved.definition.dropTable.get(new Random().nextInt(resolved.definition.dropTable.size()));
-                    Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(randomId));
-                    stackToGive = new ItemStack(item);
-                    // Lootbox drops don't usually inherit the NBT of the "crate" item in config,
-                    // but the crate itself isn't given.
-
-                    if (!player.getInventory().add(stackToGive)) {
-                        player.drop(stackToGive, false);
-                    }
-                    player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", stackToGive.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
-                }
-
-                // We've handled giving items in the loop.
-                // Skip the "else" block logic for standard items.
-                // Skip the NBT logic below? The NBT logic applies to the "sold item".
-                // If dropTable is present, the "sold item" is the drop.
-                // But here we might have multiple drops.
-
-                // NOTE: The original code logic was:
-                // stackToGive = new ItemStack(item); (random drop)
-                // THEN apply NBT from definition to it.
-                // THEN give it.
-
-                // If I have a loop, I should probably apply NBT to each drop?
-                // But usually dropTable items are raw. NBT in config is usually for the display item or the fixed item.
-
-                // Let's stick to simple logic: If dropTable, repeat logic quantity times.
-                // BUT the code structure needs to support "stackToGive" variable which implies single stack.
-
-                // Refactoring handlePurchase to support quantity properly for lootboxes is tricky without changing structure.
-                // Let's assume for LOOTBOXES, quantity applies to the number of pulls.
-
-            } else {
-                stackToGive = resolved.templateStack.copy();
-                stackToGive.setCount(resolved.quantity);
-                CobblemonEconomy.LOGGER.info("Creating item to give: " + resolved.originalId);
-                CobblemonEconomy.LOGGER.info("Template components: " + resolved.templateStack.getComponents());
-                CobblemonEconomy.LOGGER.info("Copy components: " + stackToGive.getComponents());
-
-                // Apply NBT (CustomData) if present in definition (1.20.5+ way)
-                if (resolved.definition.nbt != null && !resolved.definition.nbt.isEmpty()) {
-                    try {
-                        CompoundTag nbt = TagParser.parseTag(resolved.definition.nbt);
-                        stackToGive.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
-                    } catch (Exception e) {
-                        CobblemonEconomy.LOGGER.error("Failed to parse NBT for item " + resolved.originalId, e);
-                    }
-                }
-
-                if (!player.getInventory().add(stackToGive)) {
-                    player.drop(stackToGive, false);
-                }
+            try {
+                delivery.deliver();
+            } catch (Exception error) {
+                refundPurchase(economyManager, player, resolved, shopId, isPco, price, limitConsumed);
+                CobblemonEconomy.LOGGER.error("Failed to deliver shop purchase {} from {}", definition.id, shopId, error);
+                player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.delivery_error").withStyle(ChatFormatting.RED));
+                return;
             }
 
             player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.purchase_success", resolved.quantity + "x " + resolved.name).withStyle(ChatFormatting.GREEN));
@@ -1258,6 +1121,109 @@ public class ShopGui {
                 ", " + PerformanceProfiler.format("item", resolved.originalId) +
                 ", " + PerformanceProfiler.format("qty", resolved.quantity) +
                 ", " + PerformanceProfiler.format("currency", isPco ? "PCO" : "POKE"));
+    }
+
+    @FunctionalInterface
+    private interface PurchaseDelivery {
+        void deliver() throws Exception;
+    }
+
+    private static PurchaseDelivery preparePurchase(ServerPlayer player, ResolvedItem resolved) throws Exception {
+        EconomyConfig.ShopItemDefinition definition = resolved.definition;
+        if (resolved.isCommand) {
+            if (definition.command == null || definition.command.isBlank()) {
+                throw new IllegalArgumentException("Command purchase has no command");
+            }
+            String command = definition.command.replace("%player%", player.getGameProfile().getName());
+            return () -> {
+                for (int i = 0; i < resolved.quantity; i++) {
+                    player.server.getCommands().performPrefixedCommand(
+                            player.server.createCommandSourceStack().withPermission(4).withSuppressedOutput(),
+                            command
+                    );
+                }
+            };
+        }
+
+        if (definition.lootTable != null && !definition.lootTable.isBlank()) {
+            ServerLevel level = player.serverLevel();
+            ResourceLocation lootTableId = ResourceLocation.parse(definition.lootTable);
+            ResourceKey<LootTable> lootTableKey = ResourceKey.create(Registries.LOOT_TABLE, lootTableId);
+            LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(lootTableKey);
+            if (lootTable == LootTable.EMPTY) {
+                throw new IllegalArgumentException("Unknown loot table: " + definition.lootTable);
+            }
+            LootParams lootParams = new LootParams.Builder(level)
+                    .withParameter(LootContextParams.THIS_ENTITY, player)
+                    .withParameter(LootContextParams.ORIGIN, player.position())
+                    .withLuck(player.getLuck())
+                    .create(LootContextParamSets.GIFT);
+            List<ItemStack> generated = new ArrayList<>();
+            for (int i = 0; i < resolved.quantity; i++) {
+                generated.addAll(lootTable.getRandomItems(lootParams));
+            }
+            return () -> deliverLoot(player, generated);
+        }
+
+        if (definition.dropTable != null && !definition.dropTable.isEmpty()) {
+            List<Item> candidates = new ArrayList<>();
+            for (String itemId : definition.dropTable) {
+                ResourceLocation id = ResourceLocation.parse(itemId);
+                Item item = BuiltInRegistries.ITEM.get(id);
+                if (item == Items.AIR) {
+                    throw new IllegalArgumentException("Unknown drop-table item: " + itemId);
+                }
+                candidates.add(item);
+            }
+            List<ItemStack> generated = new ArrayList<>();
+            Random random = new Random();
+            for (int i = 0; i < resolved.quantity; i++) {
+                generated.add(new ItemStack(candidates.get(random.nextInt(candidates.size()))));
+            }
+            return () -> deliverLoot(player, generated);
+        }
+
+        ItemStack stack = resolved.templateStack.copy();
+        stack.setCount(resolved.quantity);
+        if (definition.nbt != null && !definition.nbt.isBlank()) {
+            CompoundTag nbt = TagParser.parseTag(definition.nbt);
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+        }
+        return () -> giveOrDrop(player, stack);
+    }
+
+    private static void deliverLoot(ServerPlayer player, List<ItemStack> loot) {
+        if (loot.isEmpty()) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_empty").withStyle(ChatFormatting.YELLOW));
+            return;
+        }
+        for (ItemStack stack : loot) {
+            giveOrDrop(player, stack.copy());
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.shop.lootbox_open", stack.getDisplayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+    }
+
+    private static void giveOrDrop(ServerPlayer player, ItemStack stack) {
+        if (!player.getInventory().add(stack)) {
+            player.drop(stack, false);
+        }
+    }
+
+    private static void refundPurchase(EconomyManager economyManager,
+                                       ServerPlayer player,
+                                       ResolvedItem resolved,
+                                       String shopId,
+                                       boolean isPco,
+                                       BigDecimal price,
+                                       boolean limitConsumed) {
+        if (isPco) {
+            economyManager.addPco(player.getUUID(), price);
+        } else {
+            economyManager.addBalance(player.getUUID(), price);
+        }
+        if (limitConsumed) {
+            economyManager.refundPurchaseLimit(player.getUUID(), shopId, resolved.definition.id, resolved.quantity);
+        }
     }
 
     private static String formatDuration(long millis) {

@@ -467,7 +467,7 @@ public class QuestConfig {
     private static RewardDefinition reward(String pokedollars, String pco) {
         RewardDefinition reward = new RewardDefinition();
         reward.pokedollars = new BigDecimal(pokedollars);
-        reward.pco = BigDecimal.ZERO;
+        reward.pco = new BigDecimal(pco);
         return reward;
     }
 

@@ -6,6 +6,8 @@ import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.util.PerformanceProfiler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -18,15 +20,18 @@ import java.util.Map;
 import java.util.UUID;
 
 public class EconomyManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EconomyManager.class);
     private final File databaseFile;
     private final String url;
+    private final Object currencyMutationLock = new Object();
+    private final Object limitMutationLock = new Object();
 
     public EconomyManager(File dbFile) {
         try {
             // Forcer le chargement du driver SQLite pour éviter "No suitable driver found"
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {
-            CobblemonEconomy.LOGGER.error("SQLite JDBC driver not found!", e);
+            LOGGER.error("SQLite JDBC driver not found!", e);
         }
         this.databaseFile = dbFile;
         this.url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
@@ -40,7 +45,7 @@ public class EconomyManager {
     private void initDatabase() {
         try {
             EconomyDatabaseSchema.migrate(databaseFile);
-            CobblemonEconomy.LOGGER.info("Economy database schema ready at version {}", EconomyDatabaseSchema.CURRENT_VERSION);
+            LOGGER.info("Economy database schema ready at version {}", EconomyDatabaseSchema.CURRENT_VERSION);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to migrate economy database", e);
         }
@@ -78,7 +83,7 @@ public class EconomyManager {
             PerformanceProfiler.end("db_increment_capture", profileStart, PerformanceProfiler.format("uuid", uuid));
             return newCount;
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to update capture count for " + uuid, e);
+            LOGGER.error("Failed to update capture count for " + uuid, e);
         }
         PerformanceProfiler.end("db_increment_capture", profileStart, PerformanceProfiler.format("uuid", uuid));
         return current;
@@ -108,7 +113,7 @@ public class EconomyManager {
                 }
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to set capture count for " + uuid, e);
+            LOGGER.error("Failed to set capture count for " + uuid, e);
         }
     }
 
@@ -122,7 +127,7 @@ public class EconomyManager {
                 return rs.getInt("count");
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to read capture count for " + uuid, e);
+            LOGGER.error("Failed to read capture count for " + uuid, e);
         }
         return 0;
     }
@@ -135,7 +140,7 @@ public class EconomyManager {
             stmt.setInt(2, milestone);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to claim capture milestone for " + uuid, e);
+            LOGGER.error("Failed to claim capture milestone for " + uuid, e);
         }
         return false;
     }
@@ -205,7 +210,7 @@ public class EconomyManager {
                 }
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to read purchase limit for " + uuid, e);
+            LOGGER.error("Failed to read purchase limit for " + uuid, e);
         }
 
         long resetAt = windowMs > 0 ? windowStart + windowMs : 0;
@@ -271,7 +276,7 @@ public class EconomyManager {
                 }
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to read sell limit for " + uuid, e);
+            LOGGER.error("Failed to read sell limit for " + uuid, e);
         }
 
         long resetAt = windowMs > 0 ? windowStart + windowMs : 0;
@@ -285,6 +290,12 @@ public class EconomyManager {
     }
 
     public boolean consumePurchaseLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
+        synchronized (limitMutationLock) {
+            return consumePurchaseLimitLocked(uuid, shopId, itemId, quantity, limit, cooldownMinutes);
+        }
+    }
+
+    private boolean consumePurchaseLimitLocked(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
         long profileStart = PerformanceProfiler.start();
         if (limit == null || limit <= 0) {
             return true;
@@ -356,7 +367,7 @@ public class EconomyManager {
                     ", " + PerformanceProfiler.format("result", "ok"));
             return true;
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to update purchase limit for " + uuid, e);
+            LOGGER.error("Failed to update purchase limit for " + uuid, e);
         }
 
         PerformanceProfiler.end("db_purchase_limit_consume", profileStart,
@@ -368,7 +379,32 @@ public class EconomyManager {
         return false;
     }
 
+    public void refundPurchaseLimit(UUID uuid, String shopId, String itemId, int quantity) {
+        if (quantity <= 0) {
+            return;
+        }
+        String sql = "UPDATE purchase_limits SET count = MAX(0, count - ?) " +
+                "WHERE uuid = ? AND shop_id = ? AND item_id = ?";
+        synchronized (limitMutationLock) {
+            try (Connection conn = connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, quantity);
+                stmt.setString(2, uuid.toString());
+                stmt.setString(3, shopId);
+                stmt.setString(4, itemId);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                LOGGER.error("Failed to refund purchase limit for {}", uuid, e);
+            }
+        }
+    }
+
     public boolean consumeSellLimit(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
+        synchronized (limitMutationLock) {
+            return consumeSellLimitLocked(uuid, shopId, itemId, quantity, limit, cooldownMinutes);
+        }
+    }
+
+    private boolean consumeSellLimitLocked(UUID uuid, String shopId, String itemId, int quantity, Integer limit, Integer cooldownMinutes) {
         long profileStart = PerformanceProfiler.start();
         if (limit == null || limit <= 0) {
             return true;
@@ -440,7 +476,7 @@ public class EconomyManager {
                     ", " + PerformanceProfiler.format("result", "ok"));
             return true;
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to update sell limit for " + uuid, e);
+            LOGGER.error("Failed to update sell limit for " + uuid, e);
         }
 
         PerformanceProfiler.end("db_sell_limit_consume", profileStart,
@@ -491,7 +527,7 @@ public class EconomyManager {
                 }
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Error ensuring player exists: " + uuid, e);
+            LOGGER.error("Error ensuring player exists: " + uuid, e);
         }
     }
 
@@ -578,7 +614,7 @@ public class EconomyManager {
                 return new BigDecimal(rs.getString(column));
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to get " + column + " for " + uuid, e);
+            LOGGER.error("Failed to get " + column + " for " + uuid, e);
         }
         PerformanceProfiler.end("db_get_currency", profileStart,
             PerformanceProfiler.format("uuid", uuid) +
@@ -588,6 +624,13 @@ public class EconomyManager {
     }
 
     public void setBalance(UUID uuid, BigDecimal amount) {
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            setBalanceLocked(uuid, amount);
+        }
+    }
+
+    private void setBalanceLocked(UUID uuid, BigDecimal amount) {
         MainCurrencyBackend backend = getMainCurrencyBackend();
 
         if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
@@ -630,6 +673,13 @@ public class EconomyManager {
     }
 
     public void setPco(UUID uuid, BigDecimal amount) {
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            setPcoLocked(uuid, amount);
+        }
+    }
+
+    private void setPcoLocked(UUID uuid, BigDecimal amount) {
         BigDecimal oldBalance = getPco(uuid);
         if (!EconomyEvents.BALANCE_UPDATE_PRE.invoker().handle(uuid, oldBalance, amount, true)) {
             return;
@@ -649,7 +699,7 @@ public class EconomyManager {
             pstmt.setString(2, uuid.toString());
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to update " + column + " for " + uuid, e);
+            LOGGER.error("Failed to update " + column + " for " + uuid, e);
         }
         PerformanceProfiler.end("db_update_currency", profileStart,
             PerformanceProfiler.format("uuid", uuid) +
@@ -657,6 +707,13 @@ public class EconomyManager {
     }
 
     public void addBalance(UUID uuid, BigDecimal amount) {
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            addBalanceLocked(uuid, amount);
+        }
+    }
+
+    private void addBalanceLocked(UUID uuid, BigDecimal amount) {
         MainCurrencyBackend backend = getMainCurrencyBackend();
         if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -675,14 +732,24 @@ public class EconomyManager {
             }
         }
 
-        setBalance(uuid, getBalance(uuid).add(amount));
+        setBalanceLocked(uuid, MonetaryAmount.requireValid(getBalance(uuid).add(amount)));
     }
 
     public void addPco(UUID uuid, BigDecimal amount) {
-        setPco(uuid, getPco(uuid).add(amount));
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            setPcoLocked(uuid, MonetaryAmount.requireValid(getPco(uuid).add(amount)));
+        }
     }
 
     public boolean subtractBalance(UUID uuid, BigDecimal amount) {
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            return subtractBalanceLocked(uuid, amount);
+        }
+    }
+
+    private boolean subtractBalanceLocked(UUID uuid, BigDecimal amount) {
         MainCurrencyBackend backend = getMainCurrencyBackend();
 
         if (backend == MainCurrencyBackend.COBBLEDOLLARS) {
@@ -708,15 +775,18 @@ public class EconomyManager {
 
         BigDecimal current = getBalance(uuid);
         if (current.compareTo(amount) < 0) return false;
-        setBalance(uuid, current.subtract(amount));
+        setBalanceLocked(uuid, current.subtract(amount));
         return true;
     }
 
     public boolean subtractPco(UUID uuid, BigDecimal amount) {
-        BigDecimal current = getPco(uuid);
-        if (current.compareTo(amount) < 0) return false;
-        setPco(uuid, current.subtract(amount));
-        return true;
+        amount = MonetaryAmount.requireValid(amount);
+        synchronized (currencyMutationLock) {
+            BigDecimal current = getPco(uuid);
+            if (current.compareTo(amount) < 0) return false;
+            setPcoLocked(uuid, current.subtract(amount));
+            return true;
+        }
     }
 
     public List<Map.Entry<UUID, BigDecimal>> getTopBalance(int limit) {
@@ -742,7 +812,7 @@ public class EconomyManager {
                 topList.add(new AbstractMap.SimpleEntry<>(uuid, amount));
             }
         } catch (SQLException e) {
-            CobblemonEconomy.LOGGER.error("Failed to get top " + column, e);
+            LOGGER.error("Failed to get top " + column, e);
         }
         return topList;
     }

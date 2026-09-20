@@ -177,11 +177,14 @@ public final class QuestService {
             return false;
         }
 
-        giveRewards(player, quest);
         QuestNpcConfig.QuestNpcDefinition npcDefinition = CobblemonEconomy.getQuestNpcConfig() != null
                 ? CobblemonEconomy.getQuestNpcConfig().questNpcs.get(npcId)
                 : null;
-        manager.markQuestClaimed(player.getUUID(), npcId, questId, computeNextAvailability(quest, npcDefinition));
+        if (!manager.claimCompletedQuest(player.getUUID(), npcId, questId, computeNextAvailability(quest, npcDefinition))) {
+            player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.claim_not_ready").withStyle(ChatFormatting.RED));
+            return false;
+        }
+        giveRewards(player, quest);
         player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.claimed", quest.name).withStyle(ChatFormatting.GOLD));
         return true;
     }

@@ -6,8 +6,8 @@ import com.cobblemon.economy.questboard.QuestBoardService;
 import com.cobblemon.economy.storage.EconomyConfig;
 import com.cobblemon.economy.storage.QuestConfig;
 import com.cobblemon.economy.storage.QuestNpcConfig;
+import com.cobblemon.economy.storage.MonetaryAmount;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -45,7 +45,7 @@ public class EconomyCommands {
 
         dispatcher.register(Commands.literal("pay")
             .then(Commands.argument("player", EntityArgument.player())
-                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
+                .then(Commands.argument("amount", StringArgumentType.word())
                     .executes(EconomyCommands::payPlayer))));
 
 
@@ -214,9 +214,9 @@ public class EconomyCommands {
             .then(Commands.argument("player", EntityArgument.player())
                 .requires(source -> source.hasPermission(2))
                 .executes(ctx -> getCurrencyBal(ctx, EntityArgument.getPlayer(ctx, "player"), symbol, color, isMain))
-                .then(Commands.literal("add").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01)).executes(ctx -> modifyCurrency(ctx, label, "give", isMain))))
-                .then(Commands.literal("remove").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01)).executes(ctx -> modifyCurrency(ctx, label, "take", isMain))))
-                .then(Commands.literal("set").then(Commands.argument("amount", DoubleArgumentType.doubleArg(0)).executes(ctx -> modifyCurrency(ctx, label, "set", isMain))))));
+                .then(Commands.literal("add").then(Commands.argument("amount", StringArgumentType.word()).executes(ctx -> modifyCurrency(ctx, label, "give", isMain))))
+                .then(Commands.literal("remove").then(Commands.argument("amount", StringArgumentType.word()).executes(ctx -> modifyCurrency(ctx, label, "take", isMain))))
+                .then(Commands.literal("set").then(Commands.argument("amount", StringArgumentType.word()).executes(ctx -> modifyCurrency(ctx, label, "set", isMain))))));
     }
 
     private static int sendTop(CommandContext<CommandSourceStack> context, String symbol, ChatFormatting color, boolean isMain) {
@@ -366,7 +366,10 @@ public class EconomyCommands {
     private static int payPlayer(CommandContext<CommandSourceStack> context) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer source = context.getSource().getPlayerOrException();
         ServerPlayer target = EntityArgument.getPlayer(context, "player");
-        BigDecimal amount = BigDecimal.valueOf(DoubleArgumentType.getDouble(context, "amount"));
+        BigDecimal amount = parseAmount(context);
+        if (amount == null || amount.signum() == 0) {
+            return 0;
+        }
         CobblemonEconomy.getEconomyManager().updateUsername(source.getUUID(), source.getGameProfile().getName());
         CobblemonEconomy.getEconomyManager().updateUsername(target.getUUID(), target.getGameProfile().getName());
         if (source.getUUID().equals(target.getUUID())) return 0;
@@ -381,7 +384,10 @@ public class EconomyCommands {
 
     private static int modifyCurrency(CommandContext<CommandSourceStack> context, String label, String action, boolean isMain) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer target = EntityArgument.getPlayer(context, "player");
-        BigDecimal amount = BigDecimal.valueOf(DoubleArgumentType.getDouble(context, "amount"));
+        BigDecimal amount = parseAmount(context);
+        if (amount == null) {
+            return 0;
+        }
         CobblemonEconomy.getEconomyManager().updateUsername(target.getUUID(), target.getGameProfile().getName());
         if (isMain) {
             switch (action) {
@@ -398,5 +404,14 @@ public class EconomyCommands {
         }
         context.getSource().sendSuccess(() -> Component.translatable("cobblemon-economy.command.balance.update", target.getName().getString()), true);
         return 1;
+    }
+
+    private static BigDecimal parseAmount(CommandContext<CommandSourceStack> context) {
+        try {
+            return MonetaryAmount.parse(StringArgumentType.getString(context, "amount"));
+        } catch (IllegalArgumentException error) {
+            context.getSource().sendFailure(Component.translatable("cobblemon-economy.command.amount.invalid"));
+            return null;
+        }
     }
 }

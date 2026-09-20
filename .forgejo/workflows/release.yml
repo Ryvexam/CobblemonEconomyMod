@@ -35,9 +35,6 @@ jobs:
 
       - name: Validate release configuration
         id: metadata
-        env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -49,15 +46,6 @@ jobs:
             echo "Release tags must use v<semantic-version>, got: $TAG" >&2
             exit 1
           fi
-
-          for variable in \
-            MODRINTH_TOKEN \
-            CURSEFORGE_TOKEN; do
-            if [[ -z "${!variable:-}" ]]; then
-              echo "Missing Forgejo secret or variable: $variable" >&2
-              exit 1
-            fi
-          done
 
           command -v curl >/dev/null || { echo 'curl is required on the Forgejo runner' >&2; exit 1; }
           command -v jq >/dev/null || { echo 'jq is required on the Forgejo runner' >&2; exit 1; }
@@ -93,6 +81,7 @@ jobs:
           echo "curseforge_game_version_ids=$CURSEFORGE_GAME_VERSION_IDS" >> "$FORGEJO_OUTPUT"
 
       - name: Build and test the release JAR
+        id: build
         env:
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
         shell: bash
@@ -114,6 +103,27 @@ jobs:
             exit 1
           fi
           echo "artifact=$ARTIFACT" >> "$FORGEJO_OUTPUT"
+
+      - name: Upload the tagged JAR
+        uses: https://code.forgejo.org/actions/upload-artifact@v4
+        with:
+          name: cobblemon-economy-${{ steps.metadata.outputs.version }}
+          path: ${{ steps.build.outputs.artifact }}
+          if-no-files-found: error
+
+      - name: Validate publication credentials
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in MODRINTH_TOKEN CURSEFORGE_TOKEN; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing Forgejo secret: $variable" >&2
+              exit 1
+            fi
+          done
 
       - name: Prepare release notes
         env:
@@ -142,7 +152,7 @@ jobs:
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
-          RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+          RELEASE_ARTIFACT: ${{ steps.build.outputs.artifact }}
           RELEASE_MINECRAFT_VERSION: ${{ steps.metadata.outputs.minecraft_version }}
           RELEASE_LOADER: ${{ steps.metadata.outputs.loader }}
           MODRINTH_PROJECT_ID: ${{ steps.metadata.outputs.modrinth_project_id }}
@@ -178,7 +188,7 @@ jobs:
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
-          RELEASE_ARTIFACT: ${{ steps.metadata.outputs.artifact }}
+          RELEASE_ARTIFACT: ${{ steps.build.outputs.artifact }}
           CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
           CURSEFORGE_GAME_VERSION_IDS: ${{ steps.metadata.outputs.curseforge_game_version_ids }}
         shell: bash

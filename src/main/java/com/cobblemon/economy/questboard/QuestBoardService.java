@@ -22,10 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.time.Duration;
 
 public final class QuestBoardService {
     private static final Gson GSON = new Gson();
     private static final Map<String, List<String>> TYPE_PREVIEW_SPECIES = createTypePreviewSpecies();
+    private static final QuestBoardSessionRegistry SESSIONS = new QuestBoardSessionRegistry(Duration.ofMinutes(5));
 
     private QuestBoardService() {
     }
@@ -41,8 +43,13 @@ public final class QuestBoardService {
         }
 
         QuestBoardState state = buildState(player, boardId, board);
+        SESSIONS.issue(player.getUUID(), boardId);
         ServerPlayNetworking.send(player, new OpenQuestBoardPayload(boardId, GSON.toJson(state)));
         return true;
+    }
+
+    public static boolean validateActionSession(ServerPlayer player, String boardId) {
+        return player != null && SESSIONS.validateAndRefresh(player.getUUID(), boardId);
     }
 
     public static QuestBoardState buildState(ServerPlayer player, String boardId, QuestNpcConfig.QuestNpcDefinition board) {
