@@ -40,7 +40,7 @@ public class QuestBoardScreen extends Screen {
     private static final int GUI_W = 296;
     private static final int GUI_H = 162;
     private static final int[] QUEST_SLOT_X = {98, 153, 208, 98, 153, 208};
-    private static final int[] QUEST_SLOT_Y = {32, 32, 32, 89, 89, 89};
+    private static final int[] QUEST_SLOT_Y = {29, 29, 29, 86, 86, 86};
     private static final int DETAIL_PANEL_X = 26;
     private static final int DETAIL_PANEL_Y = 39;
     private static final int DETAIL_PANEL_W = 69;
