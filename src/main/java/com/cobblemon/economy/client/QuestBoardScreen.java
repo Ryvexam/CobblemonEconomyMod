@@ -44,11 +44,11 @@ public class QuestBoardScreen extends Screen {
     private static final int DETAIL_PANEL_Y = 39;
     private static final int DETAIL_PANEL_W = 69;
     private static final int DETAIL_PANEL_H = 84;
-    private static final int HEADER_TITLE_Y = 10;
-    private static final int HEADER_TIMER_Y = 10;
+    private static final int HEADER_TITLE_Y = 11;
+    private static final int HEADER_TIMER_Y = 11;
     private static final int HEADER_ICON_X = 24;
-    private static final int HEADER_TITLE_X = 34;
-    private static final int HEADER_RIGHT_MARGIN = 16;
+    private static final int HEADER_TITLE_X = 36;
+    private static final int HEADER_RIGHT_MARGIN = 20;
     private static final float HEADER_TEXT_SCALE = 0.75f;
     private static final int TIER_X = 39;
     private static final int TIER_Y = 31;
