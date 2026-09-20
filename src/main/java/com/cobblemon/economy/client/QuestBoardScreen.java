@@ -273,6 +273,7 @@ public class QuestBoardScreen extends Screen {
             } else {
                 renderCardPreviewItem(guiGraphics, card, sx, sy);
             }
+            renderCardCooldownOverlay(guiGraphics, card, sx, sy);
             renderCardStateMarker(guiGraphics, card, sx, sy);
         }
 
@@ -564,6 +565,13 @@ public class QuestBoardScreen extends Screen {
         guiGraphics.fill(slotX + 2, slotY + 2, slotX + 48, slotY + 3, 0x5ADEC695);
         guiGraphics.fill(slotX + 2, slotY + 47, slotX + 48, slotY + 48, 0x7A1A110A);
         guiGraphics.fill(slotX + 2, slotY + 47, slotX + 48, slotY + 49, color);
+    }
+
+    private void renderCardCooldownOverlay(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
+        if (card == null || card.status == null || !"ON_COOLDOWN".equalsIgnoreCase(card.status)) {
+            return;
+        }
+        guiGraphics.fill(slotX + 1, slotY + 1, slotX + 49, slotY + 49, 0x8850525A);
     }
 
     private void renderSelectedPreviewFrame(GuiGraphics guiGraphics, int left, int top) {
