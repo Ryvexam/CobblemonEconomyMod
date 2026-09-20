@@ -220,8 +220,8 @@ jobs:
           FILES_FILE=$(mktemp)
           trap 'rm -f "$FILES_FILE"' EXIT
           curl --fail --silent --show-error \
-            -G "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/files" \
-            -H "X-Api-Token: $CURSEFORGE_TOKEN" \
+            -G "https://api.curseforge.com/v1/mods/${CURSEFORGE_PROJECT_ID}/files" \
+            -H "x-api-key: $CURSEFORGE_TOKEN" \
             --data-urlencode 'index=0' \
             --data-urlencode 'pageSize=50' > "$FILES_FILE"
 
@@ -262,7 +262,7 @@ jobs:
           trap 'rm -f "$HEADER_FILE" "$METADATA_FILE"' EXIT
           printf '%s' "$METADATA" > "$METADATA_FILE"
           printf 'X-Api-Token: %s\n' "$CURSEFORGE_TOKEN" > "$HEADER_FILE"
-          curl --fail --silent --show-error \
+          curl --fail-with-body --silent --show-error \
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file" \
             -H "@$HEADER_FILE" \
             -F "metadata=<$METADATA_FILE;type=application/json" \
