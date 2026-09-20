@@ -129,7 +129,7 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 ### Revue de l’audit CurseForge
 
 - Le contrôle des fichiers utilise `/v1/mods/{id}/files`, parcourt toutes les pages et ignore une version déjà présente.
-- Les IDs `11779` et `7499` sont vérifiés comme correspondant respectivement à Minecraft `1.21.1` et Fabric via `/api/game/versions` avec `X-Api-Token`.
+- Les IDs `11779`, `7499`, `9638` et `9639` sont vérifiés comme correspondant respectivement à Minecraft `1.21.1`, Fabric, Client et Server via `/api/game/versions` avec `X-Api-Token`.
 - Le contrôle d’existence utilise l’API publique `/api/v1/mods/{id}/files`, car la clé Core `/v1` renvoie `403` avec le token d’upload configuré.
 - L’upload utilise `/api/projects/{id}/upload-file`, `X-Api-Token`, `--form-string metadata=...` et le JAR en multipart binaire.
 - Le secret Forgejo requis reste `CURSEFORGE_TOKEN`; sa valeur est envoyée sous `x-api-key` pour l’API Core et sous `X-Api-Token` pour l’API d’upload.

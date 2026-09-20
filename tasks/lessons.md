@@ -62,3 +62,4 @@
 - CurseForge's Core API uses a separate `x-api-key` credential; the configured `CURSEFORGE_TOKEN` is accepted by the legacy API with `X-Api-Token`, so use legacy game versions plus the public file listing unless a Core key is explicitly configured.
 - Send upload metadata as a multipart form string (or file contents), never as a multipart file attachment; changelog semicolons can otherwise corrupt inline `curl -F` parsing.
 - Check every paginated file response before deciding that a release version is missing, otherwise an old release can be uploaded twice.
+- CurseForge mod uploads require at least one environment-group version; for Minecraft mods include the Client (`9638`) and/or Server (`9639`) IDs in addition to the Minecraft and loader IDs.
