@@ -1,10 +1,10 @@
 package com.cobblemon.economy.client;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
-import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.quest.QuestDifficulty;
 import com.cobblemon.economy.questboard.QuestBoardState;
 import com.cobblemon.economy.networking.QuestBoardActionPayload;
+import com.cobblemon.mod.common.entity.npc.NPCEntity;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.client.gui.summary.widgets.ModelWidget;
 import com.cobblemon.mod.common.pokemon.Pokemon;
@@ -87,7 +87,7 @@ public class QuestBoardScreen extends Screen {
     private int selectedIndex = 0;
     private long cancelConfirmUntil = 0L;
     private ModelWidget selectedModelWidget;
-    private ShopkeeperEntity trainerPreviewEntity;
+    private NPCEntity trainerPreviewEntity;
     private final List<ModelWidget> cardWidgets = new ArrayList<>();
     private int ticksElapsed = 0;
     private int selectPointerOffsetY = 0;
@@ -529,14 +529,14 @@ public class QuestBoardScreen extends Screen {
         return card != null && "BATTLE".equalsIgnoreCase(card.previewKind) && this.trainerPreviewEntity != null;
     }
 
-    private ShopkeeperEntity createTrainerPreviewEntity() {
+    private NPCEntity createTrainerPreviewEntity() {
         if (this.minecraft == null || this.minecraft.level == null) {
             return null;
         }
-        ShopkeeperEntity entity = new ShopkeeperEntity(CobblemonEconomy.SHOPKEEPER, this.minecraft.level);
-        entity.setSkinName("shopkeeper");
-        entity.setSkinModel("steve");
-        entity.setNoAi(true);
+        NPCEntity entity = new NPCEntity(this.minecraft.level);
+        entity.setForcedResourceIdentifier(ResourceLocation.fromNamespaceAndPath("cobblemon", "standard"));
+        entity.setHideNameTag(true);
+        entity.setRenderScale(1.0f);
         return entity;
     }
 
