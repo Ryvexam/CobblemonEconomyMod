@@ -296,6 +296,7 @@ jobs:
           fi
 
       - name: Publish to CurseForge
+        id: publish_curseforge
         if: steps.curseforge_version.outputs.publish == 'true'
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -314,16 +315,18 @@ jobs:
             '{changelog: $body, changelogType: "markdown",
               displayName: ("Cobblemon Economy " + $version),
               gameVersions: $game_versions, releaseType: "release",
-              isMarkedForManualRelease: false}')
+               isMarkedForManualRelease: false}')
 
+          METADATA_FILE=$(mktemp)
           RESPONSE_FILE=$(mktemp)
-          trap 'rm -f "$RESPONSE_FILE"' EXIT
+          trap 'rm -f "$METADATA_FILE" "$RESPONSE_FILE"' EXIT
+          printf '%s' "$METADATA" > "$METADATA_FILE"
           HTTP_STATUS=$(curl --silent --show-error \
             --output "$RESPONSE_FILE" \
             --write-out '%{http_code}' \
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_PROJECT_ID}/upload-file" \
             -H "X-Api-Token: $CURSEFORGE_TOKEN" \
-            --form-string "metadata=$METADATA" \
+            -F "metadata=<$METADATA_FILE" \
             -F "file=@$RELEASE_ARTIFACT;type=application/java-archive" || true)
           echo "CurseForge upload HTTP ${HTTP_STATUS}"
           cat "$RESPONSE_FILE"
@@ -331,3 +334,67 @@ jobs:
             echo "CurseForge upload failed with HTTP ${HTTP_STATUS}" >&2
             exit 1
           fi
+          FILE_ID=$(jq -er '.id | numbers' "$RESPONSE_FILE") || {
+            echo 'CurseForge returned HTTP 200 without a file ID; upload was not confirmed.' >&2
+            exit 1
+          }
+          echo "file_id=$FILE_ID" >> "$FORGEJO_OUTPUT"
+          echo "CurseForge accepted file $FILE_ID; waiting for public release processing."
+
+      - name: Verify CurseForge publication
+        if: steps.curseforge_version.outputs.publish == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE_SIZE=50
+          MAX_ATTEMPTS=20
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            INDEX=0
+            FOUND=false
+            RELEASE_STATUS=''
+            while :; do
+              FILES_FILE=$(mktemp)
+              trap 'rm -f "$FILES_FILE"' EXIT
+              curl --fail --silent --show-error \
+                -G "https://www.curseforge.com/api/v1/mods/${CURSEFORGE_PROJECT_ID}/files" \
+                -H 'Accept: application/json' \
+                --data-urlencode "index=$INDEX" \
+                --data-urlencode "pageSize=$PAGE_SIZE" > "$FILES_FILE"
+
+              MATCH=$(jq -r \
+                --arg file_name "cobblemon-economy-$RELEASE_VERSION.jar" \
+                'first(.data[] | select(.fileName == $file_name or .displayName == $file_name) | [.id, .status] | @tsv) // empty' \
+                "$FILES_FILE")
+              if [[ -n "$MATCH" ]]; then
+                FOUND=true
+                IFS=$'\t' read -r FILE_ID RELEASE_STATUS <<< "$MATCH"
+                break
+              fi
+
+              RESULT_COUNT=$(jq -er '(.data | length)' "$FILES_FILE")
+              TOTAL_COUNT=$(jq -er '.pagination.totalCount // 0' "$FILES_FILE")
+              rm -f "$FILES_FILE"
+              if (( RESULT_COUNT == 0 || RESULT_COUNT < PAGE_SIZE || (TOTAL_COUNT > 0 && INDEX + RESULT_COUNT >= TOTAL_COUNT) )); then
+                break
+              fi
+              INDEX=$((INDEX + RESULT_COUNT))
+            done
+
+            if [[ "$FOUND" == true && "$RELEASE_STATUS" == 4 ]]; then
+              echo "CurseForge file $FILE_ID is publicly released."
+              exit 0
+            fi
+            if [[ "$FOUND" == true ]]; then
+              echo "CurseForge file $FILE_ID is present with status $RELEASE_STATUS; waiting (attempt $attempt/$MAX_ATTEMPTS)."
+            else
+              echo "CurseForge file cobblemon-economy-$RELEASE_VERSION.jar is not public yet (attempt $attempt/$MAX_ATTEMPTS)."
+            fi
+            if (( attempt < MAX_ATTEMPTS )); then
+              sleep 30
+            fi
+          done
+          echo "CurseForge did not publicly release cobblemon-economy-$RELEASE_VERSION.jar within the verification window." >&2
+          exit 1
