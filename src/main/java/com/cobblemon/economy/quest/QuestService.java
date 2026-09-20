@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,15 @@ import java.util.function.Predicate;
 
 public final class QuestService {
     public static final int DEFAULT_VISIBLE_QUESTS = 6;
+    private static final Set<String> DEFAULT_BOARD_IDS = Set.of(
+            "safari_guide",
+            "harbor_fisherman",
+            "fossil_curator",
+            "frontier_explorer",
+            "ballistics_expert",
+            "arena_duel_master",
+            "raid_commander"
+    );
 
     private QuestService() {
     }
@@ -82,7 +92,7 @@ public final class QuestService {
         int visibleLimit = Math.max(DEFAULT_VISIBLE_QUESTS, npcDefinition.visibleQuests);
         LinkedHashSet<String> selectedIds = new LinkedHashSet<>();
         selectedIds.addAll(ongoing);
-        for (String dailyId : getDailyQuestIds(player.getUUID(), npcId, npcDefinition)) {
+        for (String dailyId : getDailyQuestIds(player.getUUID(), npcId, npcDefinition, selectedIds)) {
             if (selectedIds.size() >= visibleLimit) {
                 break;
             }
@@ -120,7 +130,7 @@ public final class QuestService {
             return false;
         }
 
-        List<String> dailyQuestIds = getDailyQuestIds(player.getUUID(), npcId, npcDefinition);
+        List<String> dailyQuestIds = getDailyQuestIds(player.getUUID(), npcId, npcDefinition, List.of());
         if (!dailyQuestIds.contains(questId)) {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.daily_pool_locked").withStyle(ChatFormatting.RED));
             return false;
@@ -625,7 +635,10 @@ public final class QuestService {
         return Math.max(0L, nextRotationBoundaryMillis(npcDefinition) - System.currentTimeMillis());
     }
 
-    private static List<String> getDailyQuestIds(UUID playerUuid, String npcId, QuestNpcConfig.QuestNpcDefinition npcDefinition) {
+    private static List<String> getDailyQuestIds(UUID playerUuid,
+                                                 String npcId,
+                                                 QuestNpcConfig.QuestNpcDefinition npcDefinition,
+                                                 Collection<String> reservedIds) {
         if (npcDefinition == null || npcDefinition.questPool == null || npcDefinition.questPool.isEmpty()) {
             return List.of();
         }
@@ -638,9 +651,27 @@ public final class QuestService {
 
         List<String> copy = new ArrayList<>(new LinkedHashSet<>(npcDefinition.questPool));
         Collections.shuffle(copy, new Random(seed));
+        if (reservedIds != null && !reservedIds.isEmpty()) {
+            copy.removeIf(reservedIds::contains);
+        }
 
-        int max = Math.min(Math.max(DEFAULT_VISIBLE_QUESTS, npcDefinition.visibleQuests), copy.size());
-        return new ArrayList<>(copy.subList(0, max));
+        int visibleLimit = Math.max(DEFAULT_VISIBLE_QUESTS, npcDefinition.visibleQuests);
+        if (!DEFAULT_BOARD_IDS.contains(npcId)) {
+            int max = Math.min(visibleLimit, copy.size());
+            int remaining = Math.max(0, max - (reservedIds == null ? 0 : reservedIds.size()));
+            return new ArrayList<>(copy.subList(0, Math.min(remaining, copy.size())));
+        }
+
+        int max = visibleLimit;
+
+        QuestConfig questConfig = CobblemonEconomy.getQuestConfig();
+        if (questConfig == null || questConfig.quests == null) {
+            return new ArrayList<>(copy.subList(0, Math.min(max, copy.size())));
+        }
+
+        List<String> fallback = new ArrayList<>(questConfig.quests.keySet());
+        Collections.shuffle(fallback, new Random(seed ^ 0x5EEDBEEFL));
+        return QuestRotationSelector.selectBalanced(copy, fallback, questConfig.quests, max, reservedIds);
     }
 
     private static long rotationBucket(QuestNpcConfig.QuestNpcDefinition npcDefinition) {

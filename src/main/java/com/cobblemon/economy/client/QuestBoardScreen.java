@@ -1,6 +1,7 @@
 package com.cobblemon.economy.client;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.quest.QuestDifficulty;
 import com.cobblemon.economy.questboard.QuestBoardState;
 import com.cobblemon.economy.networking.QuestBoardActionPayload;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
@@ -264,7 +265,7 @@ public class QuestBoardScreen extends Screen {
                 guiGraphics.fill(sx - 2, sy - 2, sx - 1, sy + 52, selectionColor);
                 guiGraphics.fill(sx + 51, sy - 2, sx + 52, sy + 52, selectionColor);
                 guiGraphics.fill(sx, sy, sx + 50, sy + 50, 0x222C2115);
-                guiGraphics.drawString(this.font, ">", sx + 54, sy + 20 + selectPointerOffsetY, 0xFFE7D29F, false);
+                renderSelectionPointer(guiGraphics, sx, sy, i < 3);
             } else if (hoveredQuestIndex == i) {
                 int hoverColor = statusFillColor(card);
                 guiGraphics.fill(sx - 1, sy - 1, sx + 51, sy, hoverColor);
@@ -662,25 +663,15 @@ public class QuestBoardScreen extends Screen {
     }
 
     private ResourceLocation resolveTierTexture(BigDecimal reward) {
-        return switch (questTier(reward)) {
+        return switch (QuestDifficulty.tier(reward)) {
             case 3 -> TIER_3;
             case 2 -> TIER_2;
             default -> TIER_1;
         };
     }
 
-    private int questTier(BigDecimal reward) {
-        if (reward != null && reward.compareTo(new BigDecimal("10000")) >= 0) {
-            return 3;
-        }
-        if (reward != null && reward.compareTo(new BigDecimal("5000")) >= 0) {
-            return 2;
-        }
-        return 1;
-    }
-
     private int questDifficultyColor(QuestBoardState.QuestCard card) {
-        return switch (questTier(card == null ? null : card.rewardPokedollars)) {
+        return switch (QuestDifficulty.tier(card == null ? null : card.rewardPokedollars)) {
             case 3 -> COLOR_QUEST_TIER_3;
             case 2 -> COLOR_QUEST_TIER_2;
             default -> COLOR_QUEST_TIER_1;
@@ -688,11 +679,26 @@ public class QuestBoardScreen extends Screen {
     }
 
     private ChatFormatting questDifficultyFormatting(QuestBoardState.QuestCard card) {
-        return switch (questTier(card == null ? null : card.rewardPokedollars)) {
+        return switch (QuestDifficulty.tier(card == null ? null : card.rewardPokedollars)) {
             case 3 -> ChatFormatting.LIGHT_PURPLE;
             case 2 -> ChatFormatting.GOLD;
             default -> ChatFormatting.GRAY;
         };
+    }
+
+    private void renderSelectionPointer(GuiGraphics guiGraphics, int slotX, int slotY, boolean topRow) {
+        int x = slotX + 23;
+        int y = topRow ? slotY - 10 + selectPointerOffsetY : slotY + 51 + selectPointerOffsetY;
+        int color = 0xFFE7D29F;
+        if (topRow) {
+            guiGraphics.fill(x + 1, y, x + 3, y + 6, color);
+            guiGraphics.fill(x - 2, y + 5, x + 6, y + 7, color);
+            guiGraphics.fill(x, y + 7, x + 4, y + 9, color);
+        } else {
+            guiGraphics.fill(x, y, x + 4, y + 2, color);
+            guiGraphics.fill(x - 2, y + 2, x + 6, y + 4, color);
+            guiGraphics.fill(x + 1, y + 4, x + 3, y + 10, color);
+        }
     }
 
     private void blitNearest(GuiGraphics guiGraphics,
