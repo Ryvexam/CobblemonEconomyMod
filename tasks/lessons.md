@@ -26,3 +26,19 @@
 
 - `GuiGraphics.fill()` expects `AARRGGBB`; status colors stored as `RRGGBB`
   need an explicit opaque alpha channel before being used for pixel icons.
+
+## Release version intent
+
+- Do not infer a version bump from post-release commits. Keep the configured
+  version and tag plan requested by the maintainer unless they explicitly ask
+  for the next release number.
+
+## Quest preview assets
+
+- Do not invent a pixel-art crop when an existing entity skin already has a
+  renderer. Render the existing model for entity previews and use an empty
+  fallback instead of displaying a misleading barrier item.
+
+- `LivingEntityRenderer` decides name-tag visibility independently of
+  `Player.shouldShowName()`. For client-only player previews, use a team with
+  `Team.Visibility.NEVER` when the label must be removed completely.

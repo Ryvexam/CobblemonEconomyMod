@@ -69,6 +69,22 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Test réel `runServer` : **échec attendu et correctement classifié `mod_loading`** ; Cobblemon 1.7.1 et des dépendances YAWP compatibles sont absents/incompatibles dans l’environnement local.
 - `./gradlew build --no-daemon --console=plain` : **BUILD SUCCESSFUL** en 7 secondes ; avertissement non bloquant sur la version SemVer de SQLite.
 
+## CI build du JAR
+
+- [x] Ajouter un workflow Forgejo de validation sur push et pull request.
+- [x] Exécuter `clean test build` avec Java 21.
+- [x] Vérifier et publier le JAR principal comme artefact CI.
+- [x] Valider la syntaxe du workflow et le build local, puis commit/push.
+
+### Revue CI
+
+- Nouveau workflow : `.forgejo/workflows/ci.yml`.
+- Déclencheurs : tous les push et pull requests.
+- Build : Java 21, `./gradlew clean test build --no-daemon --console=plain`.
+- Artefact : `cobblemon-economy-<mod_version>.jar`, hors `sources.jar`.
+- Validation locale : YAML valide, blocs Bash valides, 22 tests passants,
+  JAR `0.0.18` produit.
+
 ## Compatibilité Cobblemon 1.7/1.8
 
 - [x] Confirmer la cause du crash : `PokedexEntryProgress.CAUGHT` a été remplacé par `OWNED` en 1.8.1.
@@ -105,6 +121,7 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 
 ### Smoke test CurseForge local
 
+- Profil local réutilisé pour le smoke test CurseForge.
 - JAR ajouté : `cobblemon-economy-0.0.17.jar`, avec Cobblemon Fabric `1.8.1+1.21.1` et Fabric API `0.116.17+1.21.1`.
 - Lancement terminal Java 21 validé : Fabric Loader `0.19.5` a chargé `79 mods`, puis le log a confirmé `Launching Cobblemon 1.8.1` avec `cobblemon-economy 0.0.17`.
 - Le client a été arrêté après l’initialisation par le harness de test ; les erreurs « No data fixer registered » viennent de Cobblemon et ne sont pas un échec de chargement du mod.
@@ -115,3 +132,64 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Dépôt autonome initialisé dans ce dossier : commit `49fa28a`.
 - Vérification depuis le dossier standalone : **46 tests passants**, build TypeScript passant, inspection du mod et handshake MCP validés.
 
+## Polish du quest board
+
+- [ ] Cartographier le layout actuel et les causes de chevauchement/coupure.
+- [ ] Corriger les zones sûres, le wrapping des textes et la hiérarchie de sélection.
+- [ ] Renforcer contraste et états disponibles/actifs/terminés/verrouillés.
+- [ ] Tester le build, le client Cobblemon 1.8.1 et les écrans du board.
+
+### Aperçu full skin des combats
+
+- [x] Remplacer l'aperçu `player_head` par un joueur client temporaire.
+- [x] Réutiliser les trois profils de textures fournis par le mainteneur.
+- [x] Vérifier le chargement asynchrone des textures et le rendu complet en jeu.
+- [x] Compiler, tester et contrôler l'absence de régression sur les aperçus Pokémon.
+
+### Revue
+
+- Le preview de combat rend désormais un `RemotePlayer` avec le profil de skin fourni,
+  au lieu d'une simple icône de tête.
+- Le fallback item reste disponible uniquement si le monde client n'est pas prêt.
+- Vérification visuelle en jeu : les trois variantes affichent bien le corps complet,
+  et les noms techniques des profils sont masqués.
+- `./gradlew clean test build` : 22 tests passants, version JAR `0.0.18`.
+- Compilation Cobblemon 1.7.1 : réussie.
+
+### Plan
+
+1. Mesurer les coordonnées et les contraintes de rendu dans `QuestBoardScreen`.
+2. Extraire des helpers de layout pour les cartes, textes et icônes.
+3. Ajouter les garde-fous de largeur/hauteur, ombres et états visuels sans changer le modèle de données.
+4. Construire et tester avec Cobblemon 1.8.1, puis vérifier la compilation Cobblemon 1.7.1.
+
+### Ajustement header et difficulté des missions
+
+- [x] Aligner visuellement l’icône du header avec le nom du board.
+- [x] Colorer le titre des missions selon leur niveau d’étoiles.
+- [x] Vérifier le build et le chargement client sans toucher à la version `0.0.18`.
+- [x] Positionner la flèche animée au-dessus ou sous la case selon sa rangée.
+- [x] Garantir deux missions de chaque difficulté pour les boards intégrés uniquement.
+
+### Revue de l’ajustement
+
+- Icône remontée d’un pixel pour un centrage visuel avec le texte du header à 75 %.
+- Titres 1 étoile gris, 2 étoiles dorés, 3 étoiles violet épique dans le panneau et l’infobulle.
+- 21 tests passants ; client Minecraft 1.21.1 actif avec `cobblemon-economy 0.0.18` sans erreur du mod.
+- 22 tests passants après ajout de la sélection équilibrée ; compilation 1.7.1 réussie.
+
+## Durcissement 0.0.18
+
+- [x] Confiner et tester les requêtes de skins.
+- [x] Restaurer et tester les récompenses PCO des quêtes par défaut.
+- [x] Rendre atomiques les progressions et claims de quêtes.
+- [x] Valider côté serveur les sessions d’action du quest board.
+- [x] Centraliser les invariants des montants monétaires.
+- [x] Exécuter les tests, le build propre et les smoke tests 1.8.1/1.7.1.
+
+### Revue
+
+- 21 tests passants, sans échec ni erreur.
+- Build propre Cobblemon 1.8.1 réussi ; compilation Cobblemon 1.7.1 réussie.
+- Client Minecraft 1.21.1 actif avec `cobblemon-economy 0.0.18`, sans erreur du mod.
+- Workflow Forgejo validé : tags `v*`, build/test, artefact JAR Forgejo, publication Modrinth/CurseForge.
