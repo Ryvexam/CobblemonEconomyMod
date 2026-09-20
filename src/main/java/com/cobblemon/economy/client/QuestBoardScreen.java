@@ -1,6 +1,7 @@
 package com.cobblemon.economy.client;
 
 import com.cobblemon.economy.fabric.CobblemonEconomy;
+import com.cobblemon.economy.entity.ShopkeeperEntity;
 import com.cobblemon.economy.quest.QuestDifficulty;
 import com.cobblemon.economy.questboard.QuestBoardState;
 import com.cobblemon.economy.networking.QuestBoardActionPayload;
@@ -13,6 +14,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -85,6 +87,7 @@ public class QuestBoardScreen extends Screen {
     private int selectedIndex = 0;
     private long cancelConfirmUntil = 0L;
     private ModelWidget selectedModelWidget;
+    private ShopkeeperEntity trainerPreviewEntity;
     private final List<ModelWidget> cardWidgets = new ArrayList<>();
     private int ticksElapsed = 0;
     private int selectPointerOffsetY = 0;
@@ -138,6 +141,7 @@ public class QuestBoardScreen extends Screen {
         this.lastTickAt = System.currentTimeMillis();
         this.refreshQueued = false;
         buildModelWidgets();
+        this.trainerPreviewEntity = createTrainerPreviewEntity();
     }
 
     @Override
@@ -275,6 +279,8 @@ public class QuestBoardScreen extends Screen {
             }
             if (i < cardWidgets.size() && cardWidgets.get(i) != null) {
                 cardWidgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
+            } else if (usesTrainerPreview(card)) {
+                renderTrainerPreview(guiGraphics, card, sx + 1, sy + 1, sx + 49, sy + 49, 22, mouseX, mouseY);
             } else {
                 renderCardPreviewItem(guiGraphics, card, sx, sy);
             }
@@ -310,6 +316,9 @@ public class QuestBoardScreen extends Screen {
         if (selectedModelWidget != null) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
             selectedModelWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+        } else if (usesTrainerPreview(selected)) {
+            renderSelectedPreviewFrame(guiGraphics, left, top);
+            renderTrainerPreview(guiGraphics, selected, left + 35, top + 92, left + 85, top + 122, 14, mouseX, mouseY);
         } else if (selected != null) {
             renderSelectedPreviewFrame(guiGraphics, left, top);
             renderSelectedPreviewItem(guiGraphics, selected, left, top);
@@ -488,7 +497,7 @@ public class QuestBoardScreen extends Screen {
 
     private Item resolveItem(String itemId) {
         if (itemId == null || itemId.isBlank()) {
-            return Items.BARRIER;
+            return Items.AIR;
         }
 
         String normalized = normalizeToken(itemId);
@@ -513,7 +522,48 @@ public class QuestBoardScreen extends Screen {
 
         ResourceLocation minecraft = ResourceLocation.fromNamespaceAndPath("minecraft", shortId);
         item = BuiltInRegistries.ITEM.get(minecraft);
-        return item != null && item != Items.AIR ? item : Items.BARRIER;
+        return item != null && item != Items.AIR ? item : Items.AIR;
+    }
+
+    private boolean usesTrainerPreview(QuestBoardState.QuestCard card) {
+        return card != null && "BATTLE".equalsIgnoreCase(card.previewKind) && this.trainerPreviewEntity != null;
+    }
+
+    private ShopkeeperEntity createTrainerPreviewEntity() {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return null;
+        }
+        ShopkeeperEntity entity = new ShopkeeperEntity(CobblemonEconomy.SHOPKEEPER, this.minecraft.level);
+        entity.setSkinName("shopkeeper");
+        entity.setSkinModel("steve");
+        entity.setNoAi(true);
+        return entity;
+    }
+
+    private void renderTrainerPreview(GuiGraphics guiGraphics,
+                                      QuestBoardState.QuestCard card,
+                                      int x1,
+                                      int y1,
+                                      int x2,
+                                      int y2,
+                                      int scale,
+                                      int mouseX,
+                                      int mouseY) {
+        if (!usesTrainerPreview(card)) {
+            return;
+        }
+        InventoryScreen.renderEntityInInventoryFollowsMouse(
+                guiGraphics,
+                x1,
+                y1,
+                x2,
+                y2,
+                scale,
+                0.0f,
+                mouseX,
+                mouseY,
+                this.trainerPreviewEntity
+        );
     }
 
     private void renderCardStateMarker(GuiGraphics guiGraphics, QuestBoardState.QuestCard card, int slotX, int slotY) {
