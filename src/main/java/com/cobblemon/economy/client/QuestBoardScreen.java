@@ -535,6 +535,9 @@ public class QuestBoardScreen extends Screen {
         }
         NPCEntity entity = new NPCEntity(this.minecraft.level);
         entity.setForcedResourceIdentifier(ResourceLocation.fromNamespaceAndPath("cobblemon", "standard"));
+        entity.getVariationAspects().clear();
+        entity.getAppliedAspects().clear();
+        entity.updateAspects();
         entity.setHideNameTag(true);
         entity.setRenderScale(1.0f);
         return entity;
