@@ -59,7 +59,6 @@ jobs:
           LOADER=$(jq -er '.loader | select(type == "string" and length > 0)' "$CONFIG_FILE")
           MODRINTH_PROJECT_ID=$(jq -er '.modrinth_project_id | select(type == "string" and length > 0)' "$CONFIG_FILE")
           CURSEFORGE_PROJECT_ID=$(jq -er '.curseforge_project_id | if type == "number" then tostring elif type == "string" and length > 0 then . else error("invalid project ID") end' "$CONFIG_FILE")
-          CURSEFORGE_GAME_ID=$(jq -er '.curseforge_game_id | if type == "number" then tostring elif type == "string" and length > 0 then . else error("invalid game ID") end' "$CONFIG_FILE")
           CURSEFORGE_GAME_VERSION_IDS=$(jq -er '
             .curseforge_game_version_ids
             | if type == "array" and length > 0 and all(.[]; type == "number" and floor == .)
@@ -79,7 +78,6 @@ jobs:
           echo "loader=$LOADER" >> "$FORGEJO_OUTPUT"
           echo "modrinth_project_id=$MODRINTH_PROJECT_ID" >> "$FORGEJO_OUTPUT"
           echo "curseforge_project_id=$CURSEFORGE_PROJECT_ID" >> "$FORGEJO_OUTPUT"
-          echo "curseforge_game_id=$CURSEFORGE_GAME_ID" >> "$FORGEJO_OUTPUT"
           echo "curseforge_game_version_ids=$CURSEFORGE_GAME_VERSION_IDS" >> "$FORGEJO_OUTPUT"
 
       - name: Build and test the release JAR
@@ -130,7 +128,6 @@ jobs:
       - name: Validate CurseForge game versions
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-          CURSEFORGE_GAME_ID: ${{ steps.metadata.outputs.curseforge_game_id }}
           CURSEFORGE_GAME_VERSION_IDS: ${{ steps.metadata.outputs.curseforge_game_version_ids }}
           RELEASE_MINECRAFT_VERSION: ${{ steps.metadata.outputs.minecraft_version }}
           RELEASE_LOADER: ${{ steps.metadata.outputs.loader }}
@@ -141,14 +138,14 @@ jobs:
           trap 'rm -f "$VERSIONS_FILE"' EXIT
           curl --fail --silent --show-error \
             -H 'Accept: application/json' \
-            -H "x-api-key: $CURSEFORGE_TOKEN" \
-            "https://api.curseforge.com/v2/games/${CURSEFORGE_GAME_ID}/versions" > "$VERSIONS_FILE"
+            -H "X-Api-Token: $CURSEFORGE_TOKEN" \
+            'https://minecraft.curseforge.com/api/game/versions' > "$VERSIONS_FILE"
 
           GAME_VERSION_IDS=$(printf '%s' "$CURSEFORGE_GAME_VERSION_IDS" | tr ',' '\n' | jq -R -s 'split("\n") | map(select(length > 0)) | map(tonumber)')
           while IFS= read -r version_id; do
             if ! jq -e --argjson version_id "$version_id" \
-                '[.data[].versions[] | .id] | index($version_id) != null' "$VERSIONS_FILE" >/dev/null; then
-              echo "CurseForge game version ID is not available for game ${CURSEFORGE_GAME_ID}: ${version_id}" >&2
+                'any(.[]; .id == $version_id)' "$VERSIONS_FILE" >/dev/null; then
+              echo "CurseForge game version ID is not available: ${version_id}" >&2
               exit 1
             fi
           done < <(printf '%s' "$CURSEFORGE_GAME_VERSION_IDS" | tr ',' '\n')
@@ -156,7 +153,7 @@ jobs:
           if ! jq -e \
               --arg minecraft_version "$RELEASE_MINECRAFT_VERSION" \
               --argjson version_ids "$GAME_VERSION_IDS" \
-              'any(.data[].versions[]; .name == $minecraft_version and (.id as $id | $version_ids | index($id) != null))' \
+              'any(.[]; .name == $minecraft_version and (.id as $id | $version_ids | index($id) != null))' \
               "$VERSIONS_FILE" >/dev/null; then
             echo "CurseForge version IDs do not include Minecraft ${RELEASE_MINECRAFT_VERSION}" >&2
             exit 1
@@ -164,7 +161,7 @@ jobs:
           if ! jq -e \
               --arg loader "$RELEASE_LOADER" \
               --argjson version_ids "$GAME_VERSION_IDS" \
-              'any(.data[].versions[]; (.name | ascii_downcase) == ($loader | ascii_downcase) and (.id as $id | $version_ids | index($id) != null))' \
+              'any(.[]; (.name | ascii_downcase) == ($loader | ascii_downcase) and (.id as $id | $version_ids | index($id) != null))' \
               "$VERSIONS_FILE" >/dev/null; then
             echo "CurseForge version IDs do not include loader ${RELEASE_LOADER}" >&2
             exit 1
@@ -256,7 +253,6 @@ jobs:
       - name: Check existing CurseForge file
         id: curseforge_version
         env:
-          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           CURSEFORGE_PROJECT_ID: ${{ steps.metadata.outputs.curseforge_project_id }}
         shell: bash
@@ -269,9 +265,8 @@ jobs:
             FILES_FILE=$(mktemp)
             trap 'rm -f "$FILES_FILE"' EXIT
             curl --fail --silent --show-error \
-              -G "https://api.curseforge.com/v1/mods/${CURSEFORGE_PROJECT_ID}/files" \
+              -G "https://www.curseforge.com/api/v1/mods/${CURSEFORGE_PROJECT_ID}/files" \
               -H 'Accept: application/json' \
-              -H "x-api-key: $CURSEFORGE_TOKEN" \
               --data-urlencode "index=$INDEX" \
               --data-urlencode "pageSize=$PAGE_SIZE" > "$FILES_FILE"
 
