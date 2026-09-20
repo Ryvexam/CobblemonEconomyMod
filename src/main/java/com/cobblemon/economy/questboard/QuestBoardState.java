@@ -29,6 +29,7 @@ public class QuestBoardState {
         public BigDecimal rewardPokedollars = BigDecimal.ZERO;
         public BigDecimal rewardPco = BigDecimal.ZERO;
         public boolean hasCommandRewards;
+        public List<String> prerequisites = new ArrayList<>();
         public List<String> objectives = new ArrayList<>();
     }
 }

@@ -193,3 +193,19 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Build propre Cobblemon 1.8.1 réussi ; compilation Cobblemon 1.7.1 réussie.
 - Client Minecraft 1.21.1 actif avec `cobblemon-economy 0.0.18`, sans erreur du mod.
 - Workflow Forgejo validé : tags `v*`, build/test, artefact JAR Forgejo, publication Modrinth/CurseForge.
+
+## Affichage des prérequis du quest board
+
+- [x] Faire refléter les prérequis manquants dans le statut serveur de la carte.
+- [x] Transmettre les noms des quêtes prérequises manquantes au client.
+- [x] Afficher un statut explicite et les prérequis dans l’infobulle, en anglais et en français.
+- [x] Recompiler, exécuter les tests et vérifier le chargement du client.
+
+### Revue
+
+- Une quête avec `requiresCompleted` manquant n’est plus présentée comme disponible : elle est `LOCKED`.
+- La carte expose `Prerequisites required` / `Prerequis requis` et l’infobulle liste chaque quête à terminer.
+- Le contrôle serveur d’acceptation reste inchangé et continue de refuser toute tentative non autorisée.
+- `./gradlew clean test build --no-daemon --console=plain` : **BUILD SUCCESSFUL**, 22 tests passants.
+- Compilation Cobblemon 1.7.1 : **BUILD SUCCESSFUL**.
+- Chargement client Minecraft 1.21.1 avec `cobblemon-economy 0.0.18` : réussi ; vérification visuelle du board interrompue par la syntaxe de commande de test, sans erreur du mod.

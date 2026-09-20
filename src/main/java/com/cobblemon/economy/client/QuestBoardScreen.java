@@ -308,7 +308,7 @@ public class QuestBoardScreen extends Screen {
                     left + DETAIL_PANEL_X + DETAIL_PANEL_W, top + DETAIL_PANEL_Y + DETAIL_PANEL_H, 0x7A8A6A42);
 
             drawDetailText(guiGraphics, ellipsize(selected.questName, scaledDetailWidth()), left, top + 44, questDifficultyColor(selected));
-            String statusKey = selected.status == null ? "available" : selected.status.toLowerCase(Locale.ROOT);
+            String statusKey = statusTranslationKey(selected);
             drawDetailText(guiGraphics, ellipsize(Component.translatable("cobblemon-economy.quest.status." + statusKey).getString(), scaledDetailWidth()), left, top + 56, statusColor(selected));
             drawDetailText(guiGraphics, ellipsize(selected.progressSummary == null ? "" : selected.progressSummary, scaledDetailWidth()), left, top + 68, COLOR_BODY_TEXT);
 
@@ -958,7 +958,7 @@ public class QuestBoardScreen extends Screen {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(Component.literal(card.questName == null ? "Quest" : card.questName).withStyle(questDifficultyFormatting(card)));
 
-        String statusKey = card.status == null ? "available" : card.status.toLowerCase(Locale.ROOT);
+        String statusKey = statusTranslationKey(card);
         tooltip.add(Component.translatable("cobblemon-economy.quest.status." + statusKey).withStyle(ChatFormatting.GRAY));
 
         if (card.progressSummary != null && !card.progressSummary.isBlank()) {
@@ -971,6 +971,16 @@ public class QuestBoardScreen extends Screen {
                     continue;
                 }
                 tooltip.add(Component.literal("- " + objective).withStyle(ChatFormatting.DARK_GRAY));
+            }
+        }
+
+        if (card.prerequisites != null && !card.prerequisites.isEmpty()) {
+            tooltip.add(Component.translatable("cobblemon-economy.quest.prerequisites_title").withStyle(ChatFormatting.RED));
+            for (String prerequisite : card.prerequisites) {
+                if (prerequisite == null || prerequisite.isBlank()) {
+                    continue;
+                }
+                tooltip.add(Component.translatable("cobblemon-economy.quest.prerequisite_entry", prerequisite).withStyle(ChatFormatting.RED));
             }
         }
 
@@ -994,6 +1004,13 @@ public class QuestBoardScreen extends Screen {
 
         List<FormattedCharSequence> lines = tooltip.stream().map(Component::getVisualOrderText).toList();
         guiGraphics.renderTooltip(this.font, lines, mouseX, mouseY);
+    }
+
+    private String statusTranslationKey(QuestBoardState.QuestCard card) {
+        if (card != null && card.prerequisites != null && !card.prerequisites.isEmpty()) {
+            return "prerequisite_locked";
+        }
+        return card == null || card.status == null ? "available" : card.status.toLowerCase(Locale.ROOT);
     }
 
     @Override

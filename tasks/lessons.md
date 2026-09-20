@@ -41,4 +41,14 @@
 
 - `LivingEntityRenderer` decides name-tag visibility independently of
   `Player.shouldShowName()`. For client-only player previews, use a team with
-  `Team.Visibility.NEVER` when the label must be removed completely.
+   `Team.Visibility.NEVER` when the label must be removed completely.
+
+## Quest prerequisites
+
+- A server-side prerequisite check is not enough: the board snapshot must expose the missing prerequisite state to the client before the player attempts acceptance.
+- Keep prerequisite status distinct from generic one-time locks, and include the prerequisite quest names in the hover tooltip so the player can act on the requirement.
+
+## Player-facing changelog
+
+- Keep the public changelog focused on changes that affect players: gameplay, UI, content, compatibility, and player-visible fixes.
+- Do not list CI/CD, release automation, database migrations, or other implementation details in player-facing release notes.

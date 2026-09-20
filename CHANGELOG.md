@@ -9,6 +9,8 @@ No unreleased changes.
 ## [0.0.18] - 2026-09-19
 
 ### Added
+- **Full trainer previews:** battle quests now show the supplied trainer skins in quest cards and the detail preview.
+- **Prerequisite visibility:** locked quests now show the missing prerequisite quests in the quest-board tooltip.
 - **Separated JSON configuration:** shop definitions now have a documented
   authoritative home in `shops.json`, while `config.json` contains global
   economy settings. Quest definitions, quest NPCs, milestones, and quest-board
@@ -19,6 +21,7 @@ No unreleased changes.
   and a tested release compatibility matrix for JARs `0.0.13` through `0.0.18`.
 
 ### Fixed
+- Quest-board quests with unmet prerequisites are no longer displayed as available; the missing requirements are clearly identified.
 - **Cobblemon 1.7/1.8 Pokédex compatibility:** capture and discovery rewards
   now recognize both Cobblemon 1.7's `CAUGHT` status and Cobblemon 1.8+'s
   `OWNED` status without linking to a removed enum constant.

@@ -62,6 +62,7 @@ public final class QuestBoardService {
 
         List<QuestService.QuestSnapshot> snapshots = QuestService.getQuestSnapshots(player, boardId, board);
         state.activeCount = (int) snapshots.stream().filter(q -> q.status == QuestService.QuestDisplayStatus.ACTIVE).count();
+        QuestConfig questConfig = CobblemonEconomy.getQuestConfig();
         for (QuestService.QuestSnapshot snapshot : snapshots) {
             QuestBoardState.QuestCard card = new QuestBoardState.QuestCard();
             card.questId = snapshot.questId;
@@ -86,6 +87,15 @@ public final class QuestBoardService {
                 }
                 card.hasCommandRewards = snapshot.definition.rewards.commands != null
                         && snapshot.definition.rewards.commands.stream().anyMatch(command -> command != null && !command.isBlank());
+            }
+
+            if (questConfig != null && questConfig.quests != null) {
+                for (String prerequisiteId : QuestService.getMissingPrerequisiteIds(player.getUUID(), boardId, snapshot.definition)) {
+                    QuestConfig.QuestDefinition prerequisite = questConfig.quests.get(prerequisiteId);
+                    card.prerequisites.add(prerequisite != null && prerequisite.name != null && !prerequisite.name.isBlank()
+                            ? prerequisite.name
+                            : prerequisiteId);
+                }
             }
 
             if (snapshot.definition.objectives != null) {

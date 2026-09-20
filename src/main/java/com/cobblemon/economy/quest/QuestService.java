@@ -83,7 +83,7 @@ public final class QuestService {
             QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, def,
                     manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
             List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, def);
-            QuestDisplayStatus status = resolveStatus(def, state, progress);
+            QuestDisplayStatus status = resolveStatus(player.getUUID(), npcId, def, state, progress);
             if (status == QuestDisplayStatus.ACTIVE || status == QuestDisplayStatus.CLAIMABLE) {
                 ongoing.add(questId);
             }
@@ -111,7 +111,7 @@ public final class QuestService {
             QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, def,
                     manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
             List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, def);
-            QuestDisplayStatus status = resolveStatus(def, state, progress);
+            QuestDisplayStatus status = resolveStatus(player.getUUID(), npcId, def, state, progress);
             snapshots.add(new QuestSnapshot(questId, def, state, status, progress));
         }
         return snapshots;
@@ -139,7 +139,7 @@ public final class QuestService {
         QuestManager.QuestState state = refreshExpiredQuestState(player, npcId, questId, quest,
                 manager.getQuestState(player.getUUID(), npcId, questId), npcDefinition, manager);
         List<Integer> progress = getProgressForQuest(player.getUUID(), npcId, questId, quest);
-        QuestDisplayStatus displayStatus = resolveStatus(quest, state, progress);
+        QuestDisplayStatus displayStatus = resolveStatus(player.getUUID(), npcId, quest, state, progress);
         if (!hasPrerequisites(player.getUUID(), npcId, quest)) {
             player.sendSystemMessage(Component.translatable("cobblemon-economy.quest.prerequisite_missing").withStyle(ChatFormatting.RED));
             return false;
@@ -602,6 +602,18 @@ public final class QuestService {
         return QuestDisplayStatus.AVAILABLE;
     }
 
+    private static QuestDisplayStatus resolveStatus(UUID playerUuid,
+                                                    String npcId,
+                                                    QuestConfig.QuestDefinition quest,
+                                                    QuestManager.QuestState state,
+                                                    List<Integer> progress) {
+        QuestDisplayStatus status = resolveStatus(quest, state, progress);
+        if (status == QuestDisplayStatus.AVAILABLE && !getMissingPrerequisiteIds(playerUuid, npcId, quest).isEmpty()) {
+            return QuestDisplayStatus.LOCKED;
+        }
+        return status;
+    }
+
     private static boolean isExpired(QuestConfig.QuestDefinition quest, QuestManager.QuestState state) {
         if (quest == null || state == null || !"ACTIVE".equalsIgnoreCase(state.status)) {
             return false;
@@ -698,28 +710,35 @@ public final class QuestService {
         return (currentBlock + 1L) * block;
     }
 
-    private static boolean hasPrerequisites(UUID playerUuid, String npcId, QuestConfig.QuestDefinition quest) {
+    public static List<String> getMissingPrerequisiteIds(UUID playerUuid, String npcId, QuestConfig.QuestDefinition quest) {
         if (quest == null || quest.requiresCompleted == null || quest.requiresCompleted.isEmpty()) {
-            return true;
+            return List.of();
         }
         QuestManager manager = CobblemonEconomy.getQuestManager();
         if (manager == null) {
-            return false;
+            return new ArrayList<>(quest.requiresCompleted);
         }
+
+        List<String> missing = new ArrayList<>();
         for (String requiredId : quest.requiresCompleted) {
             if (requiredId == null || requiredId.isBlank()) {
                 continue;
             }
             QuestManager.QuestState state = manager.getQuestState(playerUuid, npcId, requiredId);
             if (state == null) {
-                return false;
+                missing.add(requiredId);
+                continue;
             }
             String status = state.status == null ? "" : state.status.toUpperCase(Locale.ROOT);
             if (!"CLAIMED".equals(status) && !"COMPLETED".equals(status)) {
-                return false;
+                missing.add(requiredId);
             }
         }
-        return true;
+        return missing;
+    }
+
+    private static boolean hasPrerequisites(UUID playerUuid, String npcId, QuestConfig.QuestDefinition quest) {
+        return getMissingPrerequisiteIds(playerUuid, npcId, quest).isEmpty();
     }
 
     private static QuestNpcConfig.QuestNpcDefinition getNpcDefinition(String npcId) {
