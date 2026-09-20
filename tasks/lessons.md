@@ -56,3 +56,9 @@
 ## Forgejo artifacts
 
 - Forgejo runners cannot use the standard `actions/upload-artifact@v4` implementation; use Forgejo's patched `https://code.forgejo.org/forgejo/upload-artifact@v4` action instead.
+
+## CurseForge release API
+
+- CurseForge's Core API for reading files and game versions uses a developer `x-api-key`; the legacy upload API uses the separate `X-Api-Token` credential.
+- Send upload metadata as a multipart form string (or file contents), never as a multipart file attachment; changelog semicolons can otherwise corrupt inline `curl -F` parsing.
+- Check every paginated file response before deciding that a release version is missing, otherwise an old release can be uploaded twice.

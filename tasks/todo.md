@@ -119,6 +119,19 @@ Implementation plan: `docs/superpowers/plans/2026-09-19-local-minecraft-agent-pl
 - Ruling: utiliser `setup-java` puis installer `curl`/`jq` dans le runner Docker — l’image Forgejo par défaut n’assure pas Java 21, et cela évite de dépendre d’une image personnalisée.
 - Ruling: lancer `clean` avant le build — un workspace réutilisé peut contenir le JAR d’une version précédente et rendre la sélection ambiguë.
 
+### Audit CurseForge API
+
+- [x] Séparer l’API Core de lecture (`x-api-key`) de l’API legacy d’upload (`X-Api-Token`).
+- [x] Valider les IDs de versions CurseForge via l’API officielle avant l’upload.
+- [x] Rendre le contrôle d’existence paginé et l’upload multipart JSON robuste aux points-virgules du changelog.
+- [ ] Configurer `CURSEFORGE_API_KEY` dans les secrets Forgejo et confirmer un run réel de publication.
+
+### Revue de l’audit CurseForge
+
+- Le contrôle des fichiers utilise `/v1/mods/{id}/files`, parcourt toutes les pages et ignore une version déjà présente.
+- Les IDs `11779` et `7499` sont vérifiés comme correspondant respectivement à Minecraft `1.21.1` et Fabric via `/v2/games/432/versions`.
+- L’upload utilise `/api/projects/{id}/upload-file`, `X-Api-Token`, `--form-string metadata=...` et le JAR en multipart binaire.
+
 ### Smoke test CurseForge local
 
 - Profil local réutilisé pour le smoke test CurseForge.
