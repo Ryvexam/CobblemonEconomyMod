@@ -160,6 +160,7 @@ public class CobblemonEconomy implements ModInitializer {
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            com.cobblemon.economy.compat.impactor.ImpactorIntegration.completeRegistration();
             TabIntegration.register();
         });
 

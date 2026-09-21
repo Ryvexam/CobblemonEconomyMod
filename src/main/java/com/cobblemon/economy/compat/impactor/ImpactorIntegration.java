@@ -4,6 +4,7 @@ import com.cobblemon.economy.fabric.CobblemonEconomy;
 import com.cobblemon.economy.storage.EconomyConfig;
 import net.fabricmc.loader.api.FabricLoader;
 import net.impactdev.impactor.api.Impactor;
+import net.impactdev.impactor.api.events.ImpactorEventBus;
 import net.impactdev.impactor.api.economy.EconomyService;
 import net.impactdev.impactor.api.economy.accounts.Account;
 import net.impactdev.impactor.api.economy.events.SuggestEconomyServiceEvent;
@@ -45,14 +46,22 @@ public final class ImpactorIntegration {
         }
 
         try {
-            // Subscribe to the SuggestEconomyServiceEvent on Impactor's event bus.
-            // This fires during SERVER_STARTING inside Impactor's EconomyModule.init().
-            Impactor.instance().events().subscribe(SuggestEconomyServiceEvent.class, event -> {
+            // Subscribe to the shared event bus directly. Impactor's API service is
+            // registered by its own Fabric entrypoint, whose initialization order is
+            // not guaranteed relative to this mod. Calling Impactor.instance() here
+            // can therefore throw before Impactor has finished bootstrapping, even
+            // though the shared event bus is already available.
+            ImpactorEventBus.bus().subscribe(SuggestEconomyServiceEvent.class, event -> {
                 // Check mainCurrency config. At event fire time, our SERVER_STARTING handler
-                // may or may not have loaded the config yet. If config is null, default to
-                // "cobeco" (the default) — which means we register our service.
+                // may or may not have loaded the config yet. If config is not loaded, leave
+                // Impactor's default service in place; completeRegistration() will apply the
+                // configured provider after the server has finished starting.
                 EconomyConfig config = CobblemonEconomy.getConfig();
-                String mainCurrency = config != null ? config.mainCurrency : "cobeco";
+                if (config == null) {
+                    CobblemonEconomy.LOGGER.debug("Impactor economy selection deferred until Cobblemon Economy config is loaded.");
+                    return;
+                }
+                String mainCurrency = config.mainCurrency;
                 if (mainCurrency == null) mainCurrency = "cobeco";
 
                 if ("impactor".equalsIgnoreCase(mainCurrency.trim())) {
@@ -84,6 +93,34 @@ public final class ImpactorIntegration {
         }
 
         return true;
+    }
+
+    /**
+     * Applies the configured provider after the server configuration and economy manager are
+     * initialized. This is the fallback for loaders where Impactor posts its suggestion event
+     * before Cobblemon Economy's per-world config is loaded.
+     */
+    public static void completeRegistration() {
+        if (!registered || ownsService) {
+            return;
+        }
+
+        EconomyConfig config = CobblemonEconomy.getConfig();
+        String mainCurrency = config != null && config.mainCurrency != null
+                ? config.mainCurrency
+                : "cobeco";
+        if ("impactor".equalsIgnoreCase(mainCurrency.trim())) {
+            CobblemonEconomy.LOGGER.info("mainCurrency=impactor — keeping Impactor's EconomyService provider.");
+            return;
+        }
+
+        try {
+            Impactor.instance().services().register(EconomyService.class, new CobblecoEconomyService());
+            ownsService = true;
+            CobblemonEconomy.LOGGER.info("Registered CobblemonEconomy as Impactor EconomyService provider after config load (priority 10)");
+        } catch (Exception e) {
+            CobblemonEconomy.LOGGER.error("Failed to apply configured Impactor economy provider", e);
+        }
     }
 
     /**

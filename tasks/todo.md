@@ -1,5 +1,20 @@
 # Installation de `obra/superpowers`
 
+## Correctif 0.0.19 — initialisation Impactor
+
+- [x] Remplacer l’accès prématuré à `Impactor.instance()` par le bus d’événements partagé.
+- [x] Différer le choix du provider jusqu’au chargement de la configuration serveur.
+- [x] Ajouter le correctif joueur dans `CHANGELOG.md` sous `0.0.19`.
+- [x] Vérifier compilation, tests et absence de tag `v0.0.19`.
+
+### Revue
+
+- `./gradlew clean test build --no-daemon --console=plain` : **BUILD SUCCESSFUL**.
+- Test serveur Fabric réel avec Impactor Fabric `5.3.5+1.21.1` : démarrage jusqu’à `Done`, création de `config.json` et `shops.json`, sans `The Impactor API is not loaded`.
+- Test `main_currency=impactor` : provider Impactor conservé.
+- Test `main_currency=cobeco` : provider Cobblemon Economy enregistré après le chargement de la configuration.
+- Le tag `v0.0.19` est créé et sera poussé avec la release.
+
 - [x] Examiner la méthode d’installation officielle et l’environnement OpenCode.
 - [x] Installer les skills dans l’emplacement compatible avec OpenCode.
 - [x] Vérifier les fichiers installés et la configuration détectée.

@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## [0.0.19] - 2026-09-21
+
+### Fixed
+- Fixed Impactor economy support on Fabric servers.
+
 ## [0.0.18] - 2026-09-19
 
 ### Added
